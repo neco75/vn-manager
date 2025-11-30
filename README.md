@@ -21,7 +21,6 @@ VNDB（Visual Novel Database）と連携し、プレイしたゲームや積ん�
 ### Web版（推奨）
 
 以下のURLにアクセスするだけで、すぐに使い始めることができます。
-以下のURLにアクセスするだけで、すぐに使い始めることができます。
 https://vn-manager.vercel.app
 
 **注意点:**
