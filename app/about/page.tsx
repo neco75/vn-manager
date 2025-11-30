@@ -90,7 +90,7 @@ export default function AboutPage() {
                             </p>
                             <div className="bg-black/30 p-4 rounded-lg font-mono text-sm">
                                 <p className="text-gray-500">{t.about.local_usage_clone}</p>
-                                <p>git clone https://github.com/your-username/vn-manager.git</p>
+                                <p>git clone https://github.com/neco75/vn-manager.git</p>
                                 <p className="mt-2 text-gray-500">{t.about.local_usage_install}</p>
                                 <p>npm install</p>
                                 <p className="mt-2 text-gray-500">{t.about.local_usage_run}</p>
@@ -100,7 +100,7 @@ export default function AboutPage() {
                                 {t.about.local_usage_refer}
                             </p>
                             <Button variant="outline" className="gap-2 mt-2" asChild>
-                                <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+                                <a href="https://github.com/neco75/vn-manager" target="_blank" rel="noopener noreferrer">
                                     <Github className="w-4 h-4" />
                                     {t.about.github_button}
                                 </a>
@@ -108,7 +108,7 @@ export default function AboutPage() {
                         </div>
                     </Accordion>
                 </div>
-            </motion.div>
+            </motion.div >
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -146,6 +146,6 @@ export default function AboutPage() {
                     </p>
                 </div>
             </motion.div>
-        </div>
+        </div >
     );
 }

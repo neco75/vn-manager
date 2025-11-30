@@ -39,7 +39,7 @@ VNDB（Visual Novel Database）と連携し、プレイしたゲームや積ん�
 
 1. リポジトリをクローン
 ```bash
-git clone https://github.com/your-username/vn-manager.git
+git clone https://github.com/neco75/vn-manager.git
 cd vn-manager
 ```
 
