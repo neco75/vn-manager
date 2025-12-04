@@ -193,21 +193,7 @@ export default function VNPage() {
                                     />
                                 </div>
 
-                                {vn.screenshots.map((ss, i) => (
-                                    <div
-                                        key={i}
-                                        className="relative aspect-video rounded-lg overflow-hidden group bg-black/20 cursor-pointer"
-                                        onClick={() => setSelectedImageIndex(i)}
-                                    >
-                                        <Image
-                                            src={ss.thumbnail}
-                                            alt={`Screenshot ${i + 1}`}
-                                            fill
-                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                            sizes="(max-width: 640px) 50vw, 33vw"
-                                        />
-                                    </div>
-                                ))}
+
 
                                 <Button
                                     variant="secondary"
