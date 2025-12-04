@@ -11,12 +11,14 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 
+import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
+
 interface EditModalProps {
     vn: VN;
     libraryItem?: LibraryItem;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (status: GameStatus, score: number, notes: string, playTime: number) => void;
+    onSave: (status: GameStatus, score: number, notes: string, playTime: number, purchaseLocation?: string) => void;
     onDelete?: () => void;
 }
 
@@ -26,6 +28,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
     const [score, setScore] = useState(libraryItem?.score || 0);
     const [notes, setNotes] = useState(libraryItem?.notes || "");
     const [playTime, setPlayTime] = useState(libraryItem?.playTime || 0);
+    const [purchaseLocation, setPurchaseLocation] = useState(libraryItem?.purchaseLocation || "");
 
     const statuses: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -42,6 +45,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
             setScore(libraryItem?.score || 0);
             setNotes(libraryItem?.notes || "");
             setPlayTime(libraryItem?.playTime || 0);
+            setPurchaseLocation(libraryItem?.purchaseLocation || "");
         }
     }, [isOpen, libraryItem]);
 
@@ -110,17 +114,26 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>{t.common.playTime} ({t.common.hours})</Label>
-                        <Input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={playTime ? playTime / 60 : ""}
-                            onChange={(e) => setPlayTime(parseFloat(e.target.value) * 60)}
-                            className="bg-secondary/50 border-white/10"
-                            placeholder="10.5"
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>{t.common.playTime} ({t.common.hours})</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={playTime ? playTime / 60 : ""}
+                                onChange={(e) => setPlayTime(parseFloat(e.target.value) * 60)}
+                                className="bg-secondary/50 border-white/10"
+                                placeholder="10.5"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Purchase Location</Label>
+                            <PurchaseLocationSelector
+                                value={purchaseLocation}
+                                onChange={setPurchaseLocation}
+                            />
+                        </div>
                     </div>
 
                     <div className="space-y-2">
@@ -145,7 +158,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             </Button>
                         )}
                         <Button
-                            onClick={() => onSave(status, score, notes, playTime)}
+                            onClick={() => onSave(status, score, notes, playTime, purchaseLocation)}
                             className="flex-[2] gap-2 font-bold shadow-lg shadow-primary/25"
                         >
                             <Save className="w-4 h-4" />

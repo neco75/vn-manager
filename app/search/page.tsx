@@ -82,12 +82,12 @@ export default function SearchPage() {
                     vn={selectedVN}
                     libraryItem={getItem(selectedVN.id)}
                     onClose={() => setSelectedVN(null)}
-                    onSave={async (status, score, notes, playTime) => {
+                    onSave={async (status, score, notes, playTime, purchaseLocation) => {
                         const existing = getItem(selectedVN.id);
                         if (existing) {
                             // Usually handled in library
                         } else {
-                            await addItem(selectedVN, status, score, notes, playTime);
+                            await addItem(selectedVN, status, score, notes, playTime, "", purchaseLocation);
                             toast.success(t.search.addedToast.replace("{title}", selectedVN.title));
                         }
                         setSelectedVN(null);

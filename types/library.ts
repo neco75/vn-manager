@@ -9,6 +9,7 @@ export interface LibraryItem {
     notes: string; // Memo
     review?: string; // Thoughts/Review
     playTime?: number; // In minutes
+    purchaseLocation?: string; // Where the game was purchased
     addedAt: number;
     updatedAt: number;
 }

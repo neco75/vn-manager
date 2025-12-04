@@ -36,6 +36,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useLanguage } from "@/context/LanguageContext";
+import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 
 export default function VNPage() {
     const { id } = useParams();
@@ -51,6 +52,7 @@ export default function VNPage() {
     const [notes, setNotes] = useState("");
     const [review, setReview] = useState("");
     const [playTime, setPlayTime] = useState(0);
+    const [purchaseLocation, setPurchaseLocation] = useState("");
     const [isDirty, setIsDirty] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
@@ -88,6 +90,7 @@ export default function VNPage() {
             setNotes(libraryItem.notes);
             setReview(libraryItem.review || "");
             setPlayTime(libraryItem.playTime || 0);
+            setPurchaseLocation(libraryItem.purchaseLocation || "");
         } else {
             // Reset to default if not in library
             setStatus("plan_to_play");
@@ -95,6 +98,7 @@ export default function VNPage() {
             setNotes("");
             setReview("");
             setPlayTime(0);
+            setPurchaseLocation("");
         }
         setIsDirty(false); // Reset dirty state when libraryItem changes
     }, [libraryItem]);
@@ -104,10 +108,10 @@ export default function VNPage() {
 
         try {
             if (libraryItem) {
-                await updateItem({ ...libraryItem, status, score, notes, review, playTime });
+                await updateItem({ ...libraryItem, status, score, notes, review, playTime, purchaseLocation });
                 toast.success(t.modal.saveSuccess);
             } else {
-                await addItem(vn, status, score, notes, playTime, review);
+                await addItem(vn, status, score, notes, playTime, review, purchaseLocation);
                 toast.success(t.modal.addToLibrarySuccess);
             }
             setIsDirty(false);
@@ -276,6 +280,14 @@ export default function VNPage() {
                                 onChange={(e) => { setPlayTime(parseFloat(e.target.value) * 60); setIsDirty(true); }}
                                 className="bg-secondary/50 border-white/10"
                                 placeholder="0.0"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Purchase Location</Label>
+                            <PurchaseLocationSelector
+                                value={purchaseLocation}
+                                onChange={(v) => { setPurchaseLocation(v); setIsDirty(true); }}
                             />
                         </div>
 
