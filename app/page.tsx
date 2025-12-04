@@ -24,7 +24,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 
-type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc";
+type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 
 export default function Home() {
     const { items, isLoading } = useLibrary();
@@ -51,6 +51,12 @@ export default function Home() {
         { value: "score_asc", label: t.sort.score_asc },
         { value: "released_desc", label: t.sort.released_desc },
         { value: "released_asc", label: t.sort.released_asc },
+        { value: "rating_desc", label: t.sort.rating_desc },
+        { value: "rating_asc", label: t.sort.rating_asc },
+        { value: "title_asc", label: t.sort.title_asc },
+        { value: "title_desc", label: t.sort.title_desc },
+        { value: "vote_desc", label: t.sort.vote_desc },
+        { value: "vote_asc", label: t.sort.vote_asc },
     ], [t]);
 
     const statusCounts = useMemo(() => {
@@ -94,6 +100,18 @@ export default function Home() {
                     return (b.vn.released || "").localeCompare(a.vn.released || "");
                 case "released_asc":
                     return (a.vn.released || "").localeCompare(b.vn.released || "");
+                case "rating_desc":
+                    return (b.vn.rating || 0) - (a.vn.rating || 0);
+                case "rating_asc":
+                    return (a.vn.rating || 0) - (b.vn.rating || 0);
+                case "title_asc":
+                    return a.vn.title.localeCompare(b.vn.title);
+                case "title_desc":
+                    return b.vn.title.localeCompare(a.vn.title);
+                case "vote_desc":
+                    return (b.vn.votecount || 0) - (a.vn.votecount || 0);
+                case "vote_asc":
+                    return (a.vn.votecount || 0) - (b.vn.votecount || 0);
                 default:
                     return 0;
             }
