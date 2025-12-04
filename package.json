@@ -19,6 +19,11 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tiptap/extension-placeholder": "^3.12.1",
+    "@tiptap/extension-typography": "^3.12.1",
+    "@tiptap/react": "^3.12.1",
+    "@tiptap/starter-kit": "^3.12.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
@@ -29,9 +34,12 @@
     "next": "16.0.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.5.1",
+    "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "tiptap-markdown": "^0.9.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

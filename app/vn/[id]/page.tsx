@@ -12,6 +12,14 @@ import { useSettings } from "@/context/SettingsContext";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Accordion } from "@/components/Accordion";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import dynamic from "next/dynamic";
+
+const MarkdownEditor = dynamic(
+    () => import("@/components/MarkdownEditor").then((mod) => mod.MarkdownEditor),
+    { ssr: false }
+);
+
 import { GameStatus } from "@/types/library";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -418,34 +426,34 @@ export default function VNPage() {
                                 )}
                             </div>
                         </Accordion>
-                    </div>
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label className="text-lg font-bold flex items-center gap-2">
-                                <BookOpen className="w-5 h-5 text-gray-400" />
-                                メモ (非公開)
-                            </Label>
-                            <Textarea
-                                value={notes}
-                                onChange={(e) => { setNotes(e.target.value); setIsDirty(true); }}
-                                className="h-40 bg-secondary/30 border-white/10 resize-none"
-                                placeholder="攻略メモや進捗などを記録..."
-                            />
-                        </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-lg font-bold flex items-center gap-2">
-                                <MessageSquare className="w-5 h-5 text-accent" />
-                                感想・レビュー
-                            </Label>
-                            <Textarea
-                                value={review}
-                                onChange={(e) => { setReview(e.target.value); setIsDirty(true); }}
-                                className="h-40 bg-secondary/30 border-white/10 resize-none focus-visible:ring-accent/50"
-                                placeholder="クリア後の感想やレビューを記録..."
-                            />
-                        </div>
+
+                        <Accordion
+                            title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-gray-400" /> メモ (非公開)</div>}
+                        >
+                            <ErrorBoundary>
+                                <MarkdownEditor
+                                    value={notes}
+                                    onChange={(val) => { setNotes(val); setIsDirty(true); }}
+                                    height="h-80"
+                                    placeholder="攻略メモや進捗などを記録... (Markdown対応)"
+                                />
+                            </ErrorBoundary>
+                        </Accordion>
+
+                        <Accordion
+                            title={<div className="flex items-center gap-2"><MessageSquare className="w-5 h-5 text-accent" /> 感想・レビュー</div>}
+                        >
+                            <ErrorBoundary>
+                                <MarkdownEditor
+                                    value={review}
+                                    onChange={(val) => { setReview(val); setIsDirty(true); }}
+                                    height="h-80"
+                                    placeholder="クリア後の感想やレビューを記録... (Markdown対応)"
+                                />
+                            </ErrorBoundary>
+                        </Accordion>
                     </div>
                 </motion.div>
             </div>
