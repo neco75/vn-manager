@@ -168,7 +168,7 @@ export default function VNPage() {
             />
             {/* Page-specific Background */}
             {vn.image && (
-                <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+                <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-background">
                     <div
                         className="absolute inset-0 bg-cover bg-center blur-md opacity-40 scale-105"
                         style={{ backgroundImage: `url(${vn.image.url})` }}
