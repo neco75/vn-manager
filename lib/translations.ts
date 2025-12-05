@@ -171,6 +171,12 @@ export const translations = {
             vote_desc: "VNDB人気順 (投票数多い順)",
             vote_asc: "VNDB人気順 (投票数少ない順)",
         },
+        vn: {
+            memoPrivate: "メモ (非公開)",
+            review: "感想・レビュー",
+            memoPlaceholder: "攻略メモや進捗などを記録... (Markdown対応)",
+            reviewPlaceholder: "クリア後の感想やレビューを記録... (Markdown対応)",
+        },
     },
     en: {
         common: {
@@ -341,6 +347,12 @@ export const translations = {
             title_desc: "Title (Z-A)",
             vote_desc: "VNDB Popularity (Most Voted)",
             vote_asc: "VNDB Popularity (Least Voted)",
+        },
+        vn: {
+            memoPrivate: "Memo (Private)",
+            review: "Thoughts & Review",
+            memoPlaceholder: "Record progress and notes... (Markdown supported)",
+            reviewPlaceholder: "Record thoughts and reviews... (Markdown supported)",
         },
     },
 };

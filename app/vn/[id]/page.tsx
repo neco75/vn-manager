@@ -442,27 +442,27 @@ export default function VNPage() {
 
 
                         <Accordion
-                            title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-gray-400" /> メモ (非公開)</div>}
+                            title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-gray-400" /> {t.vn.memoPrivate}</div>}
                         >
                             <ErrorBoundary>
                                 <MarkdownEditor
                                     value={notes}
                                     onChange={(val) => { setNotes(val); setIsDirty(true); }}
                                     height="h-80"
-                                    placeholder="攻略メモや進捗などを記録... (Markdown対応)"
+                                    placeholder={t.vn.memoPlaceholder}
                                 />
                             </ErrorBoundary>
                         </Accordion>
 
                         <Accordion
-                            title={<div className="flex items-center gap-2"><MessageSquare className="w-5 h-5 text-accent" /> 感想・レビュー</div>}
+                            title={<div className="flex items-center gap-2"><MessageSquare className="w-5 h-5 text-accent" /> {t.vn.review}</div>}
                         >
                             <ErrorBoundary>
                                 <MarkdownEditor
                                     value={review}
                                     onChange={(val) => { setReview(val); setIsDirty(true); }}
                                     height="h-80"
-                                    placeholder="クリア後の感想やレビューを記録... (Markdown対応)"
+                                    placeholder={t.vn.reviewPlaceholder}
                                 />
                             </ErrorBoundary>
                         </Accordion>
