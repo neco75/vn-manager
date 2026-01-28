@@ -35,6 +35,7 @@ export default function Home() {
     const [viewMode, setViewMode] = useState<"grid" | "list" | "shelf">("grid");
     const [sort, setSort] = useState<SortOption>("added_desc");
     const [isRouletteOpen, setIsRouletteOpen] = useState(false);
+    const { nsfwBlur } = useSettings();
 
     const statusFilters = useMemo(() => [
         { value: "all", label: t.status.all },
@@ -229,7 +230,6 @@ export default function Home() {
                 <div className="space-y-2">
                     {filteredAndSortedItems.map((item) => {
                         const isNSFW = (item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
-                        const { nsfwBlur } = useSettings();
 
                         return (
                             <Link

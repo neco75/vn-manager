@@ -12,6 +12,7 @@ interface ShelfViewProps {
 }
 
 export function ShelfView({ items }: ShelfViewProps) {
+    const { nsfwBlur } = useSettings();
     return (
         <div className="bg-[#1a1512] p-8 rounded-xl border border-[#3d2b1f] shadow-2xl overflow-hidden relative">
             {/* Wood Texture Overlay */}
@@ -20,7 +21,6 @@ export function ShelfView({ items }: ShelfViewProps) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
                 {items.map((item, index) => {
                     const isNSFW = (item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
-                    const { nsfwBlur } = useSettings();
 
                     return (
                         <div key={item.vn.id} className="relative group">
