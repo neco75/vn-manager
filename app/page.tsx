@@ -23,6 +23,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSettings } from "@/context/SettingsContext";
+import { cn } from "@/lib/utils";
 
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 
@@ -225,35 +227,52 @@ export default function Home() {
                 </div>
             ) : viewMode === "list" ? (
                 <div className="space-y-2">
-                    {filteredAndSortedItems.map((item) => (
-                        <Link
-                            href={`/vn/${item.vn.id}`}
-                            key={item.vn.id}
-                            className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors group"
-                        >
-                            <div className="flex-shrink-0 w-12 h-16 rounded overflow-hidden bg-secondary">
-                                {item.vn.image && (
-                                    <img src={item.vn.image.url} alt="" className="w-full h-full object-cover" />
-                                )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{item.vn.title}</h3>
-                                <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
-                                    <div className="flex items-center gap-1">
-                                        <Star className="w-3 h-3 text-yellow-500" />
-                                        <span className="text-yellow-500 font-bold">{item.score}/100</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3 text-green-500" />
-                                        <span>{item.playTime ? (item.playTime / 60).toFixed(1) : "0.0"}h</span>
-                                    </div>
-                                    <Badge variant="secondary" className="text-xs">
-                                        {statusFilters.find(f => f.value === item.status)?.label}
-                                    </Badge>
+                    {filteredAndSortedItems.map((item) => {
+                        const isNSFW = (item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
+                        const { nsfwBlur } = useSettings();
+
+                        return (
+                            <Link
+                                href={`/vn/${item.vn.id}`}
+                                key={item.vn.id}
+                                className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors group"
+                            >
+                                <div className="flex-shrink-0 w-12 h-16 rounded overflow-hidden bg-secondary relative">
+                                    {item.vn.image && (
+                                        <img
+                                            src={item.vn.image.url}
+                                            alt=""
+                                            className={cn(
+                                                "w-full h-full object-cover transition-all",
+                                                isNSFW && nsfwBlur && "blur-md scale-110"
+                                            )}
+                                        />
+                                    )}
+                                    {isNSFW && nsfwBlur && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">18+</Badge>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        </Link>
-                    ))}
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{item.vn.title}</h3>
+                                    <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                                        <div className="flex items-center gap-1">
+                                            <Star className="w-3 h-3 text-yellow-500" />
+                                            <span className="text-yellow-500 font-bold">{item.score}/100</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-green-500" />
+                                            <span>{item.playTime ? (item.playTime / 60).toFixed(1) : "0.0"}h</span>
+                                        </div>
+                                        <Badge variant="secondary" className="text-xs">
+                                            {statusFilters.find(f => f.value === item.status)?.label}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </div>
             ) : (
                 <ShelfView items={filteredAndSortedItems} />
