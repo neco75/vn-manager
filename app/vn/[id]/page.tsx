@@ -43,7 +43,7 @@ export default function VNPage() {
     const [vn, setVn] = useState<VN | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { getItem, addItem, updateItem, removeItem } = useLibrary();
-    const { setBackgroundImage } = useSettings();
+    const { setBackgroundImage, nsfwBlur } = useSettings();
     const { t } = useLanguage();
 
     // Local state for editing
@@ -170,7 +170,10 @@ export default function VNPage() {
             {vn.image && (
                 <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-background">
                     <div
-                        className="absolute inset-0 bg-cover bg-center blur-md opacity-40 scale-105"
+                        className={cn(
+                            "absolute inset-0 bg-cover bg-center opacity-40 scale-105 transition-all duration-1000",
+                            ((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur ? "blur-3xl" : "blur-md"
+                        )}
                         style={{ backgroundImage: `url(${vn.image.url})` }}
                     />
                     <div className="absolute inset-0 bg-black/60" />
@@ -199,10 +202,18 @@ export default function VNPage() {
                                         src={vn.image.url}
                                         alt={vn.title}
                                         fill
-                                        className="object-cover"
+                                        className={cn(
+                                            "object-cover transition-all duration-500",
+                                            ((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-2xl scale-110"
+                                        )}
                                         sizes="(max-width: 1024px) 100vw, 350px"
                                         priority
                                     />
+                                    {((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">18+</Badge>
+                                        </div>
+                                    )}
                                 </div>
 
 
@@ -428,9 +439,17 @@ export default function VNPage() {
                                                         src={ss.thumbnail}
                                                         alt={`Screenshot ${i + 1}`}
                                                         fill
-                                                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                                        className={cn(
+                                                            "object-cover transition-all duration-500 group-hover:scale-110",
+                                                            ((ss.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-xl"
+                                                        )}
                                                         sizes="(max-width: 640px) 50vw, 33vw"
                                                     />
+                                                    {((ss.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">18+</Badge>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -519,9 +538,20 @@ export default function VNPage() {
                                 src={vn.screenshots[selectedImageIndex].url}
                                 alt="Full size"
                                 fill
-                                className="object-contain"
+                                className={cn(
+                                    "object-contain transition-all duration-300",
+                                    ((vn.screenshots[selectedImageIndex].sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-3xl"
+                                )}
                                 sizes="100vw"
                             />
+                            {((vn.screenshots[selectedImageIndex].sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">18+</Badge>
+                                    <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
+                                        {t.settings?.nsfwBlurDescription || "NSFW content is hidden"}
+                                    </p>
+                                </div>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}

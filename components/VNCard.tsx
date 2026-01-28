@@ -19,9 +19,14 @@ interface VNCardProps {
 const MotionCard = motion.create(Card);
 
 import { useLanguage } from "@/context/LanguageContext";
+import { useSettings } from "@/context/SettingsContext";
 
 export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCardProps) {
     const { t } = useLanguage();
+    const { nsfwBlur } = useSettings();
+
+    const isNSFW = (vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
+    const shouldBlur = isNSFW && nsfwBlur;
 
     const Content = (
         <MotionCard
@@ -45,9 +50,17 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
                             src={vn.image.url}
                             alt={vn.title}
                             fill
-                            className="object-cover"
+                            className={cn(
+                                "object-cover transition-all duration-300",
+                                shouldBlur && "blur-xl scale-110"
+                            )}
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                         />
+                        {shouldBlur && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                                <Badge variant="destructive" className="bg-red-600/80 text-white border-none shadow-lg">18+</Badge>
+                            </div>
+                        )}
                     </motion.div>
                 ) : (
                     <div className="w-full h-full bg-secondary flex items-center justify-center text-muted-foreground">

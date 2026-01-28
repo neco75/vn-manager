@@ -2,7 +2,7 @@
 
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
-import { PieChart, Save, Upload, Download, Gamepad2, Trophy, Clock, Star, Share2, Hash } from "lucide-react";
+import { PieChart, Save, Upload, Download, Gamepad2, Trophy, Clock, Star, Share2, Hash, RefreshCw, Loader2 } from "lucide-react";
 import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import * as db from "@/lib/db";
@@ -17,14 +17,18 @@ import {
 } from "recharts";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function StatsPage() {
-    const { items, isLoading } = useLibrary();
+    const { items, isLoading, refreshNSFWFlags } = useLibrary();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const shareRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
     const stats = useMemo(() => {
         return {
@@ -125,6 +129,22 @@ export default function StatsPage() {
         }
     };
 
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        setRefreshProgress({ current: 0, total: items.length });
+        try {
+            const count = await refreshNSFWFlags((current, total) => {
+                setRefreshProgress({ current, total });
+            });
+            toast.success(t.stats.toasts.refreshSuccess.replace("{count}", String(count)));
+        } catch (error) {
+            console.error(error);
+            toast.error(t.stats.toasts.refreshError);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-12 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -132,14 +152,54 @@ export default function StatsPage() {
                     <h1 className="text-3xl font-bold">{t.stats.title}</h1>
                     <p className="text-gray-400">{t.stats.subtitle}</p>
                 </div>
-                <Button
-                    onClick={handleShare}
-                    className="gap-2 rounded-full font-bold shadow-lg shadow-primary/25"
-                >
-                    <Share2 className="w-4 h-4" />
-                    {t.stats.share}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing || items.length === 0}
+                        className="gap-2 rounded-full text-gray-400 hover:text-white"
+                    >
+                        <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                        {t.stats.refreshNSFW}
+                    </Button>
+                    <Button
+                        onClick={handleShare}
+                        className="gap-2 rounded-full font-bold shadow-lg shadow-primary/25"
+                    >
+                        <Share2 className="w-4 h-4" />
+                        {t.stats.share}
+                    </Button>
+                </div>
             </div>
+
+            {/* Progress Dialog */}
+            <Dialog open={isRefreshing}>
+                <DialogContent className="sm:max-w-md bg-card border-white/10 flex flex-col items-center py-10 gap-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-center text-xl font-bold">
+                            {t.common.loading || "Now Loading..."}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse rounded-full" />
+                        <Loader2 className="w-16 h-16 text-primary animate-spin relative" />
+                    </div>
+
+                    <div className="space-y-2 text-center">
+                        <p className="text-gray-400 text-sm">
+                            VNDBから情報を取得しています...
+                        </p>
+                        <div className="text-2xl font-mono font-bold text-white">
+                            {refreshProgress.current} <span className="text-gray-500 text-lg">/ {refreshProgress.total}</span>
+                        </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500 italic">
+                        サーバーの負担を抑えるため、ゆっくり更新しています。
+                    </p>
+                </DialogContent>
+            </Dialog>
 
             {/* Shareable Area */}
             <div ref={shareRef} className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">

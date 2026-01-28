@@ -16,6 +16,7 @@ interface LibraryContextType {
     addPurchaseSource: (name: string) => Promise<void>;
     updatePurchaseSource: (oldName: string, newName: string) => Promise<void>;
     deletePurchaseSource: (name: string) => Promise<void>;
+    refreshNSFWFlags: (onProgress?: (current: number, total: number) => void) => Promise<number>;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -95,13 +96,40 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         setPurchaseSources(prev => prev.filter(s => s !== name));
     }
 
+    async function refreshNSFWFlags(onProgress?: (current: number, total: number) => void) {
+        if (items.length === 0) return 0;
+
+        const { getVNsByIds } = await import("@/lib/vndb");
+        const ids = items.map(i => i.vn.id);
+
+        try {
+            const updatedVNs = await getVNsByIds(ids, onProgress);
+            const updatedItems = items.map(item => {
+                const updatedVN = updatedVNs.find(v => v.id === item.vn.id);
+                if (updatedVN) {
+                    // Create a new item with updated VN data but preserve other item properties
+                    return { ...item, vn: updatedVN, updatedAt: Date.now() };
+                }
+                return item;
+            });
+
+            // Batch update in DB
+            await Promise.all(updatedItems.map(item => db.addToLibrary(item)));
+            setItems(updatedItems);
+            return updatedVNs.length;
+        } catch (error) {
+            console.error("Failed to refresh NSFW flags:", error);
+            throw error;
+        }
+    }
+
     function getItem(id: string) {
         return items.find((i) => i.vn.id === id);
     }
 
     return (
         <LibraryContext.Provider
-            value={{ items, purchaseSources, isLoading, addItem, updateItem, removeItem, getItem, addPurchaseSource, updatePurchaseSource, deletePurchaseSource }}
+            value={{ items, purchaseSources, isLoading, addItem, updateItem, removeItem, getItem, addPurchaseSource, updatePurchaseSource, deletePurchaseSource, refreshNSFWFlags }}
         >
             {children}
         </LibraryContext.Provider>

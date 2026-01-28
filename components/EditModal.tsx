@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSettings } from "@/context/SettingsContext";
 
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 
@@ -24,6 +25,7 @@ interface EditModalProps {
 
 export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }: EditModalProps) {
     const { t } = useLanguage();
+    const { nsfwBlur } = useSettings();
     const [status, setStatus] = useState<GameStatus>(libraryItem?.status || "plan_to_play");
     const [score, setScore] = useState(libraryItem?.score || 0);
     const [notes, setNotes] = useState(libraryItem?.notes || "");
@@ -54,7 +56,14 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
             <DialogContent className="max-w-lg bg-card border-white/10 p-0 overflow-hidden gap-0 sm:rounded-2xl">
                 <div className="relative h-32 w-full">
                     {vn.image ? (
-                        <img src={vn.image.url} alt="" className="w-full h-full object-cover opacity-50" />
+                        <img
+                            src={vn.image.url}
+                            alt=""
+                            className={cn(
+                                "w-full h-full object-cover opacity-50",
+                                ((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-xl grayscale scale-110"
+                            )}
+                        />
                     ) : (
                         <div className="w-full h-full bg-secondary" />
                     )}
