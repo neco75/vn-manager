@@ -3,9 +3,10 @@
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
-import { Library, Search, Trophy, PieChart, HelpCircle, Globe } from "lucide-react";
+import { Library, Search, Trophy, PieChart, HelpCircle, Globe, Eye, EyeOff } from "lucide-react";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 function BackgroundLayer() {
     const { backgroundImage } = useSettings();
@@ -32,6 +33,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
 function ClientLayoutContent({ children }: { children: React.ReactNode }) {
     const { language, setLanguage, t } = useLanguage();
+    const { nsfwBlur, setNsfwBlur } = useSettings();
 
     return (
         <>
@@ -51,6 +53,19 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                 <NavLink href="/stats" icon={<PieChart className="w-4 h-4" />} label={t.nav.stats} />
                                 <NavLink href="/about" icon={<HelpCircle className="w-4 h-4" />} label={t.nav.about} />
                             </nav>
+
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                                {nsfwBlur ? (
+                                    <EyeOff className="w-4 h-4 text-red-400" />
+                                ) : (
+                                    <Eye className="w-4 h-4 text-green-400" />
+                                )}
+                                <Switch
+                                    checked={nsfwBlur}
+                                    onCheckedChange={setNsfwBlur}
+                                    className="data-[state=checked]:bg-red-500"
+                                />
+                            </div>
 
                             <Button
                                 variant="ghost"

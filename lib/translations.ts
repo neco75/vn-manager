@@ -121,7 +121,10 @@ export const translations = {
                 importError: "データの読み込みに失敗しました",
                 shareSuccess: "画像を保存しました",
                 shareError: "画像の生成に失敗しました",
+                refreshSuccess: "{count}件のNSFW情報を更新しました",
+                refreshError: "情報の更新に失敗しました",
             },
+            refreshNSFW: "NSFW情報を更新",
         },
         roulette: {
             title: "次やるゲームを決める",
@@ -176,6 +179,11 @@ export const translations = {
             review: "感想・レビュー",
             memoPlaceholder: "攻略メモや進捗などを記録... (Markdown対応)",
             reviewPlaceholder: "クリア後の感想やレビューを記録... (Markdown対応)",
+        },
+        settings: {
+            title: "設定",
+            nsfwBlur: "18禁コンテンツをぼかす",
+            nsfwBlurDescription: "性的表現を含む画像にぼかしフィルターを適用します。",
         },
     },
     en: {
@@ -298,7 +306,10 @@ export const translations = {
                 importError: "Failed to import data",
                 shareSuccess: "Image saved",
                 shareError: "Failed to generate image",
+                refreshSuccess: "Updated NSFW info for {count} games",
+                refreshError: "Failed to update info",
             },
+            refreshNSFW: "Refresh NSFW Info",
         },
         roulette: {
             title: "Decide Next Game",
@@ -353,6 +364,11 @@ export const translations = {
             review: "Thoughts & Review",
             memoPlaceholder: "Record progress and notes... (Markdown supported)",
             reviewPlaceholder: "Record thoughts and reviews... (Markdown supported)",
+        },
+        settings: {
+            title: "Settings",
+            nsfwBlur: "Blur 18+ content",
+            nsfwBlurDescription: "Apply a blur filter to images containing sexual expressions.",
         },
     },
 };

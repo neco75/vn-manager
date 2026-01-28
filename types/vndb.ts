@@ -31,6 +31,10 @@ export interface VNExtLink {
   name?: string;
   id: string;
 }
+export interface VNRelease {
+  id: string;
+  minage: number | null;
+}
 
 export interface VN {
   id: string;
@@ -47,6 +51,7 @@ export interface VN {
   developers: VNDeveloper[];
   screenshots: VNScreenshot[];
   extlinks: VNExtLink[];
+  releases: VNRelease[];
 }
 
 export interface VNDBResponse<T> {
