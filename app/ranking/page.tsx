@@ -1,7 +1,6 @@
 "use client";
 
 import { useLibrary } from "@/context/LibraryContext";
-import { VNCard } from "@/components/VNCard";
 import { useMemo } from "react";
 import { Trophy } from "lucide-react";
 import Link from "next/link";

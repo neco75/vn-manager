@@ -43,11 +43,14 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
 
     useEffect(() => {
         if (isOpen) {
-            setStatus(libraryItem?.status || "plan_to_play");
-            setScore(libraryItem?.score || 0);
-            setNotes(libraryItem?.notes || "");
-            setPlayTime(libraryItem?.playTime || 0);
-            setPurchaseLocation(libraryItem?.purchaseLocation || "");
+            const timeoutId = window.setTimeout(() => {
+                setStatus(libraryItem?.status || "plan_to_play");
+                setScore(libraryItem?.score || 0);
+                setNotes(libraryItem?.notes || "");
+                setPlayTime(libraryItem?.playTime || 0);
+                setPurchaseLocation(libraryItem?.purchaseLocation || "");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
     }, [isOpen, libraryItem]);
 

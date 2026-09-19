@@ -32,8 +32,9 @@ export interface VNExtLink {
   id: string;
 }
 export interface VNRelease {
-  id: string;
+  id?: string;
   minage: number | null;
+  vns?: Array<Pick<VN, "id">>;
 }
 
 export interface VN {
