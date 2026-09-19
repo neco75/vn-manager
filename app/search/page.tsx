@@ -14,6 +14,7 @@ import { useLibrary } from "@/context/LibraryContext";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
+import { mergeLibraryItemEdits } from "@/lib/library-state";
 
 export default function SearchPage() {
     const [query, setQuery] = useState("");
@@ -85,15 +86,13 @@ export default function SearchPage() {
                     onSave={async (status, score, notes, playTime, purchaseLocation) => {
                         const existing = getItem(selectedVN.id);
                         if (existing) {
-                            await updateItem({
-                                ...existing,
-                                vn: selectedVN,
+                            await updateItem(mergeLibraryItemEdits(existing, {
                                 status,
                                 score,
                                 notes,
                                 playTime,
                                 purchaseLocation,
-                            });
+                            }));
                             toast.success(t.modal.saveSuccess);
                         } else {
                             await addItem(selectedVN, status, score, notes, playTime, "", purchaseLocation);
