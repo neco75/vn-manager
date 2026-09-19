@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import {
+    createLibraryItemForAdd,
+    mergeLibraryItemEdits,
+    upsertLibraryItem,
+} from "../lib/library-state.ts";
 import { getLibraryValidationError } from "../types/library.ts";
 
 const valid = {
@@ -23,4 +28,84 @@ assert.equal(getLibraryValidationError({ ...valid, playTime: -1 }), "playTime");
 assert.equal(getLibraryValidationError({ ...valid, playTime: Number.NaN }), "playTime");
 assert.equal(getLibraryValidationError({ ...valid, playTime: Number.POSITIVE_INFINITY }), "playTime");
 
-console.log("Library validation regression check passed (14 scenarios).");
+const detailedVN = {
+    id: "v1",
+    title: "Detailed VN",
+    screenshots: [{ url: "https://example.test/full.jpg", thumbnail: "https://example.test/thumb.jpg" }],
+    extlinks: [{ id: "official", url: "https://example.test", label: "Official" }],
+};
+const existingItem = {
+    vn: detailedVN,
+    status: "playing",
+    score: 70,
+    notes: "old memo",
+    review: "keep this review",
+    playTime: 120,
+    purchaseLocation: "Steam",
+    addedAt: 100,
+    updatedAt: 150,
+};
+
+const editedItem = mergeLibraryItemEdits(existingItem, {
+    status: "completed",
+    score: 90,
+    notes: "new memo",
+    playTime: 180,
+    purchaseLocation: "Package",
+});
+assert.strictEqual(editedItem.vn, detailedVN);
+assert.equal(editedItem.review, "keep this review");
+assert.equal(editedItem.addedAt, 100);
+assert.deepEqual(
+    {
+        status: editedItem.status,
+        score: editedItem.score,
+        notes: editedItem.notes,
+        playTime: editedItem.playTime,
+        purchaseLocation: editedItem.purchaseLocation,
+    },
+    {
+        status: "completed",
+        score: 90,
+        notes: "new memo",
+        playTime: 180,
+        purchaseLocation: "Package",
+    },
+);
+
+const duplicateState = upsertLibraryItem(
+    [existingItem, { ...existingItem, updatedAt: 151 }],
+    editedItem,
+);
+assert.equal(duplicateState.filter((item) => item.vn.id === "v1").length, 1);
+assert.strictEqual(duplicateState.at(-1), editedItem);
+
+const beforeDuplicateAdd = structuredClone(existingItem);
+assert.throws(
+    () => createLibraryItemForAdd(existingItem, {
+        vn: { id: "v1", title: "Search result without details" },
+        status: "plan_to_play",
+        score: 0,
+        notes: "",
+        playTime: 0,
+        review: "",
+        purchaseLocation: "",
+    }, 200),
+    /Library item already exists: v1/,
+);
+assert.deepEqual(existingItem, beforeDuplicateAdd);
+
+const newItem = createLibraryItemForAdd(undefined, {
+    vn: { id: "v2", title: "New VN" },
+    status: "plan_to_play",
+    score: 0,
+    notes: "",
+    playTime: 0,
+    review: "",
+    purchaseLocation: "",
+}, 300);
+assert.equal(newItem.vn.id, "v2");
+assert.equal(newItem.addedAt, 300);
+assert.equal(newItem.updatedAt, 300);
+
+console.log("Library save regression check passed (18 scenarios).");
