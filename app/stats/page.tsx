@@ -23,7 +23,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function StatsPage() {
-    const { items, isLoading, refreshNSFWFlags } = useLibrary();
+    const { items, refreshNSFWFlags } = useLibrary();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const shareRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();

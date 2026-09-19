@@ -33,7 +33,8 @@ https://vn-manager.vercel.app
 開発者向けの手順です。自分のPC上で動作させることができます。
 
 #### 必要要件
-- Node.js 18.17.0 以上
+- Node.js 24（バージョンの基準は `.nvmrc`）
+- 開発・検証・PRの手順は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 #### インストール手順
 
@@ -45,7 +46,7 @@ cd vn-manager
 
 2. 依存関係をインストール
 ```bash
-npm install
+npm ci
 ```
 
 3. 開発サーバーを起動
@@ -58,7 +59,7 @@ npm run dev
 
 ## 🛠️ 技術スタック
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui, Lucide React

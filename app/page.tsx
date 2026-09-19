@@ -3,7 +3,7 @@
 import { useLibrary } from "@/context/LibraryContext";
 import { VNCard } from "@/components/VNCard";
 import { useState, useMemo } from "react";
-import { LibraryItem, GameStatus } from "@/types/library";
+import { GameStatus } from "@/types/library";
 import Link from "next/link";
 import { Plus, LayoutGrid, List, Clock, Star, Dices, Library } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -198,7 +198,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as GameStatus | "all")} className="w-full">
                     <TabsList className="w-full justify-start overflow-x-auto no-scrollbar bg-transparent p-0 h-auto gap-2">
                         {statusFilters.map((f) => (
                             <TabsTrigger

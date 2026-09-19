@@ -2,7 +2,6 @@
 
 import { LibraryItem } from "@/types/library";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { useSettings } from "@/context/SettingsContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +18,7 @@ export function ShelfView({ items }: ShelfViewProps) {
             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
-                {items.map((item, index) => {
+                {items.map((item) => {
                     const isNSFW = (item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
 
                     return (

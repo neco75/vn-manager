@@ -21,7 +21,7 @@ let dbPromise: Promise<IDBPDatabase<VNDBManagerDB>>;
 export function getDB() {
     if (!dbPromise) {
         dbPromise = openDB<VNDBManagerDB>(DB_NAME, DB_VERSION, {
-            upgrade(db, oldVersion, newVersion, transaction) {
+            upgrade(db, oldVersion) {
                 if (oldVersion < 1) {
                     const store = db.createObjectStore("library", { keyPath: "vn.id" });
                     store.createIndex("by-status", "status");

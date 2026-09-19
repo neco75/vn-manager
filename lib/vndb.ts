@@ -1,9 +1,9 @@
-import { VN, VNDBResponse } from "@/types/vndb";
+import { VN, VNDBResponse, VNRelease } from "@/types/vndb";
 
 const API_URL = "https://api.vndb.org/kana/vn";
 
 // Simple cache helper
-const getCache = (key: string) => {
+const getCache = <T>(key: string): T | null => {
     if (typeof window === "undefined") return null;
     const cached = sessionStorage.getItem(key);
     if (!cached) return null;
@@ -20,7 +20,7 @@ const getCache = (key: string) => {
     }
 };
 
-const setCache = (key: string, data: any) => {
+const setCache = <T>(key: string, data: T) => {
     if (typeof window === "undefined") return;
     try {
         sessionStorage.setItem(key, JSON.stringify({
@@ -35,7 +35,7 @@ const setCache = (key: string, data: any) => {
 
 export async function searchVNs(query: string): Promise<VN[]> {
     const cacheKey = `vndb_v2_search_${query}`;
-    const cached = getCache(cacheKey);
+    const cached = getCache<VN[]>(cacheKey);
     if (cached) return cached;
 
     const response = await fetch(API_URL, {
@@ -60,7 +60,7 @@ export async function searchVNs(query: string): Promise<VN[]> {
     const vns = data.results;
     const releases = await getReleasesByVnIds(vns.map((v: VN) => v.id));
     vns.forEach((vn: VN) => {
-        vn.releases = releases.filter(r => r.vns?.some((v: any) => v.id === vn.id));
+        vn.releases = releases.filter(r => r.vns?.some(v => v.id === vn.id));
     });
 
     setCache(cacheKey, vns);
@@ -69,7 +69,7 @@ export async function searchVNs(query: string): Promise<VN[]> {
 
 export async function getVNById(id: string): Promise<VN | null> {
     const cacheKey = `vndb_v2_vn_${id}`;
-    const cached = getCache(cacheKey);
+    const cached = getCache<VN>(cacheKey);
     if (cached) return cached;
 
     const response = await fetch(API_URL, {
@@ -140,7 +140,7 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
         // Fetch releases for this chunk
         const releases = await getReleasesByVnIds(vns.map((v: VN) => v.id));
         vns.forEach((vn: VN) => {
-            vn.releases = releases.filter(r => r.vns?.some((v: any) => v.id === vn.id));
+            vn.releases = releases.filter(r => r.vns?.some(v => v.id === vn.id));
         });
 
         allResults.push(...vns);
@@ -151,11 +151,11 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
     return allResults;
 }
 
-async function getReleasesByVnIds(ids: string[]): Promise<any[]> {
+async function getReleasesByVnIds(ids: string[]): Promise<VNRelease[]> {
     if (ids.length === 0) return [];
 
     const CHUNK_SIZE = 10;
-    const allResults: any[] = [];
+    const allResults: VNRelease[] = [];
 
     for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
         // Add a delay between chunks to avoid rate limiting (0.5r/sec is safe)
@@ -186,7 +186,7 @@ async function getReleasesByVnIds(ids: string[]): Promise<any[]> {
             continue;
         }
 
-        const data = await response.json();
+        const data: VNDBResponse<VNRelease> = await response.json();
         allResults.push(...data.results);
     }
 
