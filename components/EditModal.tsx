@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { VN } from "@/types/vndb";
-import { LibraryItem, GameStatus } from "@/types/library";
-import { Trash2, Save } from "lucide-react";
+import { getLibraryValidationError, LibraryItem, GameStatus } from "@/types/library";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ interface EditModalProps {
     libraryItem?: LibraryItem;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (status: GameStatus, score: number, notes: string, playTime: number, purchaseLocation?: string) => void;
+    onSave: (status: GameStatus, score: number, notes: string, playTime: number, purchaseLocation?: string) => Promise<void>;
     onDelete?: () => void;
 }
 
@@ -31,6 +31,8 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
     const [notes, setNotes] = useState(libraryItem?.notes || "");
     const [playTime, setPlayTime] = useState(libraryItem?.playTime || 0);
     const [purchaseLocation, setPurchaseLocation] = useState(libraryItem?.purchaseLocation || "");
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     const statuses: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -49,13 +51,45 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                 setNotes(libraryItem?.notes || "");
                 setPlayTime(libraryItem?.playTime || 0);
                 setPurchaseLocation(libraryItem?.purchaseLocation || "");
+                setIsSaving(false);
+                setSaveError(null);
             }, 0);
             return () => window.clearTimeout(timeoutId);
         }
     }, [isOpen, libraryItem]);
 
+    async function handleSave() {
+        if (isSaving) return;
+
+        const invalidField = getLibraryValidationError({ status, score, playTime });
+        if (invalidField === "status") {
+            setSaveError(t.modal.invalidStatus);
+            return;
+        }
+        if (invalidField === "score") {
+            setSaveError(t.modal.invalidScore);
+            return;
+        }
+        if (invalidField === "playTime") {
+            setSaveError(t.modal.invalidPlayTime);
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveError(null);
+        try {
+            await onSave(status, score, notes, playTime, purchaseLocation);
+            onClose();
+        } catch (error) {
+            console.error("Failed to save library item:", error);
+            setSaveError(t.modal.saveError);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
             <DialogContent className="max-w-lg bg-card border-white/10 p-0 overflow-hidden gap-0 sm:rounded-2xl">
                 <div className="relative h-32 w-full">
                     {vn.image ? (
@@ -87,7 +121,11 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     key={s.value}
                                     variant={status === s.value ? "default" : "outline"}
                                     size="sm"
-                                    onClick={() => setStatus(s.value)}
+                                    onClick={() => {
+                                        setStatus(s.value);
+                                        setSaveError(null);
+                                    }}
+                                    disabled={isSaving}
                                     className={cn(
                                         "w-full",
                                         status === s.value ? "font-bold" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"
@@ -109,9 +147,13 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     max="100"
                                     value={score}
                                     onChange={(e) => {
-                                        const val = parseInt(e.target.value);
-                                        if (!isNaN(val) && val >= 0 && val <= 100) setScore(val);
+                                        const val = Number(e.target.value);
+                                        if (e.target.value !== "" && Number.isFinite(val)) {
+                                            setScore(val);
+                                            setSaveError(null);
+                                        }
                                     }}
+                                    disabled={isSaving}
                                     className="w-16 h-8 text-right font-bold text-white bg-secondary/50 border-white/10"
                                 />
                                 <span className="text-sm text-gray-500">/ 100</span>
@@ -121,8 +163,12 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             min={0}
                             max={100}
                             step={1}
-                            value={[score]}
-                            onValueChange={(vals) => setScore(vals[0])}
+                            value={[Number.isFinite(score) ? score : 0]}
+                            onValueChange={(vals) => {
+                                setScore(vals[0]);
+                                setSaveError(null);
+                            }}
+                            disabled={isSaving}
                         />
                     </div>
 
@@ -134,7 +180,12 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                 min="0"
                                 step="0.5"
                                 value={playTime ? playTime / 60 : ""}
-                                onChange={(e) => setPlayTime(parseFloat(e.target.value) * 60)}
+                                onChange={(e) => {
+                                    const rawValue = e.target.value.trim();
+                                    setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
+                                    setSaveError(null);
+                                }}
+                                disabled={isSaving}
                                 className="bg-secondary/50 border-white/10"
                                 placeholder="10.5"
                             />
@@ -143,7 +194,10 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             <Label>Purchase Location</Label>
                             <PurchaseLocationSelector
                                 value={purchaseLocation}
-                                onChange={setPurchaseLocation}
+                                onChange={(value) => {
+                                    setPurchaseLocation(value);
+                                    setSaveError(null);
+                                }}
                             />
                         </div>
                     </div>
@@ -152,17 +206,28 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         <Label>{t.common.notes}</Label>
                         <Textarea
                             value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
+                            onChange={(e) => {
+                                setNotes(e.target.value);
+                                setSaveError(null);
+                            }}
+                            disabled={isSaving}
                             className="h-32 bg-secondary/50 border-white/10 resize-none"
                             placeholder={t.modal.placeholder}
                         />
                     </div>
+
+                    {saveError && (
+                        <p role="alert" className="text-sm text-destructive">
+                            {saveError}
+                        </p>
+                    )}
 
                     <div className="flex gap-3 pt-2">
                         {libraryItem && onDelete && (
                             <Button
                                 variant="destructive"
                                 onClick={onDelete}
+                                disabled={isSaving}
                                 className="flex-1 gap-2"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -170,11 +235,12 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             </Button>
                         )}
                         <Button
-                            onClick={() => onSave(status, score, notes, playTime, purchaseLocation)}
+                            onClick={handleSave}
+                            disabled={isSaving}
                             className="flex-[2] gap-2 font-bold shadow-lg shadow-primary/25"
                         >
-                            <Save className="w-4 h-4" />
-                            {t.common.save}
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {isSaving ? t.modal.saving : t.common.save}
                         </Button>
                     </div>
                 </div>
@@ -182,4 +248,3 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
         </Dialog>
     );
 }
-
