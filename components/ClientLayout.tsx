@@ -1,12 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
-import { Library, Search, Trophy, PieChart, HelpCircle, Globe, Eye, EyeOff } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Library, Search, Trophy, PieChart, HelpCircle, Globe, Eye, EyeOff, Menu } from "lucide-react";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 function BackgroundLayer() {
     const { backgroundImage } = useSettings();
@@ -32,37 +40,55 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 }
 
 function ClientLayoutContent({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
     const { language, setLanguage, t } = useLanguage();
     const { nsfwBlur, setNsfwBlur } = useSettings();
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    const navItems = [
+        { href: "/", icon: <Library className="w-4 h-4" />, label: t.nav.library },
+        { href: "/search", icon: <Search className="w-4 h-4" />, label: t.nav.search },
+        { href: "/ranking", icon: <Trophy className="w-4 h-4" />, label: t.nav.ranking },
+        { href: "/stats", icon: <PieChart className="w-4 h-4" />, label: t.nav.stats },
+        { href: "/about", icon: <HelpCircle className="w-4 h-4" />, label: t.nav.about },
+    ];
 
     return (
         <>
             <BackgroundLayer />
-            <div className="relative z-10 flex flex-col min-h-screen">
-                <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-black/50 backdrop-blur-xl">
-                    <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                        <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight group">
-                            <span className="text-primary group-hover:text-accent transition-colors duration-300">VN</span>Manager
+            <div className="relative z-10 flex min-h-screen min-w-0 flex-col overflow-x-clip">
+                <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-background">
+                    <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-8">
+                        <Link href="/" className="flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight group">
+                            <span className="text-primary group-hover:text-accent transition-colors duration-300">VN</span>
+                            <span className="truncate">Manager</span>
                         </Link>
 
-                        <div className="flex items-center gap-4">
-                            <nav className="flex items-center gap-1 sm:gap-6">
-                                <NavLink href="/" icon={<Library className="w-4 h-4" />} label={t.nav.library} />
-                                <NavLink href="/search" icon={<Search className="w-4 h-4" />} label={t.nav.search} />
-                                <NavLink href="/ranking" icon={<Trophy className="w-4 h-4" />} label={t.nav.ranking} />
-                                <NavLink href="/stats" icon={<PieChart className="w-4 h-4" />} label={t.nav.stats} />
-                                <NavLink href="/about" icon={<HelpCircle className="w-4 h-4" />} label={t.nav.about} />
+                        <div className="hidden lg:flex min-w-0 items-center gap-2">
+                            <nav className="flex min-w-0 items-center gap-1" aria-label={t.nav.primary}>
+                                {navItems.map((item) => (
+                                    <NavLink
+                                        key={item.href}
+                                        {...item}
+                                        active={isActivePath(pathname, item.href)}
+                                    />
+                                ))}
                             </nav>
 
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                            <div className="flex items-center gap-2 rounded-lg border border-white/10 px-2 py-1.5">
                                 {nsfwBlur ? (
-                                    <EyeOff className="w-4 h-4 text-red-400" />
+                                    <EyeOff className="w-4 h-4 shrink-0 text-red-400" aria-hidden="true" />
                                 ) : (
-                                    <Eye className="w-4 h-4 text-green-400" />
+                                    <Eye className="w-4 h-4 shrink-0 text-green-400" aria-hidden="true" />
                                 )}
+                                <label htmlFor="desktop-nsfw-blur" className="text-xs whitespace-nowrap">
+                                    {t.settings.nsfwBlur}
+                                </label>
                                 <Switch
+                                    id="desktop-nsfw-blur"
                                     checked={nsfwBlur}
                                     onCheckedChange={setNsfwBlur}
+                                    aria-label={t.settings.nsfwBlur}
                                     className="data-[state=checked]:bg-red-500"
                                 />
                             </div>
@@ -71,15 +97,84 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
-                                className="hidden sm:flex items-center gap-2 text-gray-400 hover:text-white"
+                                className="min-h-11 items-center gap-2 px-3 text-gray-400 hover:text-white"
+                                aria-label={t.nav.changeLanguage}
                             >
-                                <Globe className="w-4 h-4" />
+                                <Globe className="w-4 h-4" aria-hidden="true" />
                                 {language === "ja" ? "EN" : "JA"}
                             </Button>
                         </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-11 shrink-0 gap-2 lg:hidden"
+                            onClick={() => setMenuOpen(true)}
+                            aria-haspopup="dialog"
+                            aria-expanded={menuOpen}
+                        >
+                            <Menu className="h-5 w-5" aria-hidden="true" />
+                            {t.nav.menu}
+                        </Button>
                     </div>
                 </header>
-                <main className="flex-1 container mx-auto px-4 py-8">
+
+                <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
+                    <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-white/10">
+                        <DialogHeader>
+                            <DialogTitle>{t.nav.menu}</DialogTitle>
+                        </DialogHeader>
+
+                        <nav className="grid gap-1" aria-label={t.nav.primary}>
+                            {navItems.map((item) => (
+                                <NavLink
+                                    key={item.href}
+                                    {...item}
+                                    active={isActivePath(pathname, item.href)}
+                                    onClick={() => setMenuOpen(false)}
+                                    mobile
+                                />
+                            ))}
+                        </nav>
+
+                        <div className="border-t border-white/10 pt-4 space-y-4">
+                            <div className="flex min-h-11 items-center justify-between gap-4">
+                                <div className="flex min-w-0 items-center gap-2">
+                                    {nsfwBlur ? (
+                                        <EyeOff className="w-5 h-5 shrink-0 text-red-400" aria-hidden="true" />
+                                    ) : (
+                                        <Eye className="w-5 h-5 shrink-0 text-green-400" aria-hidden="true" />
+                                    )}
+                                    <label htmlFor="mobile-nsfw-blur" className="text-sm font-medium">
+                                        {t.settings.nsfwBlur}
+                                    </label>
+                                </div>
+                                <Switch
+                                    id="mobile-nsfw-blur"
+                                    checked={nsfwBlur}
+                                    onCheckedChange={setNsfwBlur}
+                                    aria-label={t.settings.nsfwBlur}
+                                    className="data-[state=checked]:bg-red-500"
+                                />
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="min-h-11 w-full justify-start gap-3"
+                                onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
+                            >
+                                <Globe className="w-5 h-5" aria-hidden="true" />
+                                <span>{t.nav.language}: {language === "ja" ? "日本語" : "English"}</span>
+                                <span className="ml-auto text-muted-foreground">
+                                    {language === "ja" ? "EN" : "JA"}
+                                </span>
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <main className="mx-auto w-full max-w-[1200px] min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                     {children}
                 </main>
                 <Toaster theme="dark" position="bottom-right" />
@@ -88,14 +183,39 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
     );
 }
 
-function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function isActivePath(pathname: string, href: string) {
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavLink({
+    href,
+    icon,
+    label,
+    active,
+    mobile = false,
+    onClick,
+}: {
+    href: string;
+    icon: React.ReactNode;
+    label: string;
+    active: boolean;
+    mobile?: boolean;
+    onClick?: () => void;
+}) {
     return (
         <Link
             href={href}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+            onClick={onClick}
+            aria-current={active ? "page" : undefined}
+            className={
+                mobile
+                    ? `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-gray-300 hover:bg-white/5 hover:text-white"}`
+                    : `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`
+            }
         >
             {icon}
-            <span className="hidden sm:inline">{label}</span>
+            <span>{label}</span>
         </Link>
     );
 }
