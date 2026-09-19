@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 
 export default function Home() {
-    const { items, isLoading } = useLibrary();
+    const { items, isLoading, loadError, reloadLibrary } = useLibrary();
     const { t } = useLanguage();
     const [filter, setFilter] = useState<GameStatus | "all">("all");
     const [viewMode, setViewMode] = useState<"grid" | "list" | "shelf">("grid");
@@ -123,6 +123,16 @@ export default function Home() {
 
     if (isLoading) {
         return <div className="flex items-center justify-center h-64 text-gray-500">{t.common.loading}</div>;
+    }
+
+    if (loadError) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+                <h2 className="text-2xl font-bold">{t.home.loadErrorTitle}</h2>
+                <p className="text-gray-400 max-w-md">{t.home.loadErrorDesc}</p>
+                <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+            </div>
+        );
     }
 
     if (items.length === 0) {
