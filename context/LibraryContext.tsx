@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { LibraryItem, GameStatus } from "@/types/library";
 import { VN } from "@/types/vndb";
 import * as db from "@/lib/db";
+import { createLibraryItemForAdd, upsertLibraryItem } from "@/lib/library-state";
 
 interface LibraryContextType {
     items: LibraryItem[];
@@ -23,9 +24,6 @@ interface LibraryContextType {
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
 
-function upsertItem(items: LibraryItem[], item: LibraryItem) {
-    return [...items.filter((existing) => existing.vn.id !== item.vn.id), item];
-}
 
 export function LibraryProvider({ children }: { children: React.ReactNode }) {
     const [items, setItems] = useState<LibraryItem[]>([]);
@@ -57,13 +55,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
     async function addItem(vn: VN, status: GameStatus, score: number = 0, notes: string = "", playTime: number = 0, review: string = "", purchaseLocation?: string) {
         const existingItem = await db.getLibraryItem(vn.id);
-        if (existingItem) {
-            setItems((prev) => upsertItem(prev, existingItem));
-            return;
-        }
-
-        const now = Date.now();
-        const newItem: LibraryItem = {
+        const newItem = createLibraryItemForAdd(existingItem, {
             vn,
             status,
             score,
@@ -71,17 +63,15 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             playTime,
             review,
             purchaseLocation,
-            addedAt: now,
-            updatedAt: now,
-        };
+        });
         await db.addToLibrary(newItem);
-        setItems((prev) => upsertItem(prev, newItem));
+        setItems((prev) => upsertLibraryItem(prev, newItem));
     }
 
     async function updateItem(item: LibraryItem) {
         const updatedItem = { ...item, updatedAt: Date.now() };
         await db.addToLibrary(updatedItem);
-        setItems((prev) => upsertItem(prev, updatedItem));
+        setItems((prev) => upsertLibraryItem(prev, updatedItem));
     }
 
     async function removeItem(id: string) {
