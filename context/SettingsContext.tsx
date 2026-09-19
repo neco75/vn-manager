@@ -17,14 +17,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const storedBg = localStorage.getItem("vn-manager-bg");
-        if (storedBg) {
-            setBackgroundImage(storedBg);
-        }
-
         const storedBlur = localStorage.getItem("vn-manager-nsfw-blur");
-        if (storedBlur !== null) {
-            setNsfwBlur(storedBlur === "true");
-        }
+        window.setTimeout(() => {
+            if (storedBg) setBackgroundImage(storedBg);
+            if (storedBlur !== null) setNsfwBlur(storedBlur === "true");
+        }, 0);
     }, []);
 
     const handleSetBackgroundImage = (url: string | null) => {

@@ -35,9 +35,12 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
 
     useEffect(() => {
         if (isOpen) {
-            setWinner(null);
-            setSpinning(false);
-            setCurrentIndex(0);
+            const timeoutId = window.setTimeout(() => {
+                setWinner(null);
+                setSpinning(false);
+                setCurrentIndex(0);
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
     }, [isOpen]);
 

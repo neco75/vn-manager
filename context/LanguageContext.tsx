@@ -20,7 +20,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         // Load saved language preference
         const savedLang = localStorage.getItem("vn-manager-lang") as Language;
         if (savedLang && (savedLang === "ja" || savedLang === "en")) {
-            setLanguage(savedLang);
+            window.setTimeout(() => setLanguage(savedLang), 0);
         }
     }, []);
 

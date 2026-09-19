@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookOpen, Database, Github, Globe, Laptop, Shield, Star, Trophy, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Database, Github, Laptop, Shield, Star, Trophy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion } from "@/components/Accordion";
 import { useLanguage } from "@/context/LanguageContext";
