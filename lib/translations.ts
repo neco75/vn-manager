@@ -102,6 +102,9 @@ export const translations = {
             filter: "フィルター",
             sort: "並び替え",
             view: "表示切替",
+            gridView: "グリッド表示",
+            listView: "リスト表示",
+            shelfView: "本棚表示",
         },
         search: {
             title: "検索",
@@ -303,6 +306,9 @@ export const translations = {
             filter: "Filter",
             sort: "Sort",
             view: "View",
+            gridView: "Grid view",
+            listView: "List view",
+            shelfView: "Shelf view",
         },
         search: {
             title: "Search",
