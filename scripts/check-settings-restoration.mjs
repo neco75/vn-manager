@@ -1,21 +1,61 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import assert from "node:assert/strict";
+import { scheduleSettingsRestore } from "../lib/settings-storage.mjs";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
-const source = await readFile(`${root}/context/SettingsContext.tsx`, "utf8");
+function runRestore(values) {
+    const storage = { getItem: (key) => values[key] ?? null };
+    let apply;
+    let cancelled;
+    let backgroundImage = "initial-background";
+    let nsfwBlur = false;
+    const cleanup = scheduleSettingsRestore(
+        storage,
+        (value) => { backgroundImage = value; },
+        (value) => { nsfwBlur = value; },
+        (callback) => { apply = callback; return 1; },
+        (timeoutId) => { cancelled = timeoutId; },
+    );
 
-const checks = [
-    ["background storage key", source.includes('localStorage.getItem("vn-manager-bg")')],
-    ["blur storage key", source.includes('localStorage.getItem("vn-manager-nsfw-blur")')],
-    ["blur default is enabled", source.includes('useState<boolean>(true)')],
-    ["restoration is deferred", source.includes("window.setTimeout(() =>")],
-    ["restoration timer is cancelled", source.includes("window.clearTimeout(timeoutId)")],
-];
+    assert.equal(backgroundImage, "initial-background");
+    assert.equal(nsfwBlur, false);
+    apply();
+    cleanup();
 
-const failures = checks.filter(([, passed]) => !passed).map(([name]) => name);
-if (failures.length > 0) {
-    console.error(`Settings restoration regression check failed: ${failures.join(", ")}`);
-    process.exit(1);
+    return { backgroundImage, nsfwBlur, cancelled };
 }
 
-console.log(`Settings restoration regression check passed (${checks.length} checks).`);
+assert.deepEqual(runRestore({}), {
+    backgroundImage: null,
+    nsfwBlur: true,
+    cancelled: 1,
+});
+assert.deepEqual(runRestore({
+    "vn-manager-bg": "https://example.test/background.jpg",
+    "vn-manager-nsfw-blur": "true",
+}), {
+    backgroundImage: "https://example.test/background.jpg",
+    nsfwBlur: true,
+    cancelled: 1,
+});
+assert.deepEqual(runRestore({
+    "vn-manager-bg": "https://example.test/background.jpg",
+    "vn-manager-nsfw-blur": "false",
+}), {
+    backgroundImage: "https://example.test/background.jpg",
+    nsfwBlur: false,
+    cancelled: 1,
+});
+
+let applied = false;
+let cancelled = false;
+const cleanup = scheduleSettingsRestore(
+    { getItem: () => "stored" },
+    () => { applied = true; },
+    () => { applied = true; },
+    () => 2,
+    () => { cancelled = true; },
+);
+cleanup();
+assert.equal(cancelled, true);
+assert.equal(applied, false);
+
+console.log("Settings restoration regression check passed (4 scenarios).");

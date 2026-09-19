@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { scheduleSettingsRestore } from "@/lib/settings-storage.mjs";
 
 interface SettingsContextType {
     backgroundImage: string | null;
@@ -16,13 +17,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const [nsfwBlur, setNsfwBlur] = useState<boolean>(true);
 
     useEffect(() => {
-        const storedBg = localStorage.getItem("vn-manager-bg");
-        const storedBlur = localStorage.getItem("vn-manager-nsfw-blur");
-        const timeoutId = window.setTimeout(() => {
-            if (storedBg) setBackgroundImage(storedBg);
-            if (storedBlur !== null) setNsfwBlur(storedBlur === "true");
-        }, 0);
-        return () => window.clearTimeout(timeoutId);
+        return scheduleSettingsRestore(
+            localStorage,
+            setBackgroundImage,
+            setNsfwBlur,
+            window.setTimeout,
+            window.clearTimeout,
+        );
     }, []);
 
     const handleSetBackgroundImage = (url: string | null) => {
