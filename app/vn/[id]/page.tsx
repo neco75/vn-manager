@@ -450,7 +450,7 @@ export default function VNPage() {
                                                     }}
                                                     type="button"
                                                     aria-label={`${t.common.screenshots} ${i + 1}`}
-                                                    className="relative aspect-video min-h-11 overflow-hidden rounded-lg bg-black/20 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                    className="group relative aspect-video min-h-11 overflow-hidden rounded-lg bg-black/20 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                                     onClick={() => {
                                                         openedScreenshotIndexRef.current = i;
                                                         setSelectedImageIndex(i);
