@@ -39,6 +39,10 @@ export const translations = {
             ranking: "ランキング",
             stats: "統計",
             about: "About",
+            menu: "メニュー",
+            primary: "メインナビゲーション",
+            language: "言語",
+            changeLanguage: "言語を切り替える",
         },
         about: {
             title: "VN Managerについて",
@@ -224,6 +228,10 @@ export const translations = {
             ranking: "Ranking",
             stats: "Stats",
             about: "About",
+            menu: "Menu",
+            primary: "Main navigation",
+            language: "Language",
+            changeLanguage: "Change language",
         },
         about: {
             title: "About VN Manager",
