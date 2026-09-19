@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { getVNById } from "@/lib/vndb";
@@ -60,6 +60,8 @@ export default function VNPage() {
     const [purchaseLocation, setPurchaseLocation] = useState("");
     const [isDirty, setIsDirty] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+    const screenshotButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+    const openedScreenshotIndexRef = useRef<number | null>(null);
 
     const STATUSES: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -443,10 +445,16 @@ export default function VNPage() {
                                             {vn.screenshots.map((ss, i) => (
                                                 <button
                                                     key={i}
+                                                    ref={(node) => {
+                                                        screenshotButtonRefs.current[i] = node;
+                                                    }}
                                                     type="button"
                                                     aria-label={`${t.common.screenshots} ${i + 1}`}
                                                     className="relative aspect-video min-h-11 overflow-hidden rounded-lg bg-black/20 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                                    onClick={() => setSelectedImageIndex(i)}
+                                                    onClick={() => {
+                                                        openedScreenshotIndexRef.current = i;
+                                                        setSelectedImageIndex(i);
+                                                    }}
                                                 >
                                                     <Image
                                                         src={ss.thumbnail}
@@ -511,6 +519,13 @@ export default function VNPage() {
                 {selectedImageIndex !== null && vn?.screenshots && (
                     <DialogContent
                         showCloseButton={false}
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault();
+                            const openedIndex = openedScreenshotIndexRef.current;
+                            if (openedIndex !== null) {
+                                screenshotButtonRefs.current[openedIndex]?.focus();
+                            }
+                        }}
                         className="block h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden border-white/10 bg-black/95 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[calc(100vw-2rem)]"
                     >
                         <DialogTitle className="sr-only">
