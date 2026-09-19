@@ -90,7 +90,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
-            <DialogContent className="max-w-lg bg-card border-white/10 p-0 overflow-hidden gap-0 sm:rounded-2xl">
+            <DialogContent className="grid max-h-[calc(100dvh-1rem)] max-w-lg grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden border-white/10 bg-card p-0 sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl">
                 <div className="relative h-32 w-full">
                     {vn.image ? (
                         <img
@@ -112,9 +112,9 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                     </div>
                 </div>
 
-                <div className="p-6 space-y-6">
-                    <div className="space-y-2">
-                        <Label>{t.common.status}</Label>
+                <div className="space-y-6 overflow-y-auto p-4 sm:p-6">
+                    <fieldset className="space-y-2">
+                        <legend className="text-sm font-medium">{t.common.status}</legend>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {statuses.map((s) => (
                                 <Button
@@ -127,7 +127,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     }}
                                     disabled={isSaving}
                                     className={cn(
-                                        "w-full",
+                                        "min-h-11 w-full",
                                         status === s.value ? "font-bold" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"
                                     )}
                                 >
@@ -135,13 +135,14 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                 </Button>
                             ))}
                         </div>
-                    </div>
+                    </fieldset>
 
                     <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <Label>{t.common.score}</Label>
+                        <div className="flex items-center justify-between gap-3">
+                            <Label htmlFor="edit-score">{t.common.score}</Label>
                             <div className="flex items-center gap-2">
                                 <Input
+                                    id="edit-score"
                                     type="number"
                                     min="0"
                                     max="100"
@@ -154,7 +155,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                         }
                                     }}
                                     disabled={isSaving}
-                                    className="w-16 h-8 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                    className="h-11 w-20 text-right font-bold text-white bg-secondary/50 border-white/10"
                                 />
                                 <span className="text-sm text-gray-500">/ 100</span>
                             </div>
@@ -169,13 +170,15 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                 setSaveError(null);
                             }}
                             disabled={isSaving}
+                            aria-label={t.common.score}
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label>{t.common.playTime} ({t.common.hours})</Label>
+                            <Label htmlFor="edit-play-time">{t.common.playTime} ({t.common.hours})</Label>
                             <Input
+                                id="edit-play-time"
                                 type="number"
                                 min="0"
                                 step="0.5"
@@ -186,13 +189,14 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     setSaveError(null);
                                 }}
                                 disabled={isSaving}
-                                className="bg-secondary/50 border-white/10"
+                                className="min-h-11 bg-secondary/50 border-white/10"
                                 placeholder="10.5"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Purchase Location</Label>
+                            <Label htmlFor="edit-purchase-location">{t.common.purchaseLocation}</Label>
                             <PurchaseLocationSelector
+                                id="edit-purchase-location"
                                 value={purchaseLocation}
                                 onChange={(value) => {
                                     setPurchaseLocation(value);
@@ -203,8 +207,9 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                     </div>
 
                     <div className="space-y-2">
-                        <Label>{t.common.notes}</Label>
+                        <Label htmlFor="edit-notes">{t.common.notes}</Label>
                         <Textarea
+                            id="edit-notes"
                             value={notes}
                             onChange={(e) => {
                                 setNotes(e.target.value);
@@ -222,13 +227,13 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         </p>
                     )}
 
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                         {libraryItem && onDelete && (
                             <Button
                                 variant="destructive"
                                 onClick={onDelete}
                                 disabled={isSaving}
-                                className="flex-1 gap-2"
+                                className="min-h-11 flex-1 gap-2"
                             >
                                 <Trash2 className="w-4 h-4" />
                                 {t.common.delete}
@@ -237,7 +242,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         <Button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="flex-[2] gap-2 font-bold shadow-lg shadow-primary/25"
+                            className="min-h-11 flex-[2] gap-2 font-bold shadow-lg shadow-primary/25"
                         >
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {isSaving ? t.modal.saving : t.common.save}
@@ -248,3 +253,4 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
         </Dialog>
     );
 }
+
