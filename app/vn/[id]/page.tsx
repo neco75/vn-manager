@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { getVNById } from "@/lib/vndb";
 import { VN } from "@/types/vndb";
 import { useLibrary } from "@/context/LibraryContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowLeft, Star, Clock, Calendar, Tag, Image as ImageIcon, Trash2, Save, BookOpen, MessageSquare, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import Link from "next/link";
@@ -23,6 +23,12 @@ const MarkdownEditor = dynamic(
 import { GameStatus, getLibraryValidationError } from "@/types/library";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -56,6 +62,8 @@ export default function VNPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+    const screenshotButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+    const openedScreenshotIndexRef = useRef<number | null>(null);
 
     const STATUSES: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -263,9 +271,9 @@ export default function VNPage() {
 
                     <div className="bg-card border border-white/10 rounded-xl p-6 space-y-6">
                         <div className="space-y-2">
-                            <Label>{t.common.status}</Label>
+                            <Label htmlFor="detail-status">{t.common.status}</Label>
                             <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); setIsDirty(true); }}>
-                                <SelectTrigger className="bg-secondary/50 border-white/10">
+                                <SelectTrigger id="detail-status" className="min-h-11 w-full bg-secondary/50 border-white/10">
                                     <SelectValue placeholder={t.common.selectStatus} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -278,9 +286,10 @@ export default function VNPage() {
 
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <Label>{t.common.score}</Label>
+                                <Label htmlFor="detail-score">{t.common.score}</Label>
                                 <div className="flex items-center gap-2">
                                     <Input
+                                        id="detail-score"
                                         type="number"
                                         min="0"
                                         max="100"
@@ -292,7 +301,7 @@ export default function VNPage() {
                                                 setIsDirty(true);
                                             }
                                         }}
-                                        className="w-16 h-8 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                        className="h-11 w-20 text-right font-bold text-white bg-secondary/50 border-white/10"
                                     />
                                     <span className="text-sm text-gray-500">/ 100</span>
                                 </div>
@@ -303,13 +312,15 @@ export default function VNPage() {
                                 step={1}
                                 value={[score]}
                                 onValueChange={(vals) => { setScore(vals[0]); setIsDirty(true); }}
+                                aria-label={t.common.score}
                                 className="cursor-pointer"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label>{t.common.playTime} ({t.common.hours})</Label>
+                            <Label htmlFor="detail-play-time">{t.common.playTime} ({t.common.hours})</Label>
                             <Input
+                                id="detail-play-time"
                                 type="number"
                                 min="0"
                                 step="0.5"
@@ -319,14 +330,15 @@ export default function VNPage() {
                                     setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
                                     setIsDirty(true);
                                 }}
-                                className="bg-secondary/50 border-white/10"
+                                className="min-h-11 bg-secondary/50 border-white/10"
                                 placeholder="0.0"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Purchase Location</Label>
+                            <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
                             <PurchaseLocationSelector
+                                id="detail-purchase-location"
                                 value={purchaseLocation}
                                 onChange={(v) => { setPurchaseLocation(v); setIsDirty(true); }}
                             />
@@ -339,7 +351,9 @@ export default function VNPage() {
                                     size="icon"
                                     onClick={handleDelete}
                                     disabled={isDeleting || isSaving}
+                                    aria-label={t.common.delete}
                                     title={t.common.delete}
+                                    className="h-11 w-11"
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </Button>
@@ -461,10 +475,18 @@ export default function VNPage() {
                                         <h4 className="text-sm font-medium text-gray-400 mb-3">{t.common.screenshots}</h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                             {vn.screenshots.map((ss, i) => (
-                                                <div
+                                                <button
                                                     key={i}
-                                                    className="relative aspect-video rounded-lg overflow-hidden group bg-black/20 cursor-pointer"
-                                                    onClick={() => setSelectedImageIndex(i)}
+                                                    ref={(node) => {
+                                                        screenshotButtonRefs.current[i] = node;
+                                                    }}
+                                                    type="button"
+                                                    aria-label={`${t.common.screenshots} ${i + 1}`}
+                                                    className="group relative aspect-video min-h-11 overflow-hidden rounded-lg bg-black/20 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                    onClick={() => {
+                                                        openedScreenshotIndexRef.current = i;
+                                                        setSelectedImageIndex(i);
+                                                    }}
                                                 >
                                                     <Image
                                                         src={ss.thumbnail}
@@ -481,7 +503,7 @@ export default function VNPage() {
                                                             <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">18+</Badge>
                                                         </div>
                                                     )}
-                                                </div>
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
@@ -520,54 +542,64 @@ export default function VNPage() {
                 </motion.div>
             </div>
 
-            <AnimatePresence>
+            <Dialog
+                open={selectedImageIndex !== null}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedImageIndex(null);
+                }}
+            >
                 {selectedImageIndex !== null && vn?.screenshots && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setSelectedImageIndex(null)}
-                        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                    <DialogContent
+                        showCloseButton={false}
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault();
+                            const openedIndex = openedScreenshotIndexRef.current;
+                            if (openedIndex !== null) {
+                                screenshotButtonRefs.current[openedIndex]?.focus();
+                            }
+                        }}
+                        className="block h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden border-white/10 bg-black/95 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[calc(100vw-2rem)]"
                     >
-                        <button
-                            onClick={() => setSelectedImageIndex(null)}
-                            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-50"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                        <DialogTitle className="sr-only">
+                            {t.common.screenshots} {selectedImageIndex + 1}
+                        </DialogTitle>
+
+                        <DialogClose asChild>
+                            <button
+                                type="button"
+                                aria-label={t.common.close}
+                                className="absolute right-3 top-3 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            >
+                                <X className="w-6 h-6" aria-hidden="true" />
+                            </button>
+                        </DialogClose>
 
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
+                            type="button"
+                            aria-label={t.common.previousImage}
+                            onClick={() => {
                                 setSelectedImageIndex((prev) => (prev !== null ? (prev - 1 + vn.screenshots.length) % vn.screenshots.length : null));
                             }}
-                            className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-50"
+                            className="absolute left-3 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         >
-                            <ChevronLeft className="w-8 h-8" />
+                            <ChevronLeft className="w-7 h-7" aria-hidden="true" />
                         </button>
 
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
+                            type="button"
+                            aria-label={t.common.nextImage}
+                            onClick={() => {
                                 setSelectedImageIndex((prev) => (prev !== null ? (prev + 1) % vn.screenshots.length : null));
                             }}
-                            className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-50"
+                            className="absolute right-3 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         >
-                            <ChevronRight className="w-8 h-8" />
+                            <ChevronRight className="w-7 h-7" aria-hidden="true" />
                         </button>
 
-                        <motion.div
-                            key={selectedImageIndex}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.2 }}
-                            className="relative w-full h-full max-w-7xl max-h-[90vh]"
-                            onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="relative h-full w-full p-4 sm:p-8">
                             <Image
                                 src={vn.screenshots[selectedImageIndex].url}
-                                alt="Full size"
+                                alt={`${t.common.screenshots} ${selectedImageIndex + 1}`}
                                 fill
                                 className={cn(
                                     "object-contain transition-all duration-300",
@@ -583,10 +615,10 @@ export default function VNPage() {
                                     </p>
                                 </div>
                             )}
-                        </motion.div>
-                    </motion.div>
+                        </div>
+                    </DialogContent>
                 )}
-            </AnimatePresence>
+            </Dialog>
         </div>
     );
 }
