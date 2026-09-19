@@ -153,6 +153,7 @@ export default function Home() {
                             variant="outline"
                             className="gap-2 border-accent/20 text-accent hover:bg-accent/10 hover:text-accent"
                             onClick={() => setIsRouletteOpen(true)}
+                            aria-label={t.home.rouletteButton}
                         >
                             <Dices className="w-4 h-4" />
                             <span className="hidden sm:inline text-white">{t.home.rouletteButton}</span>
@@ -173,24 +174,30 @@ export default function Home() {
                             <Button
                                 variant={viewMode === "grid" ? "default" : "ghost"}
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-11 w-11"
                                 onClick={() => setViewMode("grid")}
+                                aria-label={t.home.gridView}
+                                aria-pressed={viewMode === "grid"}
                             >
                                 <LayoutGrid className="w-4 h-4" />
                             </Button>
                             <Button
                                 variant={viewMode === "list" ? "default" : "ghost"}
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-11 w-11"
                                 onClick={() => setViewMode("list")}
+                                aria-label={t.home.listView}
+                                aria-pressed={viewMode === "list"}
                             >
                                 <List className="w-4 h-4" />
                             </Button>
                             <Button
                                 variant={viewMode === "shelf" ? "default" : "ghost"}
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-11 w-11"
                                 onClick={() => setViewMode("shelf")}
+                                aria-label={t.home.shelfView}
+                                aria-pressed={viewMode === "shelf"}
                             >
                                 <Library className="w-4 h-4" />
                             </Button>
