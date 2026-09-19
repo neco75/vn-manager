@@ -20,7 +20,7 @@ const MarkdownEditor = dynamic(
     { ssr: false }
 );
 
-import { GameStatus } from "@/types/library";
+import { GameStatus, getLibraryValidationError } from "@/types/library";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,8 @@ export default function VNPage() {
     const [playTime, setPlayTime] = useState(0);
     const [purchaseLocation, setPurchaseLocation] = useState("");
     const [isDirty, setIsDirty] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     const STATUSES: { value: GameStatus; label: string }[] = [
@@ -103,8 +105,23 @@ export default function VNPage() {
     }, [libraryItem]);
 
     const handleSave = async () => {
-        if (!vn) return;
+        if (!vn || isSaving) return;
 
+        const invalidField = getLibraryValidationError({ status, score, playTime });
+        if (invalidField === "status") {
+            toast.error(t.modal.invalidStatus);
+            return;
+        }
+        if (invalidField === "score") {
+            toast.error(t.modal.invalidScore);
+            return;
+        }
+        if (invalidField === "playTime") {
+            toast.error(t.modal.invalidPlayTime);
+            return;
+        }
+
+        setIsSaving(true);
         try {
             if (libraryItem) {
                 await updateItem({ ...libraryItem, status, score, notes, review, playTime, purchaseLocation });
@@ -117,21 +134,31 @@ export default function VNPage() {
         } catch (error) {
             console.error(error);
             toast.error(t.modal.saveError);
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handleDelete = async () => {
-        if (!vn || !libraryItem) return;
+        if (!vn || !libraryItem || isDeleting) return;
         if (confirm(t.modal.confirmDelete)) {
-            await removeItem(vn.id);
-            toast.success(t.modal.deleteSuccess);
-            // Reset local state defaults
-            setStatus("plan_to_play");
-            setScore(0);
-            setNotes("");
-            setReview("");
-            setPlayTime(0);
-            setIsDirty(false);
+            setIsDeleting(true);
+            try {
+                await removeItem(vn.id);
+                toast.success(t.modal.deleteSuccess);
+                setStatus("plan_to_play");
+                setScore(0);
+                setNotes("");
+                setReview("");
+                setPlayTime(0);
+                setPurchaseLocation("");
+                setIsDirty(false);
+            } catch (error) {
+                console.error(error);
+                toast.error(t.modal.deleteError);
+            } finally {
+                setIsDeleting(false);
+            }
         }
     };
 
@@ -287,7 +314,11 @@ export default function VNPage() {
                                 min="0"
                                 step="0.5"
                                 value={playTime ? playTime / 60 : ""}
-                                onChange={(e) => { setPlayTime(parseFloat(e.target.value) * 60); setIsDirty(true); }}
+                                onChange={(e) => {
+                                    const rawValue = e.target.value.trim();
+                                    setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
+                                    setIsDirty(true);
+                                }}
                                 className="bg-secondary/50 border-white/10"
                                 placeholder="0.0"
                             />
@@ -307,6 +338,7 @@ export default function VNPage() {
                                     variant="destructive"
                                     size="icon"
                                     onClick={handleDelete}
+                                    disabled={isDeleting || isSaving}
                                     title={t.common.delete}
                                 >
                                     <Trash2 className="w-5 h-5" />
@@ -315,10 +347,10 @@ export default function VNPage() {
                             <Button
                                 className="flex-1 gap-2 font-bold shadow-lg shadow-primary/25"
                                 onClick={handleSave}
-                                disabled={!isDirty}
+                                disabled={isSaving || isDeleting || (!!libraryItem && !isDirty)}
                             >
                                 <Save className="w-5 h-5" />
-                                {libraryItem ? t.common.save : t.common.addToLibrary}
+                                {isSaving ? t.modal.saving : (libraryItem ? t.common.save : t.common.addToLibrary)}
                             </Button>
                         </div>
                     </div>
