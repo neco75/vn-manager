@@ -19,12 +19,14 @@ interface VNCardProps {
     onAdd?: () => void;
     /** 追加処理の進行中（渡された追加操作の状態） */
     isAdding?: boolean;
+    /** ライブラリから詳細へ遷移するときの復帰先を含むURL */
+    detailHref?: string;
 }
 
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 
-export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false }: VNCardProps) {
+export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false, detailHref }: VNCardProps) {
     const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
@@ -33,10 +35,11 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
     const isAdded = Boolean(libraryItem);
     const displayTitle = getDisplayTitle(vn, language);
     const developerName = vn.developers?.[0]?.name;
+    const href = detailHref ?? `/vn/${vn.id}`;
 
     // 表紙とタイトルは詳細へ移動する主リンク。追加などの操作はリンク外に置く（入れ子にしない）。
     const Cover = (
-        <Link href={`/vn/${vn.id}`} className="block" aria-label={displayTitle}>
+        <Link href={href} className="block" aria-label={displayTitle}>
             <div className="aspect-[2/3] relative overflow-hidden bg-card">
                 {vn.image ? (
                     <>
@@ -75,7 +78,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
 
             <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
                 <Link
-                    href={`/vn/${vn.id}`}
+                    href={href}
                     className="min-h-[2.75rem] font-bold text-base leading-snug line-clamp-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
                     {displayTitle}
@@ -83,7 +86,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
 
                 {developerName && <p className="truncate text-xs text-muted-foreground">{developerName}</p>}
 
-                {/* 補助情報: 検索カードはブランド・発売年・VNDB評価、ライブラリカードは自分の記録 */}
+                {/* 検索カードでは出典を明示したVNDB情報だけを表示する */}
                 {isSearch ? (
                     <div className="space-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-3">
@@ -99,18 +102,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                             )}
                         </div>
                     </div>
-                ) : (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" aria-hidden="true" />
-                            <span>{isRated ? (vn.rating / 10).toFixed(1) : "N/A"}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" aria-hidden="true" />
-                            <span>{vn.released || "TBA"}</span>
-                        </div>
-                    </div>
-                )}
+                ) : null}
 
                 <div className="mt-auto pt-2 space-y-2">
                     {libraryItem ? (
@@ -118,7 +110,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                             <Badge variant="secondary" className="text-xs">
                                 {isSearch ? t.search.alreadyAdded : t.status[libraryItem.status]}
                             </Badge>
-                            {!isSearch && libraryItem.ownership !== "unknown" && (
+                            {!isSearch && (
                                 <Badge variant="outline" className="text-xs">
                                     {t.ownership[libraryItem.ownership]}
                                 </Badge>
@@ -126,10 +118,19 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                         </div>
                     ) : null}
 
-                    {!isSearch && libraryItem && libraryItem.score !== null ? (
+                    {!isSearch && libraryItem ? (
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-muted-foreground">{t.common.score}</span>
-                            <span className="text-sm font-bold text-yellow-500">{libraryItem.score}/100</span>
+                            <span className="text-sm font-bold text-yellow-500">
+                                {libraryItem.score === null ? t.common.unrated : `${libraryItem.score}/100`}
+                            </span>
+                        </div>
+                    ) : null}
+
+                    {!isSearch && isRated ? (
+                        <div className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+                            <Star className="w-3 h-3" aria-hidden="true" />
+                            <span>VNDB {(vn.rating / 10).toFixed(1)}/10</span>
                         </div>
                     ) : null}
 

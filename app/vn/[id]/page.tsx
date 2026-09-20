@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { getVNById } from "@/lib/vndb";
 import { mergeLibraryItemMetadata, type LibraryItemEdits } from "@/lib/library-state";
 import { VN } from "@/types/vndb";
@@ -52,7 +52,12 @@ type ExternalFetchState = "idle" | "loading" | "success" | "not-found" | "error"
 
 export default function VNPage() {
     const { id } = useParams();
+    const searchParams = useSearchParams();
     const routeId = typeof id === "string" ? id : null;
+    const returnToParam = searchParams.get("from");
+    const returnTo = returnToParam && (returnToParam === "/" || returnToParam.startsWith("/?"))
+        ? returnToParam
+        : "/";
     const [vn, setVn] = useState<VN | null>(null);
     const [externalState, setExternalState] = useState<ExternalFetchState>("idle");
     const [retryVersion, setRetryVersion] = useState(0);
@@ -334,7 +339,7 @@ export default function VNPage() {
             )}
 
             <Link
-                href="/"
+                href={returnTo}
                 className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group"
             >    <ArrowLeft className="w-4 h-4" />
                 {t.common.back}
