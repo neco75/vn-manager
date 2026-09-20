@@ -466,6 +466,7 @@ export default function VNPage() {
                             >
                                 {t.common.markUnrated}
                             </Button>
+                            <p className="text-xs text-gray-500">{t.common.legacyZeroScoreNote}</p>
                         </div>
 
                         <div className="space-y-2">
