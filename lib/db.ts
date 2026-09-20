@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { assertValidLibraryItem, LibraryItem } from "@/types/library";
+import { planLibraryRestore } from "@/lib/backup";
 
 interface VNDBManagerDB extends DBSchema {
     library: {
@@ -58,6 +59,7 @@ export async function getAllLibraryItems() {
 export async function restoreBackupData(
     items: LibraryItem[],
     purchaseSources?: string[],
+    overwriteConflicts = false,
 ) {
     items.forEach(assertValidLibraryItem);
 
@@ -66,10 +68,14 @@ export async function restoreBackupData(
     const libraryStore = tx.objectStore("library");
     const purchaseSourceStore = tx.objectStore("purchase_sources");
 
+    // Read and decide conflicts inside the same readwrite transaction that performs
+    // the writes. This prevents a stale React Context / preview from overwriting a
+    // record that another tab saved before this restore started.
     const existingItems = await libraryStore.getAll();
+    const plan = planLibraryRestore(items, existingItems, overwriteConflicts);
     const finalItems = new Map(existingItems.map((item) => [item.vn.id, item]));
 
-    for (const item of items) {
+    for (const item of plan.itemsToWrite) {
         await libraryStore.put(item);
         finalItems.set(item.vn.id, item);
     }
@@ -89,6 +95,11 @@ export async function restoreBackupData(
     }
 
     await tx.done;
+    return {
+        additions: plan.additions,
+        overwritten: plan.overwritten,
+        skippedConflicts: plan.skippedConflicts,
+    };
 }
 
 export async function removeFromLibrary(id: string) {
