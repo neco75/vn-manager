@@ -27,6 +27,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { GameStatus, GAME_STATUSES } from "@/types/library";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 type SearchState = "idle" | "searching" | "success" | "empty" | "error";
 
@@ -42,7 +43,7 @@ function SearchPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { addItem, getItem } = useLibrary();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
 
     // 入力中の検索語と、送信済みの検索語を分けて持つ（URLに保持するのは送信済み）
     const [inputValue, setInputValue] = useState(() => searchParams.get("q") ?? "");
@@ -171,7 +172,7 @@ function SearchPageInner() {
     const handleAdd = async (vn: VN, status: GameStatus = "plan_to_play"): Promise<boolean> => {
         if (addingIds.includes(vn.id)) return false;
         if (getItem(vn.id)) {
-            toast.success(t.search.addSuccess.replace("{title}", vn.title));
+            toast.success(t.search.addSuccess.replace("{title}", getDisplayTitle(vn, language)));
             return true;
         }
 
@@ -184,7 +185,7 @@ function SearchPageInner() {
         });
         try {
             await addItem(vn, { status, ownership: "unknown", score: null, notes: "" });
-            toast.success(t.search.addSuccess.replace("{title}", vn.title));
+            toast.success(t.search.addSuccess.replace("{title}", getDisplayTitle(vn, language)));
             return true;
         } catch (error) {
             console.error("Failed to add to library:", error);
@@ -347,7 +348,7 @@ function SearchPageInner() {
                         <>
                             <DialogHeader>
                                 <DialogTitle className="text-left leading-snug">
-                                    {statusPickerVN.title}
+                                    {getDisplayTitle(statusPickerVN, language)}
                                 </DialogTitle>
                                 <DialogDescription className="text-left">
                                     {t.search.selectStatus}

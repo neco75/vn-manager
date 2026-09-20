@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 interface VNCardProps {
     vn: VN;
@@ -24,22 +25,24 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 
 export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false }: VNCardProps) {
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
     const shouldBlur = shouldBlurImage(vn.image?.sexual, nsfwBlur);
     const isSearch = variant === "search";
     const isAdded = Boolean(libraryItem);
+    const displayTitle = getDisplayTitle(vn, language);
+    const developerName = vn.developers?.[0]?.name;
 
     // 表紙とタイトルは詳細へ移動する主リンク。追加などの操作はリンク外に置く（入れ子にしない）。
     const Cover = (
-        <Link href={`/vn/${vn.id}`} className="block" aria-label={vn.title}>
+        <Link href={`/vn/${vn.id}`} className="block" aria-label={displayTitle}>
             <div className="aspect-[2/3] relative overflow-hidden bg-card">
                 {vn.image ? (
                     <>
                         <Image
                             src={vn.image.url}
-                            alt={vn.title}
+                            alt={displayTitle}
                             fill
                             className={cn(
                                 "object-contain transition-all duration-300",
@@ -73,17 +76,16 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
             <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
                 <Link
                     href={`/vn/${vn.id}`}
-                    className="font-bold text-base leading-snug line-clamp-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    className="min-h-[2.75rem] font-bold text-base leading-snug line-clamp-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
-                    {vn.title}
+                    {displayTitle}
                 </Link>
+
+                {developerName && <p className="truncate text-xs text-muted-foreground">{developerName}</p>}
 
                 {/* 補助情報: 検索カードはブランド・発売年・VNDB評価、ライブラリカードは自分の記録 */}
                 {isSearch ? (
                     <div className="space-y-1 text-xs text-muted-foreground">
-                        {vn.developers && vn.developers.length > 0 && (
-                            <p className="truncate">{vn.developers[0].name}</p>
-                        )}
                         <div className="flex items-center gap-3">
                             <span className="inline-flex items-center gap-1">
                                 <Calendar className="w-3 h-3" aria-hidden="true" />

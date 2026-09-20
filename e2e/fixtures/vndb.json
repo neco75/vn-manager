@@ -68,6 +68,34 @@
       "screenshots": [],
       "extlinks": [],
       "releases": []
+    },
+    "v4": {
+      "id": "v4",
+      "title": "Long Romanized Sequel Fan Disc Title",
+      "alttitle": "原語の代替タイトル",
+      "titles": [
+        { "lang": "ja", "title": "日本語の長いタイトル 続編 ファンディスク", "latin": "Japanese Long Sequel Fan Disc Title" },
+        { "lang": "en", "title": "English Sequel Fan Disc Title", "latin": null }
+      ],
+      "aliases": ["別名の長いタイトル", "Long Alias"],
+      "olang": "ja",
+      "released": "2023-04-04",
+      "languages": ["ja", "en"],
+      "platforms": ["win"],
+      "image": {
+        "id": "i4",
+        "url": "https://t.vndb.org/4/cover.jpg",
+        "dims": [600, 900]
+      },
+      "description": "Title fixture",
+      "rating": 65,
+      "votecount": 20,
+      "length_minutes": 120,
+      "tags": [],
+      "developers": [{ "id": "d4", "name": "Title Works", "original": "" }],
+      "screenshots": [],
+      "extlinks": [],
+      "releases": []
     }
   },
   "search": {
@@ -100,6 +128,9 @@
     },
     "failure": {
       "1": { "ids": ["v1"], "more": false }
+    },
+    "title-cases": {
+      "1": { "ids": ["v4"], "more": false }
     }
   }
 }

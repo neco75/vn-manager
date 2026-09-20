@@ -27,12 +27,13 @@ import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { cn } from "@/lib/utils";
 import { compareLibraryScores } from "@/lib/library-score";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 
 export default function Home() {
     const { items, isLoading, loadError, reloadLibrary } = useLibrary();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const [filter, setFilter] = useState<GameStatus | "all">("all");
     const [viewMode, setViewMode] = useState<"grid" | "list" | "shelf">("grid");
     const [sort, setSort] = useState<SortOption>("added_desc");
@@ -110,9 +111,9 @@ export default function Home() {
                 case "rating_asc":
                     return (a.vn.rating || 0) - (b.vn.rating || 0);
                 case "title_asc":
-                    return a.vn.title.localeCompare(b.vn.title);
+                    return getDisplayTitle(a.vn, language).localeCompare(getDisplayTitle(b.vn, language));
                 case "title_desc":
-                    return b.vn.title.localeCompare(a.vn.title);
+                    return getDisplayTitle(b.vn, language).localeCompare(getDisplayTitle(a.vn, language));
                 case "vote_desc":
                     return (b.vn.votecount || 0) - (a.vn.votecount || 0);
                 case "vote_asc":
@@ -121,7 +122,7 @@ export default function Home() {
                     return 0;
             }
         });
-    }, [items, filter, sort]);
+    }, [items, filter, language, sort]);
 
     if (isLoading) {
         return <div className="flex items-center justify-center h-64 text-gray-500">{t.common.loading}</div>;
@@ -274,7 +275,10 @@ export default function Home() {
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{item.vn.title}</h3>
+                                    <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors">{getDisplayTitle(item.vn, language)}</h3>
+                                    {item.vn.developers?.[0]?.name && (
+                                        <p className="truncate text-xs text-muted-foreground">{item.vn.developers[0].name}</p>
+                                    )}
                                     <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
                                         <div className="flex items-center gap-1">
                                             <Star className="w-3 h-3 text-yellow-500" />

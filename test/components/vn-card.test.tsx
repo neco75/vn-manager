@@ -68,4 +68,16 @@ describe("VNCard search variant", () => {
         expect(within(card as HTMLElement).queryAllByText("登録済み").length).toBeGreaterThan(0);
         expect(within(card as HTMLElement).queryByRole("button", { name: "ライブラリに追加" })).not.toBeInTheDocument();
     });
+
+    it("uses the Japanese title when the metadata provides one", () => {
+        const localizedVN = {
+            ...vn,
+            titles: [{ lang: "ja", title: "日本語タイトル", latin: "Japanese title" }],
+        };
+        const { container } = renderCard({ vn: localizedVN });
+        const card = container.querySelector('[data-slot="card"]');
+
+        expect(card).not.toBeNull();
+        expect(within(card as HTMLElement).getAllByRole("link", { name: "日本語タイトル" })).toHaveLength(2);
+    });
 });

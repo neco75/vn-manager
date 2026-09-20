@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { getVNMetadataById } from "@/lib/vndb";
 import { getVisibleSynopsisText } from "@/lib/spoiler-safety";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 type Props = {
     params: Promise<{ id: string }>;
@@ -22,12 +23,13 @@ export async function generateMetadata(
             };
         }
 
-        const description = getVisibleSynopsisText(vn.description).slice(0, 160) || `Details about ${vn.title}`;
+        const displayTitle = getDisplayTitle(vn, "ja");
+        const description = getVisibleSynopsisText(vn.description).slice(0, 160) || `Details about ${displayTitle}`;
         return {
-            title: vn.title,
+            title: displayTitle,
             description,
             openGraph: {
-                title: vn.title,
+                title: displayTitle,
                 description,
                 images: vn.image ? [{ url: vn.image.url }] : [],
             },
