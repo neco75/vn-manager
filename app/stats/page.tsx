@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackupManager } from "@/components/BackupManager";
+import { calculateAverageScore } from "@/lib/library-score";
 
 export default function StatsPage() {
     const { items, refreshNSFWFlags } = useLibrary();
@@ -30,15 +31,12 @@ export default function StatsPage() {
     const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
     const stats = useMemo(() => {
-        const ratedItems = items.filter((item) => item.score !== null);
         return {
             total: items.length,
             completed: items.filter((i) => i.status === "completed").length,
             watched: items.filter((i) => i.status === "watched").length,
             playing: items.filter((i) => i.status === "playing").length,
-            avgScore: ratedItems.length > 0
-                ? ratedItems.reduce((acc, item) => acc + (item.score ?? 0), 0) / ratedItems.length
-                : null,
+            avgScore: calculateAverageScore(items),
             totalPlaytime: items.reduce((acc, i) => {
                 // Exclude watched games from total playtime
                 if (i.status === "watched") return acc;
