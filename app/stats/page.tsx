@@ -2,18 +2,9 @@
 
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
-import { PieChart, Gamepad2, Trophy, Clock, Star, Share2, Hash, RefreshCw, Loader2 } from "lucide-react";
-import { useState, useRef, useMemo } from "react";
+import { CalendarDays, Clock, Gamepad2, Hash, Loader2, PieChart, RefreshCw, Share2, Star, Trophy } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-    Radar,
-    RadarChart,
-    PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis,
-    ResponsiveContainer,
-    Tooltip,
-} from "recharts";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,57 +12,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackupManager } from "@/components/BackupManager";
-import { calculateAverageScore } from "@/lib/library-score";
-import { getVisibleTags } from "@/lib/spoiler-safety";
+import { calculateLibraryStatistics } from "@/lib/statistics";
+import Link from "next/link";
 
 export default function StatsPage() {
-    const { items, refreshNSFWFlags } = useLibrary();
+    const { items, isLoading, loadError, reloadLibrary, refreshNSFWFlags } = useLibrary();
     const shareRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
-    const stats = useMemo(() => {
-        return {
-            total: items.length,
-            completed: items.filter((i) => i.status === "completed").length,
-            watched: items.filter((i) => i.status === "watched").length,
-            playing: items.filter((i) => i.status === "playing").length,
-            avgScore: calculateAverageScore(items),
-            totalPlaytime: items.reduce((acc, i) => {
-                // Exclude watched games from total playtime
-                if (i.status === "watched") return acc;
-
-                const actual = i.playTime || 0;
-                const estimated = i.vn.length_minutes || 0;
-
-                // If actual playtime exists, use it regardless of status
-                if (actual > 0) return acc + actual;
-
-                // If no actual playtime, use estimated ONLY if it's not "plan_to_play"
-                if (i.status !== "plan_to_play") return acc + estimated;
-
-                return acc;
-            }, 0) / 60,
-        };
-    }, [items]);
-
-    const tagData = useMemo(() => {
-        const tagCounts: Record<string, number> = {};
-        items.forEach(item => {
-            getVisibleTags(item.vn.tags).forEach(tag => {
-                tagCounts[tag.name] = (tagCounts[tag.name] || 0) + 1;
-            });
-        });
-
-        return Object.entries(tagCounts)
-            .map(([name, count]) => ({ name, count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 6); // Top 6 tags for Radar Chart
-    }, [items]);
+    const stats = useMemo(() => calculateLibraryStatistics(items), [items]);
 
     const handleShare = async () => {
-        if (!shareRef.current) return;
+        if (!shareRef.current || items.length === 0) return;
         try {
             await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -119,7 +73,7 @@ export default function StatsPage() {
                     <Button
                         variant="ghost"
                         onClick={handleRefresh}
-                        disabled={isRefreshing || items.length === 0}
+                        disabled={isRefreshing || items.length === 0 || isLoading || loadError}
                         className="gap-2 rounded-full text-gray-400 hover:text-white"
                     >
                         <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
@@ -127,6 +81,7 @@ export default function StatsPage() {
                     </Button>
                     <Button
                         onClick={handleShare}
+                        disabled={isLoading || loadError || items.length === 0}
                         className="gap-2 rounded-full font-bold shadow-lg shadow-primary/25"
                     >
                         <Share2 className="w-4 h-4" />
@@ -135,12 +90,11 @@ export default function StatsPage() {
                 </div>
             </div>
 
-            {/* Progress Dialog */}
             <Dialog open={isRefreshing}>
                 <DialogContent className="sm:max-w-md bg-card border-white/10 flex flex-col items-center py-10 gap-6">
                     <DialogHeader>
                         <DialogTitle className="text-center text-xl font-bold">
-                            {t.common.loading || "Now Loading..."}
+                            {t.common.loading}
                         </DialogTitle>
                     </DialogHeader>
 
@@ -150,112 +104,201 @@ export default function StatsPage() {
                     </div>
 
                     <div className="space-y-2 text-center">
-                        <p className="text-gray-400 text-sm">
-                            VNDBから情報を取得しています...
-                        </p>
+                        <p className="text-gray-400 text-sm">{t.stats.refreshDescription}</p>
                         <div className="text-2xl font-mono font-bold text-white">
                             {refreshProgress.current} <span className="text-gray-500 text-lg">/ {refreshProgress.total}</span>
                         </div>
                     </div>
 
-                    <p className="text-xs text-gray-500 italic">
-                        サーバーの負担を抑えるため、ゆっくり更新しています。
-                    </p>
+                    <p className="text-xs text-gray-500 italic">{t.stats.refreshNote}</p>
                 </DialogContent>
             </Dialog>
 
-            {/* Shareable Area */}
-            <div ref={shareRef} className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-                        {t.stats.shareTitle}
-                    </h2>
-                    <div className="text-sm text-gray-500">VN Manager</div>
+            {isLoading ? (
+                <div className="rounded-2xl border border-border bg-card p-8 text-center text-gray-400" role="status">
+                    {t.common.loading}
                 </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard
-                        icon={<Gamepad2 className="w-6 h-6 text-primary" />}
-                        label={t.stats.totalGames}
-                        value={stats.total}
-                    />
-                    <StatCard
-                        icon={<Trophy className="w-6 h-6 text-yellow-500" />}
-                        label={t.stats.completed}
-                        value={stats.completed}
-                    />
-                    <StatCard
-                        icon={<Star className="w-6 h-6 text-accent" />}
-                        label={t.stats.avgScore}
-                        value={stats.avgScore === null ? "—" : stats.avgScore.toFixed(1)}
-                    />
-                    <StatCard
-                        icon={<Clock className="w-6 h-6 text-green-500" />}
-                        label={t.stats.totalPlaytime}
-                        value={`${Math.round(stats.totalPlaytime)}${t.common.hours}`}
-                    />
+            ) : loadError ? (
+                <div className="rounded-2xl border border-destructive/40 bg-card p-8 text-center space-y-4" role="alert">
+                    <h2 className="text-xl font-semibold">{t.home.loadErrorTitle}</h2>
+                    <p className="text-sm text-gray-400">{t.home.loadErrorDesc}</p>
+                    <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
                 </div>
+            ) : (
+                <div ref={shareRef} className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                                {t.stats.shareTitle}
+                            </h2>
+                            <p className="mt-2 text-sm text-gray-400">
+                                {t.stats.sharePeriod} · {t.stats.shareScope} · {t.stats.shareUnits}
+                            </p>
+                        </div>
+                        <div className="text-sm text-gray-500">VN Manager</div>
+                    </div>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                    <Card className="h-[400px] flex flex-col border-white/10">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Hash className="w-5 h-5 text-primary" />
-                                {t.stats.topTags}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1 w-full min-h-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={tagData}>
-                                    <PolarGrid stroke="#333" />
-                                    <PolarAngleAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
-                                    <Radar
-                                        name="Tags"
-                                        dataKey="count"
-                                        stroke="#8b5cf6"
-                                        fill="#8b5cf6"
-                                        fillOpacity={0.5}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                                        itemStyle={{ color: '#fff' }}
-                                    />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatCard
+                            icon={<Gamepad2 className="w-6 h-6 text-primary" />}
+                            label={t.stats.totalGames}
+                            value={stats.total}
+                        />
+                        <StatCard
+                            icon={<Trophy className="w-6 h-6 text-yellow-500" />}
+                            label={t.stats.completed}
+                            value={stats.completed}
+                        />
+                        <StatCard
+                            icon={<Star className="w-6 h-6 text-accent" />}
+                            label={t.stats.avgScore}
+                            value={stats.averageScore === null ? "—" : stats.averageScore.toFixed(1)}
+                            detail={t.stats.ratedCount.replace("{count}", String(stats.ratedCount))}
+                        />
+                        <StatCard
+                            icon={<Clock className="w-6 h-6 text-green-500" />}
+                            label={t.stats.totalPlaytime}
+                            value={formatHours(stats.actualPlaytimeMinutes, t.common.hours)}
+                        />
+                    </div>
 
-                    <Card className="h-[400px] flex flex-col border-white/10">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <PieChart className="w-5 h-5 text-accent" />
-                                {t.stats.statusDist}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6 flex-1 flex flex-col justify-center">
-                            <ProgressBar label={t.status.playing} value={stats.playing} total={stats.total} color="bg-primary" />
-                            <ProgressBar label={t.status.completed} value={stats.completed} total={stats.total} color="bg-yellow-500" />
-                            <ProgressBar label={t.status.watched} value={stats.watched} total={stats.total} color="bg-purple-500" />
-                            <ProgressBar label={t.status.plan_to_play} value={items.filter(i => i.status === "plan_to_play").length} total={stats.total} color="bg-blue-500" />
-                            <ProgressBar label={t.stats.others} value={stats.total - stats.playing - stats.completed - stats.watched - items.filter(i => i.status === "plan_to_play").length} total={stats.total} color="bg-gray-600" />
-                        </CardContent>
-                    </Card>
+                    <p className="-mt-4 text-sm text-gray-400">{t.stats.recordedPlaytimeNote}</p>
+
+                    {items.length === 0 ? (
+                        <div className="rounded-2xl border border-white/10 bg-card p-8 text-center text-gray-400 space-y-4">
+                            <p>{t.stats.noRecords}</p>
+                            <Button asChild>
+                                <Link href="/search">{t.home.addButton}</Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            <Card className="border-white/10">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">{t.stats.estimatedPlaytime}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {stats.estimatedUnstartedCount === 0 ? (
+                                        <p className="text-sm text-gray-400">{t.stats.noEstimatedPlaytimeTarget}</p>
+                                    ) : (
+                                        <>
+                                            <div className="text-3xl font-bold">
+                                                {formatHours(stats.estimatedUnstartedMinutes, t.common.hours)}
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                {t.stats.estimatedTargetCount.replace("{count}", String(stats.estimatedUnstartedCount))}
+                                            </p>
+                                        </>
+                                    )}
+                                    <p className="mt-2 text-sm text-gray-400">{t.stats.estimatedPlaytimeNote}</p>
+                                </CardContent>
+                            </Card>
+
+                            <div className="grid md:grid-cols-2 gap-8">
+                                <Card className="border-white/10">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <CalendarDays className="w-5 h-5 text-primary" />
+                                            {t.stats.completedByMonth}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {stats.monthlyCompleted.length === 0 ? (
+                                            <p className="text-sm text-gray-400">{t.stats.noCompletionHistory}</p>
+                                        ) : (
+                                            stats.monthlyCompleted.map((entry) => (
+                                                <ProgressBar
+                                                    key={entry.month}
+                                                    label={entry.month}
+                                                    value={entry.count}
+                                                    total={Math.max(...stats.monthlyCompleted.map((month) => month.count))}
+                                                    color="bg-primary"
+                                                />
+                                            ))
+                                        )}
+                                        {stats.completedWithoutDate > 0 && (
+                                            <p className="text-sm text-gray-400">
+                                                {t.stats.completedWithoutDate.replace("{count}", String(stats.completedWithoutDate))}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-white/10">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <PieChart className="w-5 h-5 text-accent" />
+                                            {t.stats.statusDist}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-5">
+                                        <ProgressBar label={t.status.playing} value={stats.statusCounts.playing} total={stats.total} color="bg-primary" />
+                                        <ProgressBar label={t.status.completed} value={stats.statusCounts.completed} total={stats.total} color="bg-yellow-500" />
+                                        <ProgressBar label={t.status.watched} value={stats.statusCounts.watched} total={stats.total} color="bg-purple-500" />
+                                        <ProgressBar label={t.status.on_hold} value={stats.statusCounts.on_hold} total={stats.total} color="bg-orange-500" />
+                                        <ProgressBar label={t.status.dropped} value={stats.statusCounts.dropped} total={stats.total} color="bg-red-500" />
+                                        <ProgressBar label={t.status.plan_to_play} value={stats.statusCounts.plan_to_play} total={stats.total} color="bg-blue-500" />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <Card className="border-white/10">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Hash className="w-5 h-5 text-primary" />
+                                        {t.stats.tagFrequency}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <p className="text-sm text-gray-400">{t.stats.tagFrequencyNote}</p>
+                                    {stats.tagFrequencies.length === 0 ? (
+                                        <p className="text-sm text-gray-400">{t.stats.noAggregationTarget}</p>
+                                    ) : (
+                                        stats.tagFrequencies.map((tag) => (
+                                            <ProgressBar
+                                                key={tag.name}
+                                                label={tag.name}
+                                                value={tag.count}
+                                                total={stats.tagFrequencies[0].count}
+                                                color="bg-accent"
+                                            />
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
                 </div>
-            </div>
+            )}
 
-            {/* Data Management Section (Not for share) */}
             <BackupManager />
         </div>
     );
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function formatHours(minutes: number, unit: string): string {
+    const hours = minutes / 60;
+    const value = Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+    return `${value}${unit}`;
+}
+
+function StatCard({
+    icon,
+    label,
+    value,
+    detail,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    value: string | number;
+    detail?: string;
+}) {
     return (
         <Card className="flex flex-col items-center justify-center p-6 text-center border-white/10">
             <div className="p-3 rounded-full bg-secondary/50 mb-2">{icon}</div>
             <div className="text-3xl font-bold">{value}</div>
             <div className="text-sm text-gray-400">{label}</div>
+            {detail && <div className="mt-1 text-xs text-gray-500">{detail}</div>}
         </Card>
     );
 }
@@ -264,14 +307,14 @@ function ProgressBar({ label, value, total, color }: { label: string; value: num
     const percentage = total > 0 ? (value / total) * 100 : 0;
     return (
         <div className="space-y-2">
-            <div className="flex justify-between text-sm font-medium">
-                <span>{label}</span>
-                <span className="text-gray-400">{value}本 ({percentage.toFixed(0)}%)</span>
+            <div className="flex justify-between gap-4 text-sm font-medium">
+                <span className="truncate">{label}</span>
+                <span className="shrink-0 text-gray-400">{value}</span>
             </div>
             <div className="h-3 bg-secondary rounded-full overflow-hidden">
                 <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${percentage}%` }}
+                    animate={{ width: `${Math.min(100, percentage)}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
                     className={`h-full ${color}`}
                 />
