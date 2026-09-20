@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { getVisibleSynopsisText } from "@/lib/spoiler-safety";
 
 interface VNCardProps {
     vn: VN;
@@ -68,7 +69,7 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
                     </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    <p className="text-sm text-gray-300 line-clamp-3">{vn.description?.replace(/\[.*?\]/g, "")}</p>
+                    <p className="text-sm text-gray-300 line-clamp-3">{getVisibleSynopsisText(vn.description)}</p>
                 </div>
                 {libraryItem && (
                     <div className="absolute top-2 right-2 flex flex-col items-end gap-1">

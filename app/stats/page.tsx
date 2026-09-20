@@ -22,6 +22,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackupManager } from "@/components/BackupManager";
 import { calculateAverageScore } from "@/lib/library-score";
+import { getVisibleTags } from "@/lib/spoiler-safety";
 
 export default function StatsPage() {
     const { items, refreshNSFWFlags } = useLibrary();
@@ -58,7 +59,7 @@ export default function StatsPage() {
     const tagData = useMemo(() => {
         const tagCounts: Record<string, number> = {};
         items.forEach(item => {
-            item.vn.tags.forEach(tag => {
+            getVisibleTags(item.vn.tags).forEach(tag => {
                 tagCounts[tag.name] = (tagCounts[tag.name] || 0) + 1;
             });
         });
