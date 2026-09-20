@@ -37,13 +37,5 @@ jobs:
         run: |
           npx lefthook validate
           test -x .git/hooks/pre-push
-      - name: Regression checks
-        run: npm run check:regression
-      - name: Lint
-        run: npm run lint
-      - name: Type check
-        run: npm run typecheck
-      - name: Build
-        run: npm run build
-      - name: Dependency audit
-        run: npm audit --audit-level=high
+      - name: Review checks
+        run: npm run check:review
