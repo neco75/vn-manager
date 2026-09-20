@@ -103,6 +103,72 @@ test.describe("search flows", () => {
 });
 
 test.describe("library flows", () => {
+    test("syncs the search input when the header returns to the library", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1");
+        await seedLibraryItem(page, "v2");
+        await seedLibraryItem(page, "v4");
+        await page.reload();
+
+        const input = page.getByRole("searchbox", { name: "登録作品のタイトル・別名・ブランドを検索" });
+        await input.pressSequentially("Title Works");
+        await expect(input).toHaveValue("Title Works");
+        await expect(page.getByText("日本語の長いタイトル 続編 ファンディスク", { exact: true })).toBeVisible();
+
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await expect(page).toHaveURL(/\/$/);
+        await expect(input).toHaveValue("");
+        await expect(page.getByText("一致3件 / 全3件", { exact: true })).toBeVisible();
+    });
+
+    test("searches saved titles, combines filters, and restores the library URL from detail", async ({ page, request }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { status: "completed", ownership: "owned", score: 0, addedAt: 1 });
+        await seedLibraryItem(page, "v2", { status: "playing", ownership: "wishlist", score: null, addedAt: 2 });
+        await seedLibraryItem(page, "v4", { status: "playing", ownership: "unknown", score: 75, addedAt: 3 });
+        await page.reload();
+
+        const input = page.getByRole("searchbox", { name: "登録作品のタイトル・別名・ブランドを検索" });
+        await input.pressSequentially("Title Works");
+        await expect(page.getByText("日本語の長いタイトル 続編 ファンディスク", { exact: true })).toBeVisible();
+        await expect(page.getByText("VNDB 6.5/10", { exact: true })).toBeVisible();
+        await expect(page.getByText("Fixture VN One", { exact: true })).not.toBeVisible();
+        await expect(page).toHaveURL(/q=Title\+Works/);
+
+        await page.getByRole("tab", { name: /プレイ中/ }).click();
+        const ownership = page.getByRole("combobox", { name: "所有状況" });
+        await ownership.click();
+        await page.getByRole("option", { name: "未設定", exact: true }).click();
+        await page.getByRole("combobox", { name: "並び替え" }).click();
+        await page.getByRole("option", { name: "スコア (低い順)", exact: true }).click();
+        await page.getByRole("button", { name: "リスト表示" }).click();
+
+        await expect(page).toHaveURL(/q=Title\+Works&status=playing&ownership=unknown&sort=score_asc&view=list/);
+        await expect(page.getByRole("button", { name: "リスト表示" })).toHaveAttribute("aria-pressed", "true");
+        await expect(page.getByText("未評価", { exact: true })).not.toBeVisible();
+
+        await page.getByText("日本語の長いタイトル 続編 ファンディスク", { exact: true }).click();
+        await expect(page).toHaveURL(/\/vn\/v4\?from=/);
+        await expectServerMetadataFixture(request, "v4");
+        await page.getByRole("link", { name: "戻る", exact: true }).click();
+
+        await expect(page).toHaveURL(/q=Title\+Works&status=playing&ownership=unknown&sort=score_asc&view=list/);
+        await expect(input).toHaveValue("Title Works");
+        await expect(page.getByRole("button", { name: "リスト表示" })).toHaveAttribute("aria-pressed", "true");
+        await page.getByRole("button", { name: "条件を解除", exact: true }).click();
+        await expect(page).toHaveURL(/sort=score_asc&view=list/);
+        await expect(input).toHaveValue("");
+        await expect(page.getByText("0/100", { exact: true })).toBeVisible();
+        await expect(page.getByText("未評価", { exact: true })).toBeVisible();
+
+        await page.goto("/?q=missing&status=invalid&ownership=invalid&sort=invalid&view=invalid");
+        await expect(page).toHaveURL(/\/\?q=missing$/);
+        await expect(page.getByText("条件に一致する作品がありません", { exact: true })).toBeVisible();
+        await expect(page.getByText("ライブラリが空です", { exact: true })).not.toBeVisible();
+    });
+
     test("adds a search result with the default status and persists registered state", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/search");

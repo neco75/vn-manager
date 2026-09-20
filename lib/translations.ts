@@ -109,7 +109,13 @@ export const translations = {
         home: {
             title: "ライブラリ",
             searchButton: "新しいゲームを探す",
+            addButton: "作品を追加",
             rouletteButton: "ルーレット",
+            searchPlaceholder: "登録作品のタイトル・別名・ブランドを検索",
+            resultCount: "一致{matched}件 / 全{total}件",
+            clearFilters: "条件を解除",
+            filteredEmptyTitle: "条件に一致する作品がありません",
+            filteredEmptyDesc: "検索語やフィルターを変更してください。",
             emptyTitle: "ライブラリが空です",
             emptyDesc: "右下のボタンからゲームを追加して、あなただけのコレクションを作りましょう！",
             loadErrorTitle: "ライブラリを読み込めませんでした",
@@ -234,6 +240,7 @@ export const translations = {
             plan_to_play: "プレイ予定",
         },
         ownership: {
+            all: "すべて",
             unknown: "未設定",
             owned: "所有済み",
             wishlist: "気になる",
@@ -389,7 +396,13 @@ export const translations = {
         home: {
             title: "Library",
             searchButton: "Find New Games",
+            addButton: "Add title",
             rouletteButton: "Roulette",
+            searchPlaceholder: "Search saved titles, aliases, or brands",
+            resultCount: "Showing {matched} of {total} titles",
+            clearFilters: "Clear filters",
+            filteredEmptyTitle: "No titles match these conditions",
+            filteredEmptyDesc: "Try changing the search or filters.",
             emptyTitle: "Library is Empty",
             emptyDesc: "Add games from the button below to start building your collection!",
             loadErrorTitle: "Could not load your library",
@@ -514,6 +527,7 @@ export const translations = {
             plan_to_play: "Plan to Play",
         },
         ownership: {
+            all: "All",
             unknown: "Unknown",
             owned: "Owned",
             wishlist: "Wishlist",

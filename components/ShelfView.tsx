@@ -11,9 +11,10 @@ import { getDisplayTitle } from "@/lib/vndb-title";
 
 interface ShelfViewProps {
     items: LibraryItem[];
+    returnTo?: string;
 }
 
-export function ShelfView({ items }: ShelfViewProps) {
+export function ShelfView({ items, returnTo }: ShelfViewProps) {
     const { nsfwBlur } = useSettings();
     const { language, t } = useLanguage();
     return (
@@ -25,6 +26,9 @@ export function ShelfView({ items }: ShelfViewProps) {
                 {items.map((item) => {
                     const shouldBlur = shouldBlurImage(item.vn.image?.sexual, nsfwBlur);
                     const displayTitle = getDisplayTitle(item.vn, language);
+                    const detailHref = returnTo
+                        ? `/vn/${item.vn.id}?from=${encodeURIComponent(returnTo)}`
+                        : `/vn/${item.vn.id}`;
 
                     return (
                         <div key={item.vn.id} className="relative group">
@@ -32,7 +36,7 @@ export function ShelfView({ items }: ShelfViewProps) {
                             <div className="pt-8 pb-2 px-4 border-b-[12px] border-[#3d2b1f] bg-gradient-to-b from-transparent via-transparent to-black/40 relative z-10 h-full flex items-end justify-center">
 
                                 {/* The Game Case */}
-                                <Link href={`/vn/${item.vn.id}`} aria-label={displayTitle} className="relative block w-full aspect-[2/3] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 origin-bottom overflow-hidden">
+                                <Link href={detailHref} aria-label={displayTitle} className="relative block w-full aspect-[2/3] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 origin-bottom overflow-hidden">
                                     {item.vn.image ? (
                                         <img
                                             src={item.vn.image.url}
