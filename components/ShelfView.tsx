@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSettings } from "@/context/SettingsContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/context/LanguageContext";
+import { shouldBlurImage } from "@/lib/image-safety";
 
 interface ShelfViewProps {
     items: LibraryItem[];
@@ -12,6 +14,7 @@ interface ShelfViewProps {
 
 export function ShelfView({ items }: ShelfViewProps) {
     const { nsfwBlur } = useSettings();
+    const { t } = useLanguage();
     return (
         <div className="bg-[#1a1512] p-8 rounded-xl border border-[#3d2b1f] shadow-2xl overflow-hidden relative">
             {/* Wood Texture Overlay */}
@@ -19,7 +22,7 @@ export function ShelfView({ items }: ShelfViewProps) {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
                 {items.map((item) => {
-                    const isNSFW = (item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
+                    const shouldBlur = shouldBlurImage(item.vn.image?.sexual, nsfwBlur);
 
                     return (
                         <div key={item.vn.id} className="relative group">
@@ -34,7 +37,7 @@ export function ShelfView({ items }: ShelfViewProps) {
                                             alt={item.vn.title}
                                             className={cn(
                                                 "w-full h-full object-cover rounded-sm shadow-md group-hover:shadow-xl transition-all",
-                                                isNSFW && nsfwBlur && "blur-xl scale-110"
+                                                shouldBlur && "blur-xl scale-110"
                                             )}
                                         />
                                     ) : (
@@ -43,9 +46,9 @@ export function ShelfView({ items }: ShelfViewProps) {
                                         </div>
                                     )}
 
-                                    {isNSFW && nsfwBlur && (
+                                    {shouldBlur && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">18+</Badge>
+                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
                                         </div>
                                     )}
 

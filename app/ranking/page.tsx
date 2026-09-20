@@ -8,6 +8,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { shouldBlurImage } from "@/lib/image-safety";
 
 export default function RankingPage() {
     const { items } = useLibrary();
@@ -56,12 +57,12 @@ export default function RankingPage() {
                                         alt=""
                                         className={cn(
                                             "w-full h-full object-cover transition-all",
-                                            ((item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-md scale-110"
+                                            shouldBlurImage(item.vn.image?.sexual, nsfwBlur) && "blur-md scale-110"
                                         )}
                                     />
-                                    {((item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                                    {shouldBlurImage(item.vn.image?.sexual, nsfwBlur) && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">18+</Badge>
+                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
                                         </div>
                                     )}
                                 </>

@@ -10,6 +10,7 @@ import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
 import { ArrowLeft, Star, Clock, Calendar, Tag, Image as ImageIcon, Trash2, Save, BookOpen, MessageSquare, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
+import { shouldBlurImage } from "@/lib/image-safety";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Accordion } from "@/components/Accordion";
@@ -287,7 +288,7 @@ export default function VNPage() {
                     <div
                         className={cn(
                             "absolute inset-0 bg-cover bg-center opacity-40 scale-105 transition-all duration-1000",
-                            ((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur ? "blur-3xl" : "blur-md"
+                            shouldBlurImage(vn.image?.sexual, nsfwBlur) ? "blur-3xl" : "blur-md"
                         )}
                         style={{ backgroundImage: `url(${vn.image.url})` }}
                     />
@@ -347,14 +348,14 @@ export default function VNPage() {
                                         fill
                                         className={cn(
                                             "object-cover transition-all duration-500",
-                                            ((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-2xl scale-110"
+                                            shouldBlurImage(vn.image?.sexual, nsfwBlur) && "blur-2xl scale-110"
                                         )}
                                         sizes="(max-width: 1024px) 100vw, 350px"
                                         priority
                                     />
-                                    {((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                                    {shouldBlurImage(vn.image?.sexual, nsfwBlur) && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">18+</Badge>
+                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">{t.settings.imageBlurred}</Badge>
                                         </div>
                                     )}
                                 </div>
@@ -365,7 +366,7 @@ export default function VNPage() {
                                     variant="secondary"
                                     className="w-full gap-2"
                                     onClick={() => {
-                                        setBackgroundImage(vn.image?.url || null);
+                                        setBackgroundImage(vn.image?.url || null, vn.image?.sexual ?? null);
                                         toast.success(t.modal.bgSetSuccess);
                                     }}
                                 >
@@ -603,13 +604,13 @@ export default function VNPage() {
                                                         fill
                                                         className={cn(
                                                             "object-cover transition-all duration-500 group-hover:scale-110",
-                                                            ((ss.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-xl"
+                                                            shouldBlurImage(ss.sexual, nsfwBlur) && "blur-xl"
                                                         )}
                                                         sizes="(max-width: 640px) 50vw, 33vw"
                                                     />
-                                                    {((ss.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                                                    {shouldBlurImage(ss.sexual, nsfwBlur) && (
                                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">18+</Badge>
+                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">{t.settings.imageBlurred}</Badge>
                                                         </div>
                                                     )}
                                                 </button>
@@ -712,13 +713,13 @@ export default function VNPage() {
                                 fill
                                 className={cn(
                                     "object-contain transition-all duration-300",
-                                    ((vn.screenshots[selectedImageIndex].sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-3xl"
+                                    shouldBlurImage(vn.screenshots[selectedImageIndex].sexual, nsfwBlur) && "blur-3xl"
                                 )}
                                 sizes="100vw"
                             />
-                            {((vn.screenshots[selectedImageIndex].sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && (
+                            {shouldBlurImage(vn.screenshots[selectedImageIndex].sexual, nsfwBlur) && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">18+</Badge>
+                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">{t.settings.imageBlurred}</Badge>
                                     <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
                                         {t.settings?.nsfwBlurDescription || "NSFW content is hidden"}
                                     </p>

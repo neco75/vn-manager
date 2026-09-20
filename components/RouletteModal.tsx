@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSettings } from "@/context/SettingsContext";
+import { shouldBlurImage } from "@/lib/image-safety";
+import { cn } from "@/lib/utils";
 
 interface RouletteModalProps {
     isOpen: boolean;
@@ -24,6 +27,7 @@ interface RouletteModalProps {
 
 export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
     const { t } = useLanguage();
+    const { nsfwBlur } = useSettings();
     const [spinning, setSpinning] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [winner, setWinner] = useState<LibraryItem | null>(null);
@@ -68,6 +72,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
     };
 
     const currentItem = pool[currentIndex];
+    const shouldBlurCurrentImage = shouldBlurImage(currentItem?.vn.image?.sexual, nsfwBlur);
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -89,12 +94,18 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                                 src={currentItem.vn.image.url}
                                 alt={currentItem.vn.title}
                                 fill
-                                className="object-cover"
+                                className={cn("object-cover transition-all", shouldBlurCurrentImage && "blur-xl scale-110")}
                                 sizes="(max-width: 640px) 192px, 224px"
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-500">
                                 {t.common.noImage}
+                            </div>
+                        )}
+
+                        {shouldBlurCurrentImage && currentItem?.vn.image && (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
+                                <span className="rounded bg-black/70 px-2 py-1 text-xs text-white">{t.settings.imageBlurred}</span>
                             </div>
                         )}
 
