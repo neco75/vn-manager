@@ -71,9 +71,16 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
                     <p className="text-sm text-gray-300 line-clamp-3">{vn.description?.replace(/\[.*?\]/g, "")}</p>
                 </div>
                 {libraryItem && (
-                    <Badge variant="secondary" className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-white border-white/10 shadow-lg hover:bg-black/80">
-                        {t.status[libraryItem.status]}
-                    </Badge>
+                    <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                        <Badge variant="secondary" className="bg-black/70 backdrop-blur-md text-white border-white/10 shadow-lg hover:bg-black/80">
+                            {t.status[libraryItem.status]}
+                        </Badge>
+                        {libraryItem.ownership !== "unknown" && (
+                            <Badge variant="outline" className="bg-black/70 backdrop-blur-md text-white border-white/20">
+                                {t.ownership[libraryItem.ownership]}
+                            </Badge>
+                        )}
+                    </div>
                 )}
             </div>
 
