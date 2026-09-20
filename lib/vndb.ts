@@ -50,10 +50,23 @@ const setCache = <T>(key: string, data: T) => {
     }
 };
 
-export async function searchVNs(query: string): Promise<VN[]> {
-    // tags.spoiler を取得するようになったため、旧形式のキャッシュを再利用しない
-    const cacheKey = `vndb_v3_search_${query}`;
-    const cached = getCache<VN[]>(cacheKey);
+export interface VNSearchPage {
+    results: VN[];
+    /** 次のページがあるか（VNDBの `more`） */
+    more: boolean;
+}
+
+const SEARCH_RESULTS_PER_PAGE = 25;
+
+export async function searchVNs(
+    query: string,
+    options: { page?: number; signal?: AbortSignal } = {},
+): Promise<VNSearchPage> {
+    const page = Number.isInteger(options.page) && (options.page as number) > 0 ? (options.page as number) : 1;
+    // tags.spoiler とページングを扱うため、旧形式のキャッシュを再利用しない。
+    // 成功した応答だけをキャッシュし、失敗は空結果として保持しない。
+    const cacheKey = `vndb_v4_search_${query}_${page}`;
+    const cached = getCache<VNSearchPage>(cacheKey);
     if (cached) return cached;
 
     const response = await fetch(API_URL, {
@@ -61,10 +74,13 @@ export async function searchVNs(query: string): Promise<VN[]> {
         headers: {
             "Content-Type": "application/json",
         },
+        signal: options.signal,
         body: JSON.stringify({
             filters: ["search", "=", query],
             fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name",
             sort: "searchrank",
+            results: SEARCH_RESULTS_PER_PAGE,
+            page,
         }),
     });
 
@@ -75,10 +91,13 @@ export async function searchVNs(query: string): Promise<VN[]> {
     }
 
     const data: VNDBResponse<VN> = await response.json();
-    const vns = data.results.map((vn) => ({ ...vn, releases: vn.releases ?? [] }));
+    const searchPage: VNSearchPage = {
+        results: data.results.map((vn) => ({ ...vn, releases: vn.releases ?? [] })),
+        more: data.more === true,
+    };
 
-    setCache(cacheKey, vns);
-    return vns;
+    setCache(cacheKey, searchPage);
+    return searchPage;
 }
 
 export async function getVNById(
