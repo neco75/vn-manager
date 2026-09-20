@@ -367,7 +367,7 @@ export function parseBackup(input: unknown): ParsedBackup {
         library: validateLibrary(input.library, "library", previousVersion),
         purchaseSources: validatePurchaseSources(input.purchaseSources),
         settings: validateSettings(input.settings),
-        legacy: previousVersion,
+        legacy: false,
     };
 }
 
