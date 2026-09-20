@@ -63,9 +63,9 @@ export async function searchVNs(
     options: { page?: number; signal?: AbortSignal } = {},
 ): Promise<VNSearchPage> {
     const page = Number.isInteger(options.page) && (options.page as number) > 0 ? (options.page as number) : 1;
-    // tags.spoiler とページングを扱うため、旧形式のキャッシュを再利用しない。
+    // タイトル情報・tags.spoiler・ページングを扱うため、旧形式のキャッシュを再利用しない。
     // 成功した応答だけをキャッシュし、失敗は空結果として保持しない。
-    const cacheKey = `vndb_v4_search_${query}_${page}`;
+    const cacheKey = `vndb_v5_search_${query}_${page}`;
     const cached = getCache<VNSearchPage>(cacheKey);
     if (cached) return cached;
 
@@ -104,8 +104,8 @@ export async function getVNById(
     id: string,
     options: { signal?: AbortSignal } = {},
 ): Promise<VN | null> {
-    // tags.spoiler を取得するようになったため、旧形式のキャッシュを再利用しない
-    const cacheKey = `vndb_v3_vn_${id}`;
+    // タイトル情報とtags.spoilerを取得するため、旧形式のキャッシュを再利用しない
+    const cacheKey = `vndb_v4_vn_${id}`;
     const cached = getCache<VN>(cacheKey);
     if (cached) return cached;
 
