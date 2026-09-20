@@ -70,6 +70,28 @@ export default function StatsPage() {
             .slice(0, 6); // Top 6 tags for Radar Chart
     }, [items]);
 
+    const handleShare = async () => {
+        if (!shareRef.current) return;
+        try {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            const dataUrl = await toPng(shareRef.current, {
+                backgroundColor: "#0a0a0a",
+                pixelRatio: 2,
+                cacheBust: true,
+            });
+
+            const link = document.createElement("a");
+            link.href = dataUrl;
+            link.download = "my-vn-stats.png";
+            link.click();
+            toast.success(t.stats.toasts.shareSuccess);
+        } catch (error) {
+            console.error("Share Error:", error);
+            toast.error(t.stats.toasts.shareError);
+        }
+    };
+
     const handleRefresh = async () => {
         setIsRefreshing(true);
         setRefreshProgress({ current: 0, total: items.length });
