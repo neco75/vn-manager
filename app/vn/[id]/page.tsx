@@ -295,6 +295,13 @@ export default function VNPage() {
                 </div>
             )}
 
+            <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group"
+            >    <ArrowLeft className="w-4 h-4" />
+                {t.common.back}
+            </Link>
+
             {libraryItem && externalState !== "success" && (
                 <div className="mb-6 rounded-lg border border-white/10 bg-card/80 p-4 text-sm">
                     {externalState === "loading" ? (
@@ -322,12 +329,6 @@ export default function VNPage() {
                 </div>
             )}
 
-            <Link
-                href="/"
-                className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group"
-            >    <ArrowLeft className="w-4 h-4" />
-                {t.common.back}
-            </Link>
 
             <div className="grid lg:grid-cols-[350px_1fr] gap-8">
                 {/* Left Column: Image & Controls */}
