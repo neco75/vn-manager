@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
-import { LibraryItem } from "@/types/library";
+import { assertValidLibraryItem, LibraryItem } from "@/types/library";
 
 interface VNDBManagerDB extends DBSchema {
     library: {
@@ -39,6 +39,7 @@ export function getDB() {
 }
 
 export async function addToLibrary(item: LibraryItem) {
+    assertValidLibraryItem(item);
     const db = await getDB();
     return db.put("library", item);
 }

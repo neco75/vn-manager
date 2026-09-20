@@ -14,13 +14,14 @@ import { useLibrary } from "@/context/LibraryContext";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
+import { mergeLibraryItemEdits } from "@/lib/library-state";
 
 export default function SearchPage() {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<VN[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedVN, setSelectedVN] = useState<VN | null>(null);
-    const { addItem, getItem } = useLibrary();
+    const { addItem, updateItem, getItem } = useLibrary();
     const { t } = useLanguage();
 
     async function handleSearch(e: React.FormEvent) {
@@ -85,12 +86,18 @@ export default function SearchPage() {
                     onSave={async (status, score, notes, playTime, purchaseLocation) => {
                         const existing = getItem(selectedVN.id);
                         if (existing) {
-                            // Usually handled in library
+                            await updateItem(mergeLibraryItemEdits(existing, {
+                                status,
+                                score,
+                                notes,
+                                playTime,
+                                purchaseLocation,
+                            }));
+                            toast.success(t.modal.saveSuccess);
                         } else {
                             await addItem(selectedVN, status, score, notes, playTime, "", purchaseLocation);
                             toast.success(t.search.addedToast.replace("{title}", selectedVN.title));
                         }
-                        setSelectedVN(null);
                     }}
                 />
             )}

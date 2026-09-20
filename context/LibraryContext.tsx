@@ -4,11 +4,14 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { LibraryItem, GameStatus } from "@/types/library";
 import { VN } from "@/types/vndb";
 import * as db from "@/lib/db";
+import { createLibraryItemForAdd, upsertLibraryItem } from "@/lib/library-state";
 
 interface LibraryContextType {
     items: LibraryItem[];
     purchaseSources: string[];
     isLoading: boolean;
+    loadError: boolean;
+    reloadLibrary: () => Promise<void>;
     addItem: (vn: VN, status: GameStatus, score?: number, notes?: string, playTime?: number, review?: string, purchaseLocation?: string) => Promise<void>;
     updateItem: (item: LibraryItem) => Promise<void>;
     removeItem: (id: string) => Promise<void>;
@@ -21,16 +24,20 @@ interface LibraryContextType {
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
 
+
 export function LibraryProvider({ children }: { children: React.ReactNode }) {
     const [items, setItems] = useState<LibraryItem[]>([]);
     const [purchaseSources, setPurchaseSources] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     useEffect(() => {
         loadLibrary();
     }, []);
 
     async function loadLibrary() {
+        setIsLoading(true);
+        setLoadError(false);
         try {
             const [loadedItems, loadedSources] = await Promise.all([
                 db.getAllLibraryItems(),
@@ -40,13 +47,15 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             setPurchaseSources(loadedSources.map(s => s.name));
         } catch (error) {
             console.error("Failed to load library:", error);
+            setLoadError(true);
         } finally {
             setIsLoading(false);
         }
     }
 
     async function addItem(vn: VN, status: GameStatus, score: number = 0, notes: string = "", playTime: number = 0, review: string = "", purchaseLocation?: string) {
-        const newItem: LibraryItem = {
+        const existingItem = await db.getLibraryItem(vn.id);
+        const newItem = createLibraryItemForAdd(existingItem, {
             vn,
             status,
             score,
@@ -54,19 +63,15 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             playTime,
             review,
             purchaseLocation,
-            addedAt: Date.now(),
-            updatedAt: Date.now(),
-        };
+        });
         await db.addToLibrary(newItem);
-        setItems((prev) => [...prev, newItem]);
+        setItems((prev) => upsertLibraryItem(prev, newItem));
     }
 
     async function updateItem(item: LibraryItem) {
         const updatedItem = { ...item, updatedAt: Date.now() };
         await db.addToLibrary(updatedItem);
-        setItems((prev) =>
-            prev.map((i) => (i.vn.id === item.vn.id ? updatedItem : i))
-        );
+        setItems((prev) => upsertLibraryItem(prev, updatedItem));
     }
 
     async function removeItem(id: string) {
@@ -82,7 +87,6 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     async function updatePurchaseSource(oldName: string, newName: string) {
         await db.updatePurchaseSource(oldName, newName);
         setPurchaseSources(prev => prev.map(s => s === oldName ? newName : s));
-        // Also update local items state to reflect the change immediately
         setItems(prev => prev.map(item => {
             if (item.purchaseLocation === oldName) {
                 return { ...item, purchaseLocation: newName, updatedAt: Date.now() };
@@ -107,13 +111,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             const updatedItems = items.map(item => {
                 const updatedVN = updatedVNs.find(v => v.id === item.vn.id);
                 if (updatedVN) {
-                    // Create a new item with updated VN data but preserve other item properties
                     return { ...item, vn: updatedVN, updatedAt: Date.now() };
                 }
                 return item;
             });
 
-            // Batch update in DB
             await Promise.all(updatedItems.map(item => db.addToLibrary(item)));
             setItems(updatedItems);
             return updatedVNs.length;
@@ -129,7 +131,21 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <LibraryContext.Provider
-            value={{ items, purchaseSources, isLoading, addItem, updateItem, removeItem, getItem, addPurchaseSource, updatePurchaseSource, deletePurchaseSource, refreshNSFWFlags }}
+            value={{
+                items,
+                purchaseSources,
+                isLoading,
+                loadError,
+                reloadLibrary: loadLibrary,
+                addItem,
+                updateItem,
+                removeItem,
+                getItem,
+                addPurchaseSource,
+                updatePurchaseSource,
+                deletePurchaseSource,
+                refreshNSFWFlags,
+            }}
         >
             {children}
         </LibraryContext.Provider>
