@@ -83,19 +83,13 @@ export default function SearchPage() {
                     vn={selectedVN}
                     libraryItem={getItem(selectedVN.id)}
                     onClose={() => setSelectedVN(null)}
-                    onSave={async (status, score, notes, playTime, purchaseLocation) => {
+                    onSave={async (edits) => {
                         const existing = getItem(selectedVN.id);
                         if (existing) {
-                            await updateItem(mergeLibraryItemEdits(existing, {
-                                status,
-                                score,
-                                notes,
-                                playTime,
-                                purchaseLocation,
-                            }));
+                            await updateItem(mergeLibraryItemEdits(existing, edits));
                             toast.success(t.modal.saveSuccess);
                         } else {
-                            await addItem(selectedVN, status, score, notes, playTime, "", purchaseLocation);
+                            await addItem(selectedVN, edits);
                             toast.success(t.search.addedToast.replace("{title}", selectedVN.title));
                         }
                     }}
