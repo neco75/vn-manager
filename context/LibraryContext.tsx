@@ -1,10 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { LibraryItem, GameStatus } from "@/types/library";
+import { LibraryItem } from "@/types/library";
 import { VN } from "@/types/vndb";
 import * as db from "@/lib/db";
-import { createLibraryItemForAdd, upsertLibraryItem } from "@/lib/library-state";
+import { createLibraryItemForAdd, upsertLibraryItem, type LibraryItemEdits } from "@/lib/library-state";
 
 interface LibraryContextType {
     items: LibraryItem[];
@@ -12,7 +12,7 @@ interface LibraryContextType {
     isLoading: boolean;
     loadError: boolean;
     reloadLibrary: () => Promise<void>;
-    addItem: (vn: VN, status: GameStatus, score?: number, notes?: string, playTime?: number, review?: string, purchaseLocation?: string) => Promise<void>;
+    addItem: (vn: VN, edits: LibraryItemEdits) => Promise<void>;
     updateItem: (item: LibraryItem) => Promise<void>;
     removeItem: (id: string) => Promise<void>;
     getItem: (id: string) => LibraryItem | undefined;
@@ -54,16 +54,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    async function addItem(vn: VN, status: GameStatus, score: number = 0, notes: string = "", playTime: number = 0, review: string = "", purchaseLocation?: string) {
+    async function addItem(vn: VN, edits: LibraryItemEdits) {
         const existingItem = await db.getLibraryItem(vn.id);
         const newItem = createLibraryItemForAdd(existingItem, {
             vn,
-            status,
-            score,
-            notes,
-            playTime,
-            review,
-            purchaseLocation,
+            ...edits,
         });
         await db.addToLibrary(newItem);
         setItems((prev) => upsertLibraryItem(prev, newItem));
