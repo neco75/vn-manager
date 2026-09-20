@@ -116,6 +116,18 @@ export async function failLibraryWrites(page: Page) {
     });
 }
 
+export async function failDetailDraftWrites(page: Page) {
+    await page.addInitScript(() => {
+        const originalSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key: string, value: string) {
+            if (key.startsWith("vn-manager-detail-draft-v1:")) {
+                throw new DOMException("fixture quota exceeded", "QuotaExceededError");
+            }
+            return originalSetItem.call(this, key, value);
+        };
+    });
+}
+
 export async function seedLibraryItem(
     page: Page,
     id = "v1",

@@ -8,7 +8,7 @@ import { mergeLibraryItemMetadata, type LibraryItemEdits } from "@/lib/library-s
 import { VN } from "@/types/vndb";
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, Clock, Calendar, Tag, Image as ImageIcon, Trash2, Save, BookOpen, MessageSquare, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Star, Clock, Calendar, Tag, Image as ImageIcon, Trash2, Save, BookOpen, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { getVisibleSynopsisText, getVisibleTags } from "@/lib/spoiler-safety";
@@ -47,8 +47,33 @@ import {
 import { useLanguage } from "@/context/LanguageContext";
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 import { getDisplayTitle } from "@/lib/vndb-title";
+import {
+    readDetailDraft,
+    removeDetailDraft,
+    writeDetailDraft,
+    type DetailDraft,
+    type DetailDraftValues,
+} from "@/lib/detail-draft";
 
 type ExternalFetchState = "idle" | "loading" | "success" | "not-found" | "error";
+type DraftStatus = "unsaved" | "saved" | "saving" | "draft-saved" | "error";
+
+interface DraftSnapshot {
+    vnId: string;
+    baseUpdatedAt: number | null;
+    values: DetailDraftValues;
+    dirty: boolean;
+}
+
+function snapshotToDraft(snapshot: DraftSnapshot): DetailDraft {
+    return {
+        version: 1,
+        vnId: snapshot.vnId,
+        baseUpdatedAt: snapshot.baseUpdatedAt,
+        updatedAt: Date.now(),
+        values: snapshot.values,
+    };
+}
 
 export default function VNPage() {
     const { id } = useParams();
@@ -86,6 +111,10 @@ export default function VNPage() {
     const [lastPlayedOn, setLastPlayedOn] = useState("");
     const [resumeNote, setResumeNote] = useState("");
     const [isDirty, setIsDirty] = useState(false);
+    const [draftStatus, setDraftStatus] = useState<DraftStatus>("unsaved");
+    const [pendingDraft, setPendingDraft] = useState<DetailDraft | null>(null);
+    const [draftStorageError, setDraftStorageError] = useState(false);
+    const [isDraftReady, setIsDraftReady] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
@@ -93,6 +122,9 @@ export default function VNPage() {
     const openedScreenshotIndexRef = useRef<number | null>(null);
     const initializedRouteRef = useRef<string | null>(null);
     const requestSequenceRef = useRef(0);
+    const draftReadyRef = useRef(false);
+    const draftBaseUpdatedAtRef = useRef<number | null>(null);
+    const latestDraftRef = useRef<DraftSnapshot | null>(null);
 
     const STATUSES: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -104,14 +136,38 @@ export default function VNPage() {
     ];
 
     const libraryItem = routeId ? getItem(routeId) : undefined;
+    const libraryUpdatedAt = libraryItem?.updatedAt ?? null;
+    const formLocked = initializedRouteRef.current !== routeId || !isDraftReady || Boolean(pendingDraft);
+
+    const markDirty = () => {
+        if (formLocked) return;
+        setIsDirty(true);
+        setDraftStatus("unsaved");
+    };
 
     useEffect(() => {
+        const previousSnapshot = latestDraftRef.current;
+        if (previousSnapshot && previousSnapshot.vnId !== routeId && previousSnapshot.dirty) {
+            try {
+                writeDetailDraft(snapshotToDraft(previousSnapshot));
+            } catch (error) {
+                console.error("Failed to save VN draft during navigation:", error);
+            }
+        }
+
+        draftReadyRef.current = false;
+        latestDraftRef.current = null;
+        draftBaseUpdatedAtRef.current = null;
         initializedRouteRef.current = null;
         requestSequenceRef.current += 1;
         setVn(null);
         setExternalState("idle");
         setRetryVersion(0);
         setSelectedImageIndex(null);
+        setPendingDraft(null);
+        setDraftStorageError(false);
+        setDraftStatus("unsaved");
+        setIsDraftReady(false);
     }, [routeId]);
 
     useEffect(() => {
@@ -145,7 +201,134 @@ export default function VNPage() {
             setResumeNote("");
         }
         setIsDirty(false);
+
+        draftBaseUpdatedAtRef.current = libraryItem?.updatedAt ?? null;
+        try {
+            const draft = readDetailDraft(routeId);
+            setPendingDraft(draft);
+            setDraftStorageError(false);
+            setDraftStatus(draft ? "draft-saved" : libraryItem ? "saved" : "unsaved");
+        } catch (error) {
+            console.error("Failed to read VN draft:", error);
+            setPendingDraft(null);
+            setDraftStorageError(true);
+            setDraftStatus("error");
+        }
+        draftReadyRef.current = true;
+        setIsDraftReady(true);
     }, [routeId, isLibraryLoading, libraryItem]);
+
+    useEffect(() => {
+        if (!routeId || isDirty || pendingDraft) return;
+        draftBaseUpdatedAtRef.current = libraryUpdatedAt;
+    }, [routeId, libraryUpdatedAt, isDirty, pendingDraft]);
+
+    useEffect(() => {
+        if (!routeId || !draftReadyRef.current) return;
+
+        latestDraftRef.current = {
+            vnId: routeId,
+            baseUpdatedAt: draftBaseUpdatedAtRef.current,
+            values: {
+                status,
+                ownership,
+                score,
+                notes,
+                review,
+                playTime,
+                purchaseLocation,
+                startedOn,
+                completedOn,
+                lastPlayedOn,
+                resumeNote,
+            },
+            dirty: isDirty,
+        };
+    }, [
+        routeId,
+        status,
+        ownership,
+        score,
+        notes,
+        review,
+        playTime,
+        purchaseLocation,
+        startedOn,
+        completedOn,
+        lastPlayedOn,
+        resumeNote,
+        isDirty,
+    ]);
+
+    useEffect(() => {
+        if (!routeId || !draftReadyRef.current || !isDirty || pendingDraft) return;
+
+        const timeoutId = window.setTimeout(() => {
+            const snapshot = latestDraftRef.current;
+            if (!snapshot || snapshot.vnId !== routeId || !snapshot.dirty) return;
+
+            setDraftStatus("saving");
+            try {
+                writeDetailDraft(snapshotToDraft(snapshot));
+                setDraftStorageError(false);
+                setDraftStatus("draft-saved");
+            } catch (error) {
+                console.error("Failed to save VN draft:", error);
+                setDraftStorageError(true);
+                setDraftStatus("error");
+            }
+        }, 450);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [
+        routeId,
+        status,
+        ownership,
+        score,
+        notes,
+        review,
+        playTime,
+        purchaseLocation,
+        startedOn,
+        completedOn,
+        lastPlayedOn,
+        resumeNote,
+        isDirty,
+        pendingDraft,
+    ]);
+
+    useEffect(() => {
+        if (!routeId || !isDirty) return;
+
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            const snapshot = latestDraftRef.current;
+            if (snapshot?.dirty) {
+                try {
+                    writeDetailDraft(snapshotToDraft(snapshot));
+                } catch (error) {
+                    console.error("Failed to save VN draft before unload:", error);
+                }
+            }
+            event.preventDefault();
+            event.returnValue = "";
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [routeId, isDirty]);
+
+    useEffect(() => {
+        return () => {
+            const snapshot = latestDraftRef.current;
+            if (!snapshot?.dirty) return;
+
+            try {
+                writeDetailDraft(snapshotToDraft(snapshot));
+            } catch (error) {
+                console.error("Failed to save VN draft on unmount:", error);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!routeId || isLibraryLoading || loadError) return;
@@ -175,8 +358,45 @@ export default function VNPage() {
         return () => controller.abort();
     }, [routeId, isLibraryLoading, loadError, retryVersion]);
 
+    const restoreDraft = () => {
+        if (!pendingDraft) return;
+
+        const values = pendingDraft.values;
+        draftBaseUpdatedAtRef.current = pendingDraft.baseUpdatedAt;
+        setStatus(values.status);
+        setOwnership(values.ownership);
+        setScore(values.score);
+        setNotes(values.notes);
+        setReview(values.review);
+        setPlayTime(values.playTime);
+        setPurchaseLocation(values.purchaseLocation);
+        setStartedOn(values.startedOn);
+        setCompletedOn(values.completedOn);
+        setLastPlayedOn(values.lastPlayedOn);
+        setResumeNote(values.resumeNote);
+        setPendingDraft(null);
+        setDraftStorageError(false);
+        setDraftStatus("draft-saved");
+        setIsDirty(true);
+    };
+
+    const discardDraft = () => {
+        if (!pendingDraft || !routeId) return;
+
+        try {
+            removeDetailDraft(routeId);
+            setPendingDraft(null);
+            setDraftStorageError(false);
+            setDraftStatus(libraryItem ? "saved" : "unsaved");
+        } catch (error) {
+            console.error("Failed to discard VN draft:", error);
+            setDraftStorageError(true);
+            setDraftStatus("error");
+        }
+    };
+
     const handleSave = async () => {
-        if (!vn || isSaving) return;
+        if (!vn || isSaving || formLocked) return;
 
         const edits: LibraryItemEdits = {
             status,
@@ -215,6 +435,18 @@ export default function VNPage() {
                 await addItem(vn, edits);
                 toast.success(t.modal.addToLibrarySuccess);
             }
+
+            try {
+                removeDetailDraft(vn.id);
+                setPendingDraft(null);
+                setDraftStorageError(false);
+                setDraftStatus("saved");
+            } catch (error) {
+                console.error("Failed to clear VN draft:", error);
+                setDraftStorageError(true);
+                setDraftStatus("error");
+            }
+            latestDraftRef.current = null;
             setIsDirty(false);
         } catch (error) {
             console.error(error);
@@ -225,11 +457,17 @@ export default function VNPage() {
     };
 
     const handleDelete = async () => {
-        if (!vn || !libraryItem || isDeleting) return;
+        if (!vn || !libraryItem || isDeleting || formLocked) return;
         if (confirm(t.modal.confirmDelete)) {
             setIsDeleting(true);
             try {
                 await removeItem(vn.id);
+                try {
+                    removeDetailDraft(vn.id);
+                } catch (error) {
+                    console.error("Failed to clear VN draft after delete:", error);
+                    setDraftStorageError(true);
+                }
                 toast.success(t.modal.deleteSuccess);
                 setStatus("plan_to_play");
                 setOwnership("unknown");
@@ -243,6 +481,9 @@ export default function VNPage() {
                 setLastPlayedOn("");
                 setResumeNote("");
                 setIsDirty(false);
+                setPendingDraft(null);
+                setDraftStatus("unsaved");
+                latestDraftRef.current = null;
             } catch (error) {
                 console.error(error);
                 toast.error(t.modal.deleteError);
@@ -317,6 +558,29 @@ export default function VNPage() {
             "ratingCount": vn.votecount
         } : undefined
     };
+    const draftHasConflict = pendingDraft
+        ? pendingDraft.baseUpdatedAt !== (libraryItem?.updatedAt ?? null)
+        : false;
+    const draftStatusLabel = isSaving
+        ? t.modal.saving
+        : draftStatus === "saving"
+            ? t.vn.draftSaving
+            : draftStatus === "error"
+                ? t.vn.draftSaveError
+                : draftStatus === "draft-saved"
+                    ? t.vn.draftSaved
+                    : isDirty
+                        ? t.vn.draftUnsaved
+                        : draftStatus === "saved"
+                            ? t.vn.recordSaved
+                            : t.vn.draftUnsaved;
+    const draftStatusClass = draftStatus === "error"
+        ? "text-red-300"
+        : draftStatus === "draft-saved"
+            ? "text-blue-300"
+            : isDirty
+                ? "text-amber-300"
+                : "text-emerald-300";
 
     return (
         <div className="max-w-5xl mx-auto pb-20 relative">
@@ -372,60 +636,112 @@ export default function VNPage() {
                 </div>
             )}
 
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+                <div className="order-1 min-w-0 flex-1 sm:order-2">
+                    <h1 className="text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">{displayTitle}</h1>
+                    {vn.alttitle && vn.alttitle !== displayTitle && (
+                        <p className="mt-2 break-words text-sm text-gray-400">{vn.alttitle}</p>
+                    )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <Badge variant="secondary">{t.common.status}: {STATUSES.find((item) => item.value === status)?.label}</Badge>
+                        <Badge variant="outline">{t.common.ownership}: {t.ownership[ownership]}</Badge>
+                    </div>
+                </div>
+                <div className="relative order-2 h-32 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-secondary sm:order-1 sm:h-36 sm:w-24">
+                    {vn.image ? (
+                        <Image
+                            src={vn.image.url}
+                            alt={displayTitle}
+                            fill
+                            className={cn(
+                                "object-cover",
+                                shouldBlurImage(vn.image.sexual, nsfwBlur) && "blur-2xl scale-110"
+                            )}
+                            sizes="96px"
+                            priority
+                        />
+                    ) : (
+                        <div className="flex h-full items-center justify-center p-2 text-center text-xs text-muted-foreground">
+                            {t.common.noImage}
+                        </div>
+                    )}
+                </div>
+            </div>
 
-            <div className="grid lg:grid-cols-[350px_1fr] gap-8">
-                {/* Left Column: Image & Controls */}
+            {pendingDraft && (
+                <div role="alert" className="mb-6 rounded-lg border border-blue-400/30 bg-blue-950/30 p-4">
+                    <p className="font-medium">{t.vn.draftAvailable}</p>
+                    {draftHasConflict && (
+                        <p className="mt-2 text-sm text-amber-200">{t.vn.draftConflict}</p>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <Button type="button" size="sm" onClick={restoreDraft}>
+                            {t.vn.restoreDraft}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={discardDraft}>
+                            {t.vn.discardDraft}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <div className="sticky top-2 z-20 mb-6 flex flex-col gap-3 rounded-xl border border-white/10 bg-card/95 p-3 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        className={cn("text-sm font-medium", draftStatusClass)}
+                    >
+                        {draftStatusLabel}
+                    </div>
+                    {draftStorageError && (
+                        <p role="alert" className="mt-1 text-sm text-red-300">
+                            {t.vn.draftStorageError}
+                        </p>
+                    )}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                    {libraryItem && (
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleDelete}
+                            disabled={formLocked || isDeleting || isSaving}
+                            aria-label={t.common.delete}
+                            title={t.common.delete}
+                            className="min-h-11 gap-2"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            {t.vn.deleteFromLibrary}
+                        </Button>
+                    )}
+                    <Button
+                        type="button"
+                        className="min-h-11 gap-2 font-bold shadow-lg shadow-primary/25"
+                        onClick={handleSave}
+                        disabled={formLocked || isSaving || isDeleting || (!!libraryItem && !isDirty)}
+                    >
+                        <Save className="h-5 w-5" />
+                        {isSaving ? t.modal.saving : (libraryItem ? t.common.saveChanges : t.common.addToLibrary)}
+                    </Button>
+                </div>
+            </div>
+
+
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+                {/* Personal record */}
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="space-y-6"
                 >
-                    <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl">
-                        {vn.image ? (
-                            <div className="space-y-4">
-                                <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-white/10">
-                                    <Image
-                                        src={vn.image.url}
-                                        alt={displayTitle}
-                                        fill
-                                        className={cn(
-                                            "object-cover transition-all duration-500",
-                                            shouldBlurImage(vn.image?.sexual, nsfwBlur) && "blur-2xl scale-110"
-                                        )}
-                                        sizes="(max-width: 1024px) 100vw, 350px"
-                                        priority
-                                    />
-                                    {shouldBlurImage(vn.image?.sexual, nsfwBlur) && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">{t.settings.imageBlurred}</Badge>
-                                        </div>
-                                    )}
-                                </div>
-
-
-
-                                <Button
-                                    variant="secondary"
-                                    className="w-full gap-2"
-                                    onClick={() => {
-                                        setBackgroundImage(vn.image?.url || null, vn.image?.sexual ?? null);
-                                        toast.success(t.modal.bgSetSuccess);
-                                    }}
-                                >
-                                    <ImageIcon className="w-4 h-4" />
-                                    {t.common.setBackground}
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="w-full aspect-[2/3] bg-secondary flex items-center justify-center">{t.common.noImage}</div>
-                        )}
-                    </div>
-
                     <div className="bg-card border border-white/10 rounded-xl p-6 space-y-6">
+                        <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
                         <div className="space-y-2">
                             <Label htmlFor="detail-status">{t.common.status}</Label>
-                            <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); setIsDirty(true); }}>
-                                <SelectTrigger id="detail-status" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                            <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
+                                <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full bg-secondary/50 border-white/10">
                                     <SelectValue placeholder={t.common.selectStatus} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -442,6 +758,7 @@ export default function VNPage() {
                                 <div className="flex items-center gap-2">
                                     <Input
                                         id="detail-score"
+                                        disabled={Boolean(pendingDraft)}
                                         type="number"
                                         min="0"
                                         max="100"
@@ -450,7 +767,7 @@ export default function VNPage() {
                                         onChange={(e) => {
                                             const raw = e.target.value;
                                             setScore(raw === "" ? null : Number(raw));
-                                            setIsDirty(true);
+                                            markDirty();
                                         }}
                                         className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
                                     />
@@ -458,11 +775,12 @@ export default function VNPage() {
                                 </div>
                             </div>
                             <Slider
+                                disabled={Boolean(pendingDraft)}
                                 min={0}
                                 max={100}
                                 step={1}
                                 value={[score ?? 0]}
-                                onValueChange={(vals) => { setScore(vals[0]); setIsDirty(true); }}
+                                onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
                                 aria-label={t.common.score}
                                 className="cursor-pointer"
                             />
@@ -470,8 +788,8 @@ export default function VNPage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                disabled={score === null}
-                                onClick={() => { setScore(null); setIsDirty(true); }}
+                                disabled={Boolean(pendingDraft) || score === null}
+                                onClick={() => { setScore(null); markDirty(); }}
                             >
                                 {t.common.markUnrated}
                             </Button>
@@ -482,6 +800,7 @@ export default function VNPage() {
                             <Label htmlFor="detail-play-time">{t.common.playTime} ({t.common.hours})</Label>
                             <Input
                                 id="detail-play-time"
+                                disabled={Boolean(pendingDraft)}
                                 type="number"
                                 min="0"
                                 step="0.5"
@@ -489,7 +808,7 @@ export default function VNPage() {
                                 onChange={(e) => {
                                     const rawValue = e.target.value.trim();
                                     setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
-                                    setIsDirty(true);
+                                    markDirty();
                                 }}
                                 className="min-h-11 bg-secondary/50 border-white/10"
                                 placeholder="0.0"
@@ -500,9 +819,40 @@ export default function VNPage() {
                             <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
                             <PurchaseLocationSelector
                                 id="detail-purchase-location"
+                                disabled={Boolean(pendingDraft)}
                                 value={purchaseLocation}
-                                onChange={(v) => { setPurchaseLocation(v); setIsDirty(true); }}
+                                onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="detail-notes">{t.vn.memoPrivate}</Label>
+                            <ErrorBoundary>
+                                <MarkdownEditor
+                                    id="detail-notes"
+                                    ariaLabel={t.vn.memoPrivate}
+                                    disabled={Boolean(pendingDraft)}
+                                    value={notes}
+                                    onChange={(val) => { setNotes(val); markDirty(); }}
+                                    height="h-64"
+                                    placeholder={t.vn.memoPlaceholder}
+                                />
+                            </ErrorBoundary>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="detail-review">{t.vn.review}</Label>
+                            <ErrorBoundary>
+                                <MarkdownEditor
+                                    id="detail-review"
+                                    ariaLabel={t.vn.review}
+                                    disabled={Boolean(pendingDraft)}
+                                    value={review}
+                                    onChange={(val) => { setReview(val); markDirty(); }}
+                                    height="h-64"
+                                    placeholder={t.vn.reviewPlaceholder}
+                                />
+                            </ErrorBoundary>
                         </div>
 
                         <details className="rounded-lg border border-white/10 p-4">
@@ -510,14 +860,14 @@ export default function VNPage() {
                             <div className="mt-4 space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
-                                    <Select
-                                        value={ownership}
+                            <Select
+                                value={ownership}
                                         onValueChange={(value) => {
                                             setOwnership(value as OwnershipStatus);
-                                            setIsDirty(true);
+                                            markDirty();
                                         }}
                                     >
-                                        <SelectTrigger id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                                        <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -528,87 +878,82 @@ export default function VNPage() {
                                     </Select>
                                 </div>
 
-                                <RecordDateInput id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); setIsDirty(true); }} />
-                                <RecordDateInput id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); setIsDirty(true); }} todayLabel={t.common.today} />
-                                <RecordDateInput id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); setIsDirty(true); }} />
+                                <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
+                                <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
+                                <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
 
                                 <div className="space-y-2">
                                     <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
                                     <Input
                                         id="detail-resume-note"
+                                        disabled={Boolean(pendingDraft)}
                                         value={resumeNote}
                                         maxLength={200}
-                                        onChange={(e) => { setResumeNote(e.target.value); setIsDirty(true); }}
+                                        onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
                                         placeholder={t.common.resumeNotePlaceholder}
                                     />
                                 </div>
                             </div>
                         </details>
 
-                        <div className="pt-2 flex gap-3">
-                            {libraryItem && (
-                                <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    onClick={handleDelete}
-                                    disabled={isDeleting || isSaving}
-                                    aria-label={t.common.delete}
-                                    title={t.common.delete}
-                                    className="h-11 w-11"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </Button>
-                            )}
-                            <Button
-                                className="flex-1 gap-2 font-bold shadow-lg shadow-primary/25"
-                                onClick={handleSave}
-                                disabled={isSaving || isDeleting || (!!libraryItem && !isDirty)}
-                            >
-                                <Save className="w-5 h-5" />
-                                {isSaving ? t.modal.saving : (libraryItem ? t.common.save : t.common.addToLibrary)}
-                            </Button>
-                        </div>
                     </div>
                 </motion.div>
 
-                {/* Right Column: Details & Inputs */}
+                {/* External information */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                     className="space-y-8"
                 >
-                    <div>
-                        <h1 className="text-4xl md:text-5xl font-bold leading-tight">{displayTitle}</h1>
-                        <div className="flex flex-wrap gap-4 mt-4 text-sm">
-                            <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
-                                <Star className="w-4 h-4 text-yellow-500" />
-                                <span className="font-bold">{vn.rating ? (vn.rating / 10).toFixed(1) : "N/A"}</span>
-                                <span className="text-gray-500">/ 10 (VNDB)</span>
-                            </Badge>
-                            <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
-                                <Calendar className="w-4 h-4 text-blue-400" />
-                                <span>{vn.released || t.common.tba}</span>
-                            </Badge>
-                            {vn.length_minutes && (
-                                <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
-                                    <Clock className="w-4 h-4 text-green-400" />
-                                    <span>{Math.round(vn.length_minutes / 60)} {t.common.hoursEstimated}</span>
-                                </Badge>
-                            )}
-                            <a
-                                href={`https://vndb.org/${vn.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                                {t.common.viewOnVNDB}
-                            </a>
-                        </div>
-                    </div>
-
                     <div className="space-y-4">
+                        <Accordion
+                            title={<div className="flex items-center gap-2"><ExternalLink className="w-5 h-5 text-blue-400" /> {t.vn.externalInfo}</div>}
+                        >
+                            <div className="space-y-4">
+                                <div className="flex flex-wrap gap-2 text-sm">
+                                    <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
+                                        <Star className="h-4 w-4 text-yellow-500" />
+                                        <span className="font-bold">{vn.rating ? (vn.rating / 10).toFixed(1) : t.common.unrated}</span>
+                                        <span className="text-gray-500">/ 10 (VNDB)</span>
+                                    </Badge>
+                                    <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
+                                        <Calendar className="h-4 w-4 text-blue-400" />
+                                        <span>{vn.released || t.common.tba}</span>
+                                    </Badge>
+                                    {vn.length_minutes && (
+                                        <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
+                                            <Clock className="h-4 w-4 text-green-400" />
+                                            <span>{Math.round(vn.length_minutes / 60)} {t.common.hoursEstimated}</span>
+                                        </Badge>
+                                    )}
+                                </div>
+                                <a
+                                    href={`https://vndb.org/${vn.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                    <ExternalLink className="h-4 w-4" />
+                                    {t.common.viewOnVNDB}
+                                </a>
+                                {vn.image && (
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        className="w-full gap-2"
+                                        onClick={() => {
+                                            setBackgroundImage(vn.image?.url || null, vn.image?.sexual ?? null);
+                                            toast.success(t.modal.bgSetSuccess);
+                                        }}
+                                    >
+                                        <ImageIcon className="h-4 w-4" />
+                                        {t.common.setBackground}
+                                    </Button>
+                                )}
+                            </div>
+                        </Accordion>
+
                         <Accordion
                             title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> {t.common.synopsis}</div>}
                             defaultOpen={true}
@@ -706,31 +1051,6 @@ export default function VNPage() {
 
 
 
-                        <Accordion
-                            title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-gray-400" /> {t.vn.memoPrivate}</div>}
-                        >
-                            <ErrorBoundary>
-                                <MarkdownEditor
-                                    value={notes}
-                                    onChange={(val) => { setNotes(val); setIsDirty(true); }}
-                                    height="h-80"
-                                    placeholder={t.vn.memoPlaceholder}
-                                />
-                            </ErrorBoundary>
-                        </Accordion>
-
-                        <Accordion
-                            title={<div className="flex items-center gap-2"><MessageSquare className="w-5 h-5 text-accent" /> {t.vn.review}</div>}
-                        >
-                            <ErrorBoundary>
-                                <MarkdownEditor
-                                    value={review}
-                                    onChange={(val) => { setReview(val); setIsDirty(true); }}
-                                    height="h-80"
-                                    placeholder={t.vn.reviewPlaceholder}
-                                />
-                            </ErrorBoundary>
-                        </Accordion>
                     </div>
                 </motion.div>
             </div>
@@ -822,23 +1142,26 @@ function RecordDateInput({
     value,
     onChange,
     todayLabel,
+    disabled = false,
 }: {
     id: string;
     label: string;
     value: string;
     onChange: (value: string) => void;
     todayLabel?: string;
+    disabled?: boolean;
 }) {
     return (
         <div className="space-y-2">
             <Label htmlFor={id}>{label}</Label>
             <div className="flex gap-2">
-                <Input id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+                <Input disabled={disabled} id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
                 {todayLabel && (
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
+                        disabled={disabled}
                         onClick={() => onChange(new Date().toLocaleDateString("en-CA"))}
                     >
                         {todayLabel}

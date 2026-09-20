@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, seedLibraryItem } from "./helpers";
+import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, seedLibraryItem } from "./helpers";
 
 async function search(page: Parameters<typeof mockVNDB>[0], query: string) {
     const input = page.getByLabel("タイトルで検索");
@@ -226,5 +226,139 @@ test.describe("library flows", () => {
         await expect(page.getByText("hidden ending", { exact: true })).not.toBeAttached();
         await expect(page.getByRole("button", { name: /ネタバレを表示/ }).first()).toBeVisible();
         await expect(page.locator('img[alt="Fixture VN One"]').first()).toHaveClass(/blur-2xl/);
+    });
+
+    test("restores and isolates detail drafts without changing saved records", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { notes: "saved memo" });
+        await seedLibraryItem(page, "v2", { review: "saved review for v2" });
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        const review = page.getByRole("textbox", { name: "感想・レビュー" });
+        await review.fill("draft review for v1");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await expect(page).toHaveURL(/\/$/);
+        await page.goto("/vn/v2");
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("saved review for v2");
+        await expect(page.getByRole("button", { name: "下書きを復元" })).not.toBeVisible();
+
+        await page.goto("/vn/v1");
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(review).toBeDisabled();
+        await expect(page.getByRole("button", { name: "変更を保存", exact: true })).toBeDisabled();
+        await page.getByRole("button", { name: "下書きを破棄" }).click();
+        await expect(page.getByRole("button", { name: "下書きを復元" })).not.toBeVisible();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("");
+    });
+
+    test("clears a detail draft only after the record save succeeds", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1");
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        const review = page.getByRole("textbox", { name: "感想・レビュー" });
+        await review.fill("saved after draft");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await review.fill("latest unsaved input");
+        await expect(page.getByText("未保存の変更", { exact: true })).toBeVisible();
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).not.toBeVisible();
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+
+        await page.reload();
+        await expect(page.getByRole("button", { name: "下書きを復元" })).not.toBeVisible();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("latest unsaved input");
+
+        await review.fill("draft after record save");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await page.goto("/vn/v1");
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(page.getByText("保存済み記録が下書き作成後に更新されています。内容を確認してから復元してください。", { exact: true })).not.toBeVisible();
+        await page.getByRole("button", { name: "下書きを復元" }).click();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("draft after record save");
+    });
+
+    test("keeps detail actions keyboard reachable on a narrow screen", async ({ page }) => {
+        await mockVNDB(page);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto("/");
+        await seedLibraryItem(page, "v1");
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
+        const saveButton = page.getByRole("button", { name: "変更を保存", exact: true });
+        await expect(saveButton).toBeVisible();
+        await page.getByRole("textbox", { name: "感想・レビュー" }).fill("keyboard save");
+        await saveButton.focus();
+        await expect(saveButton).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+    });
+
+    test("locks an unregistered VN until its pending draft is resolved", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/vn/v1");
+
+        const review = page.getByRole("textbox", { name: "感想・レビュー" });
+        await review.fill("pending before add");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await page.goto("/vn/v1");
+
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(review).toBeDisabled();
+        await expect(page.getByRole("button", { name: "ライブラリに追加", exact: true })).toBeDisabled();
+        await expect(page.getByRole("button", { name: "書く", exact: true }).first()).toHaveAttribute("aria-pressed", "true");
+        await expect(page.getByRole("tab")).toHaveCount(0);
+
+        await page.getByRole("button", { name: "下書きを復元" }).click();
+        await expect(review).toBeEnabled();
+        await expect(page.getByRole("button", { name: "ライブラリに追加", exact: true })).toBeEnabled();
+
+        await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+        await review.fill("draft after first add");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await page.goto("/vn/v1");
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(page.getByText("保存済み記録が下書き作成後に更新されています。内容を確認してから復元してください。", { exact: true })).not.toBeVisible();
+    });
+
+    test("keeps detail input and draft protection when the record save fails", async ({ page }) => {
+        await failLibraryWrites(page);
+        await mockVNDB(page);
+        await page.goto("/vn/v1");
+
+        const review = page.getByRole("textbox", { name: "感想・レビュー" });
+        await review.fill("record save failure keeps this");
+        await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
+
+        await expect(page.getByText("保存に失敗しました。入力内容を残したまま再試行できます。", { exact: true })).toBeVisible();
+        await expect(review).toHaveValue("record save failure keeps this");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+    });
+
+    test("shows an unprotected state when draft storage fails", async ({ page }) => {
+        await failDetailDraftWrites(page);
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1");
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        await page.getByRole("textbox", { name: "感想・レビュー" }).fill("cannot persist");
+        await expect(page.getByText("下書きを保存できませんでした。入力は残っています。", { exact: true })).toBeVisible();
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).not.toBeVisible();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("cannot persist");
     });
 });

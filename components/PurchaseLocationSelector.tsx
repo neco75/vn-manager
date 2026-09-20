@@ -23,9 +23,10 @@ interface PurchaseLocationSelectorProps {
     value?: string;
     onChange: (value: string) => void;
     id?: string;
+    disabled?: boolean;
 }
 
-export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocationSelectorProps) {
+export function PurchaseLocationSelector({ value, onChange, id, disabled = false }: PurchaseLocationSelectorProps) {
     const { purchaseSources, addPurchaseSource, updatePurchaseSource, deletePurchaseSource } = useLibrary();
     const { t } = useLanguage();
     const generatedId = useId();
@@ -99,6 +100,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                     }}>
                         <SelectTrigger
                             id={controlId}
+                            disabled={disabled}
                             aria-label={t.common.selectPurchaseLocation}
                             className="min-h-11 w-full bg-secondary/50 border-white/10"
                         >
@@ -130,6 +132,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                     <div className="flex gap-2">
                         <Input
                             id={newSourceId}
+                            disabled={disabled}
                             value={newSource}
                             onChange={(e) => setNewSource(e.target.value)}
                             placeholder={t.common.newPurchaseLocation}
@@ -144,6 +147,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                         <Button
                             type="button"
                             size="icon"
+                            disabled={disabled}
                             onClick={() => void handleAddSource()}
                             className="h-11 w-11 shrink-0"
                             aria-label={t.common.confirm}
@@ -154,6 +158,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                             type="button"
                             size="icon"
                             variant="ghost"
+                            disabled={disabled}
                             onClick={() => setIsAdding(false)}
                             className="h-11 w-11 shrink-0"
                             aria-label={t.common.cancel}
@@ -180,6 +185,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                                 {editingSource === source ? (
                                     <div className="flex min-w-0 flex-1 items-center gap-2">
                                         <Input
+                                            disabled={disabled}
                                             value={editValue}
                                             onChange={(e) => setEditValue(e.target.value)}
                                             className="min-h-11 min-w-0 bg-black/20 border-white/10"
@@ -193,6 +199,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                                         <Button
                                             type="button"
                                             size="icon"
+                                            disabled={disabled}
                                             className="h-11 w-11 shrink-0"
                                             onClick={() => void handleUpdateSource(source)}
                                             aria-label={t.common.confirm}
@@ -203,6 +210,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                                             type="button"
                                             size="icon"
                                             variant="ghost"
+                                            disabled={disabled}
                                             className="h-11 w-11 shrink-0"
                                             onClick={() => setEditingSource(null)}
                                             aria-label={t.common.cancel}
@@ -218,6 +226,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                                                 type="button"
                                                 size="icon"
                                                 variant="ghost"
+                                                disabled={disabled}
                                                 className="h-11 w-11 hover:bg-white/10"
                                                 aria-label={`${t.common.edit}: ${source}`}
                                                 onClick={() => {
@@ -231,6 +240,7 @@ export function PurchaseLocationSelector({ value, onChange, id }: PurchaseLocati
                                                 type="button"
                                                 size="icon"
                                                 variant="ghost"
+                                                disabled={disabled}
                                                 className="h-11 w-11 hover:bg-red-500/20"
                                                 aria-label={`${t.common.delete}: ${source}`}
                                                 onClick={() => void handleDeleteSource(source)}
