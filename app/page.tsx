@@ -24,6 +24,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
+import { shouldBlurImage } from "@/lib/image-safety";
 import { cn } from "@/lib/utils";
 
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
@@ -246,7 +247,7 @@ export default function Home() {
             ) : viewMode === "list" ? (
                 <div className="space-y-2">
                     {filteredAndSortedItems.map((item) => {
-                        const isNSFW = (item.vn.image?.sexual === 2) || (item.vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
+                        const shouldBlur = shouldBlurImage(item.vn.image?.sexual, nsfwBlur);
 
                         return (
                             <Link
@@ -261,13 +262,13 @@ export default function Home() {
                                             alt=""
                                             className={cn(
                                                 "w-full h-full object-cover transition-all",
-                                                isNSFW && nsfwBlur && "blur-md scale-110"
+                                                shouldBlur && "blur-md scale-110"
                                             )}
                                         />
                                     )}
-                                    {isNSFW && nsfwBlur && (
+                                    {shouldBlur && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">18+</Badge>
+                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
                                         </div>
                                     )}
                                 </div>
