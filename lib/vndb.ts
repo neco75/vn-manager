@@ -139,9 +139,9 @@ export async function getVNById(
 
 export async function getVNMetadataById(
     id: string,
-    options: { signal?: AbortSignal } = {},
+    options: { signal?: AbortSignal; apiUrl?: string } = {},
 ): Promise<VNMetadata | null> {
-    const response = await fetch(API_URL, {
+    const response = await fetch(options.apiUrl ?? API_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -211,4 +211,3 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
 
     return allResults;
 }
-

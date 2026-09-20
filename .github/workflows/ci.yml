@@ -37,5 +37,7 @@ jobs:
         run: |
           npx lefthook validate
           test -x .git/hooks/pre-push
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
       - name: Review checks
         run: npm run check:review

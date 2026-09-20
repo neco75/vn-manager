@@ -1,0 +1,105 @@
+{
+  "vns": {
+    "v1": {
+      "id": "v1",
+      "title": "Fixture VN One",
+      "released": "2020-01-01",
+      "languages": ["ja"],
+      "platforms": ["win"],
+      "image": {
+        "id": "i1",
+        "url": "https://t.vndb.org/1/cover.jpg",
+        "dims": [600, 900]
+      },
+      "description": "Visible intro [spoiler]hidden ending[/spoiler]",
+      "rating": 80,
+      "votecount": 120,
+      "length_minutes": 360,
+      "tags": [
+        { "id": "g1", "name": "Adventure", "category": "cont", "spoiler": 0 },
+        { "id": "g2", "name": "Hidden route", "category": "cont", "spoiler": 2 },
+        { "id": "g3", "name": "Unknown tag", "category": "cont" }
+      ],
+      "developers": [{ "id": "d1", "name": "Fixture Works", "original": "" }],
+      "screenshots": [],
+      "extlinks": [],
+      "releases": []
+    },
+    "v2": {
+      "id": "v2",
+      "title": "Fixture VN Two",
+      "released": "2021-02-02",
+      "languages": ["ja", "en"],
+      "platforms": ["win"],
+      "image": {
+        "id": "i2",
+        "url": "https://t.vndb.org/2/cover.jpg",
+        "dims": [600, 900],
+        "sexual": 0.5
+      },
+      "description": "Second fixture",
+      "rating": 75,
+      "votecount": 80,
+      "length_minutes": 240,
+      "tags": [{ "id": "g4", "name": "Mystery", "category": "cont", "spoiler": 0 }],
+      "developers": [{ "id": "d2", "name": "Fixture Studio", "original": "" }],
+      "screenshots": [],
+      "extlinks": [],
+      "releases": []
+    },
+    "v3": {
+      "id": "v3",
+      "title": "Fixture VN Three",
+      "released": "2022-03-03",
+      "languages": ["en"],
+      "platforms": ["win"],
+      "image": {
+        "id": "i3",
+        "url": "https://t.vndb.org/3/cover.jpg",
+        "dims": [600, 900],
+        "sexual": 1.5
+      },
+      "description": "Third fixture",
+      "rating": 70,
+      "votecount": 40,
+      "length_minutes": 180,
+      "tags": [{ "id": "g5", "name": "Drama", "category": "cont", "spoiler": 0 }],
+      "developers": [{ "id": "d3", "name": "Fixture Games", "original": "" }],
+      "screenshots": [],
+      "extlinks": [],
+      "releases": []
+    }
+  },
+  "search": {
+    "normal": {
+      "1": { "ids": ["v1", "v2"], "more": true },
+      "2": { "ids": ["v2", "v3"], "more": false }
+    },
+    "empty": {
+      "1": { "ids": [], "more": false }
+    },
+    "retry": {
+      "1": { "ids": ["v1"], "more": false }
+    },
+    "load-fail": {
+      "1": { "ids": ["v1"], "more": true },
+      "2": { "ids": ["v2"], "more": false }
+    },
+    "race-a": {
+      "1": { "ids": ["v1"], "more": false }
+    },
+    "race-b": {
+      "1": { "ids": ["v2"], "more": false }
+    },
+    "page-race-a": {
+      "1": { "ids": ["v1"], "more": true },
+      "2": { "ids": ["v3"], "more": false }
+    },
+    "page-race-b": {
+      "1": { "ids": ["v2"], "more": false }
+    },
+    "failure": {
+      "1": { "ids": ["v1"], "more": false }
+    }
+  }
+}
