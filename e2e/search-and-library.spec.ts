@@ -275,6 +275,15 @@ test.describe("library flows", () => {
         await page.reload();
         await expect(page.getByRole("button", { name: "下書きを復元" })).not.toBeVisible();
         await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("latest unsaved input");
+
+        await review.fill("draft after record save");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await page.goto("/vn/v1");
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(page.getByText("保存済み記録が下書き作成後に更新されています。内容を確認してから復元してください。", { exact: true })).not.toBeVisible();
+        await page.getByRole("button", { name: "下書きを復元" }).click();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("draft after record save");
     });
 
     test("keeps detail actions keyboard reachable on a narrow screen", async ({ page }) => {
@@ -314,6 +323,15 @@ test.describe("library flows", () => {
         await page.getByRole("button", { name: "下書きを復元" }).click();
         await expect(review).toBeEnabled();
         await expect(page.getByRole("button", { name: "ライブラリに追加", exact: true })).toBeEnabled();
+
+        await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+        await review.fill("draft after first add");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await page.goto("/vn/v1");
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(page.getByText("保存済み記録が下書き作成後に更新されています。内容を確認してから復元してください。", { exact: true })).not.toBeVisible();
     });
 
     test("keeps detail input and draft protection when the record save fails", async ({ page }) => {

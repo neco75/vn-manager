@@ -136,6 +136,7 @@ export default function VNPage() {
     ];
 
     const libraryItem = routeId ? getItem(routeId) : undefined;
+    const libraryUpdatedAt = libraryItem?.updatedAt ?? null;
     const formLocked = initializedRouteRef.current !== routeId || !isDraftReady || Boolean(pendingDraft);
 
     const markDirty = () => {
@@ -216,6 +217,11 @@ export default function VNPage() {
         draftReadyRef.current = true;
         setIsDraftReady(true);
     }, [routeId, isLibraryLoading, libraryItem]);
+
+    useEffect(() => {
+        if (!routeId || isDirty || pendingDraft) return;
+        draftBaseUpdatedAtRef.current = libraryUpdatedAt;
+    }, [routeId, libraryUpdatedAt, isDirty, pendingDraft]);
 
     useEffect(() => {
         if (!routeId || !draftReadyRef.current) return;
