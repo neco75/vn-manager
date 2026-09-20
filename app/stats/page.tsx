@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BackupManager } from "@/components/BackupManager";
 import { calculateLibraryStatistics } from "@/lib/statistics";
 import Link from "next/link";
 
@@ -271,7 +270,6 @@ export default function StatsPage() {
                 </div>
             )}
 
-            <BackupManager />
         </div>
     );
 }

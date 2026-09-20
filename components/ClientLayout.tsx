@@ -5,7 +5,7 @@ import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Library, Search, Trophy, PieChart, HelpCircle, Globe, Eye, EyeOff, Menu } from "lucide-react";
+import { Library, Search, Trophy, PieChart, Settings, Globe, Eye, EyeOff, Menu } from "lucide-react";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { shouldBlurImage } from "@/lib/image-safety";
@@ -53,7 +53,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
         { href: "/search", icon: <Search className="w-4 h-4" />, label: t.nav.search },
         { href: "/ranking", icon: <Trophy className="w-4 h-4" />, label: t.nav.ranking },
         { href: "/stats", icon: <PieChart className="w-4 h-4" />, label: t.nav.stats },
-        { href: "/about", icon: <HelpCircle className="w-4 h-4" />, label: t.nav.about },
+        { href: "/settings", icon: <Settings className="w-4 h-4" />, label: t.nav.settings },
     ];
 
     return (
@@ -168,7 +168,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                 onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
                             >
                                 <Globe className="w-5 h-5" aria-hidden="true" />
-                                <span>{t.nav.language}: {language === "ja" ? "日本語" : "English"}</span>
+                                <span>{t.nav.language}: {language === "ja" ? t.settings.languageJapanese : t.settings.languageEnglish}</span>
                                 <span className="ml-auto text-muted-foreground">
                                     {language === "ja" ? "EN" : "JA"}
                                 </span>

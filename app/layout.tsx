@@ -51,7 +51,6 @@ export default function RootLayout({
         <LibraryProvider>
           <ClientLayout>
             {children}
-            <SpeedInsights />
           </ClientLayout>
         </LibraryProvider>
         <SpeedInsights />
@@ -59,5 +58,4 @@ export default function RootLayout({
     </html>
   );
 }
-
 

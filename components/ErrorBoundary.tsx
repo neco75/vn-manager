@@ -5,6 +5,7 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 interface Props {
     children?: ReactNode;
     fallback?: ReactNode;
+    errorTitle?: string;
 }
 
 interface State {
@@ -30,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
         if (this.state.hasError) {
             return (
                 <div className="p-4 border border-red-500 bg-red-500/10 rounded text-red-500">
-                    <h2 className="font-bold">Something went wrong.</h2>
+                    <h2 className="font-bold">{this.props.errorTitle ?? "Something went wrong."}</h2>
                     <p className="text-sm mt-2">{this.state.error?.message}</p>
                     <pre className="text-xs mt-2 overflow-auto max-h-40">
                         {this.state.error?.stack}
