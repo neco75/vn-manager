@@ -31,12 +31,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+        env:
+          LEFTHOOK: "1"
+      - name: Verify Lefthook setup
+        run: |
+          npx lefthook validate
+          test -x .git/hooks/pre-push
       - name: Regression checks
         run: npm run check:regression
       - name: Lint
         run: npm run lint
       - name: Type check
-        run: npx tsc --noEmit
+        run: npm run typecheck
       - name: Build
         run: npm run build
       - name: Dependency audit
