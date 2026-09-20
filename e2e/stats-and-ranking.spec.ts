@@ -41,6 +41,30 @@ test.describe("stats and ranking", () => {
         await expect(page.getByText("評価済み 2件", { exact: true })).toBeVisible();
         await expect(page.getByText("Hidden route", { exact: true })).not.toBeVisible();
         await expect(page.getByText("Unknown tag", { exact: true })).not.toBeVisible();
+        await expect(page.getByText("期間: 全期間", { exact: false })).toBeVisible();
+    });
+
+    test("explains when estimated duration has no eligible target", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/stats");
+        await seedLibraryItem(page, "v1", {
+            status: "playing",
+            ownership: "owned",
+            playTime: 0,
+        });
+        await page.reload();
+
+        const estimatedCard = page.getByText("推定総所要時間", { exact: true }).locator("../..");
+        await expect(estimatedCard).toContainText("推定時間の集計対象がありません。");
+        await expect(estimatedCard).not.toContainText("0時間");
+    });
+
+    test("provides a path to add the first record from an empty library", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/stats");
+
+        await expect(page.getByText("まだ記録がありません。", { exact: true })).toBeVisible();
+        await expect(page.getByRole("link", { name: "作品を追加", exact: true })).toHaveAttribute("href", "/search");
     });
 
     test("shows competition ranks and includes an explicitly rated zero", async ({ page }) => {

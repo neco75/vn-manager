@@ -24,6 +24,7 @@ export interface LibraryStatistics {
     averageScore: number | null;
     actualPlaytimeMinutes: number;
     estimatedUnstartedMinutes: number;
+    estimatedUnstartedCount: number;
     statusCounts: Record<GameStatus, number>;
     monthlyCompleted: MonthlyCompletedCount[];
     completedWithoutDate: number;
@@ -50,6 +51,7 @@ export function calculateLibraryStatistics(items: readonly LibraryItem[]): Libra
     const tagCounts = new Map<string, number>();
     let actualPlaytimeMinutes = 0;
     let estimatedUnstartedMinutes = 0;
+    let estimatedUnstartedCount = 0;
     let completedWithoutDate = 0;
 
     for (const item of items) {
@@ -59,13 +61,16 @@ export function calculateLibraryStatistics(items: readonly LibraryItem[]): Libra
             actualPlaytimeMinutes += nonNegativeFiniteNumber(item.playTime);
         }
 
+        const estimatedMinutes = nonNegativeFiniteNumber(item.vn.length_minutes);
         if (
             item.ownership === "owned" &&
             item.status === "plan_to_play" &&
             item.startedOn === undefined &&
-            nonNegativeFiniteNumber(item.playTime) === 0
+            nonNegativeFiniteNumber(item.playTime) === 0 &&
+            estimatedMinutes > 0
         ) {
-            estimatedUnstartedMinutes += nonNegativeFiniteNumber(item.vn.length_minutes);
+            estimatedUnstartedMinutes += estimatedMinutes;
+            estimatedUnstartedCount += 1;
         }
 
         if (item.status === "completed") {
@@ -95,6 +100,7 @@ export function calculateLibraryStatistics(items: readonly LibraryItem[]): Libra
         averageScore: calculateAverageScore([...items]),
         actualPlaytimeMinutes,
         estimatedUnstartedMinutes,
+        estimatedUnstartedCount,
         statusCounts,
         monthlyCompleted: [...monthlyCounts.entries()]
             .sort(([left], [right]) => left.localeCompare(right))

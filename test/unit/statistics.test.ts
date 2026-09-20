@@ -48,6 +48,7 @@ describe("calculateLibraryStatistics", () => {
 
         expect(stats.actualPlaytimeMinutes).toBe(30);
         expect(stats.estimatedUnstartedMinutes).toBe(180);
+        expect(stats.estimatedUnstartedCount).toBe(1);
     });
 
     it("includes zero scores in the rated average", () => {
@@ -100,6 +101,7 @@ describe("calculateLibraryStatistics", () => {
         expect(stats.averageScore).toBeNull();
         expect(stats.actualPlaytimeMinutes).toBe(0);
         expect(stats.estimatedUnstartedMinutes).toBe(0);
+        expect(stats.estimatedUnstartedCount).toBe(0);
         expect(stats.monthlyCompleted).toEqual([]);
         expect(stats.tagFrequencies).toEqual([]);
     });

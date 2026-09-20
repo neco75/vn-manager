@@ -13,6 +13,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackupManager } from "@/components/BackupManager";
 import { calculateLibraryStatistics } from "@/lib/statistics";
+import Link from "next/link";
 
 export default function StatsPage() {
     const { items, isLoading, loadError, reloadLibrary, refreshNSFWFlags } = useLibrary();
@@ -130,7 +131,9 @@ export default function StatsPage() {
                             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
                                 {t.stats.shareTitle}
                             </h2>
-                            <p className="mt-2 text-sm text-gray-400">{t.stats.shareScope} · {t.stats.shareUnits}</p>
+                            <p className="mt-2 text-sm text-gray-400">
+                                {t.stats.sharePeriod} · {t.stats.shareScope} · {t.stats.shareUnits}
+                            </p>
                         </div>
                         <div className="text-sm text-gray-500">VN Manager</div>
                     </div>
@@ -162,8 +165,11 @@ export default function StatsPage() {
                     <p className="-mt-4 text-sm text-gray-400">{t.stats.recordedPlaytimeNote}</p>
 
                     {items.length === 0 ? (
-                        <div className="rounded-2xl border border-white/10 bg-card p-8 text-center text-gray-400">
-                            {t.stats.noRecords}
+                        <div className="rounded-2xl border border-white/10 bg-card p-8 text-center text-gray-400 space-y-4">
+                            <p>{t.stats.noRecords}</p>
+                            <Button asChild>
+                                <Link href="/search">{t.home.addButton}</Link>
+                            </Button>
                         </div>
                     ) : (
                         <>
@@ -172,9 +178,18 @@ export default function StatsPage() {
                                     <CardTitle className="flex items-center gap-2">{t.stats.estimatedPlaytime}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-3xl font-bold">
-                                        {formatHours(stats.estimatedUnstartedMinutes, t.common.hours)}
-                                    </div>
+                                    {stats.estimatedUnstartedCount === 0 ? (
+                                        <p className="text-sm text-gray-400">{t.stats.noEstimatedPlaytimeTarget}</p>
+                                    ) : (
+                                        <>
+                                            <div className="text-3xl font-bold">
+                                                {formatHours(stats.estimatedUnstartedMinutes, t.common.hours)}
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                {t.stats.estimatedTargetCount.replace("{count}", String(stats.estimatedUnstartedCount))}
+                                            </p>
+                                        </>
+                                    )}
                                     <p className="mt-2 text-sm text-gray-400">{t.stats.estimatedPlaytimeNote}</p>
                                 </CardContent>
                             </Card>
