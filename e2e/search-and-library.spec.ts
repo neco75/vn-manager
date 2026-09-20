@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { failLibraryWrites, mockVNDB, seedLibraryItem } from "./helpers";
+import { expect, test, type APIRequestContext } from "@playwright/test";
+import { failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, seedLibraryItem } from "./helpers";
 
 async function search(page: Parameters<typeof mockVNDB>[0], query: string) {
     const input = page.getByLabel("タイトルで検索");
@@ -8,8 +8,15 @@ async function search(page: Parameters<typeof mockVNDB>[0], query: string) {
     await expect(page).toHaveURL(new RegExp(`/search\\?q=${query}$`));
 }
 
+async function expectServerMetadataFixture(request: APIRequestContext, id: string) {
+    const response = await request.get(FIXTURE_STATUS_URL);
+    expect(response.ok()).toBe(true);
+    const status = await response.json() as { metadataRequests: Record<string, number> };
+    expect(status.metadataRequests[id] ?? 0).toBeGreaterThan(0);
+}
+
 test.describe("search flows", () => {
-    test("restores the search state after visiting a detail page", async ({ page }) => {
+    test("restores the search state after visiting a detail page", async ({ page, request }) => {
         await mockVNDB(page);
         await page.goto("/search");
 
@@ -20,6 +27,7 @@ test.describe("search flows", () => {
         await page.locator('a[href="/vn/v1"]').first().click();
         await expect(page).toHaveURL(/\/vn\/v1$/);
         await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
+        await expectServerMetadataFixture(request, "v1");
 
         await page.goBack();
         await expect(page).toHaveURL(/\/search\?q=normal$/);
@@ -58,7 +66,9 @@ test.describe("search flows", () => {
 
         await input.fill("race-a");
         await input.press("Enter");
+        await expect(page.getByRole("button", { name: "検索", exact: true })).toBeDisabled();
         await input.fill("race-b");
+        await expect(page.getByRole("button", { name: "検索", exact: true })).toBeEnabled();
         await input.press("Enter");
         await expect(page).toHaveURL(/\/search\?q=race-b$/);
         await expect(page.getByText("Fixture VN Two", { exact: true })).toBeVisible();
@@ -119,7 +129,7 @@ test.describe("library flows", () => {
         await expect(dialog.getByRole("combobox")).toContainText("プレイ予定");
     });
 
-    test("keeps local records visible when VNDB fails and hides unsafe content by default", async ({ page }) => {
+    test("keeps local records visible when VNDB fails and hides unsafe content by default", async ({ page, request }) => {
         await mockVNDB(page, { detailError: true });
         await page.goto("/");
         await seedLibraryItem(page, "v1");
@@ -127,6 +137,7 @@ test.describe("library flows", () => {
         await page.goto("/vn/v1");
 
         await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
+        await expectServerMetadataFixture(request, "v1");
         await expect(page.getByText("VNDBから最新情報を取得できませんでした。", { exact: true })).toBeVisible();
         await expect(page.getByText("Visible intro", { exact: false })).toBeVisible();
         await expect(page.getByText("hidden ending", { exact: true })).not.toBeAttached();

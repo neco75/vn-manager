@@ -3,7 +3,7 @@
 Node.js 24を使用します（バージョンの基準は `.nvmrc`）。
 `nvm`を利用する環境では `nvm install && nvm use`、それ以外はNode.js 24をインストールしてください。
 
-Lefthookを使用して、push前に回帰チェック・Lint・Type checkを自動実行します。`package.json` で `lefthook@2.1.14` のinstall scriptを明示承認しているため、通常の `npm ci` / `npm install` でLefthookのpostinstallがGit hookを設定します。`ignore-scripts=true` の環境では自動設定されないため、依存インストール後に `npx lefthook install` を実行してください。
+Lefthookを使用して、push前に回帰チェック・unit test・Lint・Type checkを自動実行します。`package.json` で `lefthook@2.1.14` のinstall scriptを明示承認しているため、通常の `npm ci` / `npm install` でLefthookのpostinstallがGit hookを設定します。`ignore-scripts=true` の環境では自動設定されないため、依存インストール後に `npx lefthook install` を実行してください。
 
 ```sh
 npm ci
@@ -17,7 +17,7 @@ npm run build
 npm audit --audit-level=high
 ```
 
-`test:unit` は Vitest + React Testing Library、`test:e2e` は Playwright の Chromium 実行です。E2E は `next build` / `next start` を使い、VNDB API は `e2e/fixtures/vndb.json` を route interception で返すため、実APIへ接続しません。E2E間のIndexedDBはテスト用BrowserContextごとに分離されます。
+`test:unit` は Vitest + React Testing Library、`test:e2e` は Playwright の Chromium 実行です。E2E は `next build` / `next start` を使い、ブラウザ側のVNDB APIは `e2e/fixtures/vndb.json` をroute interceptionで返します。詳細ページのServer Component側のmetadata取得も `e2e/fixture-server.mjs` でfixture化し、`e2e/guard-network.cjs` で実APIへの接続を失敗させるため、実VNDBへ接続しません。E2E間のIndexedDBはテスト用BrowserContextごとに分離されます。
 
 CIはPR作成・更新時とmainへのpush時に上記を実行します。
 監査は開発依存も対象とし、high / criticalで失敗します。低・中レベルも出力を確認してください。
@@ -28,8 +28,9 @@ Lintの既存警告を理由なく増やさないでください。
 通常の `git push` では `lefthook.yml` のpre-push hookから次を順番に実行します。
 
 1. `npm run check:regression`
-2. `npm run lint`
-3. `npm run typecheck`
+2. `npm run test:unit`
+3. `npm run lint`
+4. `npm run typecheck`
 
 いずれかが失敗するとpushを中断します。BuildとDependency auditはpre-pushには含めず、最終ゲートとしてCIで実行します。
 手動で同じチェックを実行する場合は次を使用します。
@@ -46,7 +47,7 @@ npm run check:push
 npm run check:review
 ```
 
-`check:review` は regression → lint → typecheck → build → dependency audit の順に実行します。レビュー依頼前の標準手順は次のとおりです。
+`check:review` は regression → unit test → lint → typecheck → E2E（production build + Chromium）→ dependency audit の順に実行します。レビュー依頼前の標準手順は次のとおりです。
 
 1. Issueの受け入れ条件を自己確認します。
 2. 最新mainを取り込み、競合を解消します。

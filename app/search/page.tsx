@@ -197,6 +197,7 @@ function SearchPageInner() {
     };
 
     const statusOptions = GAME_STATUSES.map((value) => ({ value, label: t.status[value] }));
+    const isCurrentSearchRunning = searchState === "searching" && inputValue.trim() === activeQuery;
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto">
@@ -218,7 +219,11 @@ function SearchPageInner() {
                             className="flex-1"
                         />
                         {/* 検索中も次の検索を送信できるようにし、古い応答はsequenceで破棄する */}
-                        <Button type="submit" className="min-h-11 shrink-0 gap-1.5">
+                        <Button
+                            type="submit"
+                            disabled={isCurrentSearchRunning}
+                            className="min-h-11 shrink-0 gap-1.5"
+                        >
                             {searchState === "searching" ? (
                                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                             ) : null}

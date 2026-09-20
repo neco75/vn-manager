@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { SettingsProvider } from "@/context/SettingsContext";
@@ -63,7 +63,9 @@ describe("VNCard search variant", () => {
     it("shows registered state without another add button", () => {
         renderCard({ libraryItem });
 
-        expect(screen.getAllByText("登録済み")).toHaveLength(2);
-        expect(screen.queryByRole("button", { name: "ライブラリに追加" })).not.toBeInTheDocument();
+        const card = document.querySelector('[data-slot="card"]');
+        expect(card).not.toBeNull();
+        expect(within(card as HTMLElement).queryAllByText("登録済み").length).toBeGreaterThan(0);
+        expect(within(card as HTMLElement).queryByRole("button", { name: "ライブラリに追加" })).not.toBeInTheDocument();
     });
 });

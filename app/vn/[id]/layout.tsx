@@ -13,7 +13,7 @@ export async function generateMetadata(
     const id = (await params).id;
 
     try {
-        const vn = await getVNMetadataById(id);
+        const vn = await getVNMetadataById(id, { apiUrl: process.env.VNDB_API_URL });
 
         if (!vn) {
             return {

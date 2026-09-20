@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 3100);
+const fixturePort = Number(process.env.PLAYWRIGHT_FIXTURE_PORT ?? 3101);
 
 export default defineConfig({
     testDir: "./e2e",
@@ -16,10 +17,18 @@ export default defineConfig({
         screenshot: "only-on-failure",
         video: "retain-on-failure",
     },
-    webServer: {
-        command: `npm run start -- --hostname 127.0.0.1 --port ${port}`,
-        url: `http://127.0.0.1:${port}`,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-    },
+    webServer: [
+        {
+            command: `FIXTURE_PORT=${fixturePort} node e2e/fixture-server.mjs`,
+            url: `http://127.0.0.1:${fixturePort}/__fixture/status`,
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
+        },
+        {
+            command: `VNDB_API_URL=http://127.0.0.1:${fixturePort}/kana/vn NODE_OPTIONS=--require=./e2e/guard-network.cjs npm run start -- --hostname 127.0.0.1 --port ${port}`,
+            url: `http://127.0.0.1:${port}`,
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
+        },
+    ],
 });

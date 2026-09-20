@@ -6,6 +6,7 @@ import type { VN } from "@/types/vndb";
 const VNDB_API = "**/api.vndb.org/kana/vn";
 const DB_NAME = "vn-manager-db";
 const DB_VERSION = 3;
+export const FIXTURE_STATUS_URL = `http://127.0.0.1:${process.env.PLAYWRIGHT_FIXTURE_PORT ?? 3101}/__fixture/status`;
 
 type SearchPage = { ids: string[]; more: boolean };
 
@@ -92,6 +93,14 @@ export async function mockVNDB(
                 count: response.ids.length,
             }),
         });
+    });
+
+    await page.route("https://api.vndb.org/**", async (route) => {
+        if (new URL(route.request().url()).pathname === "/kana/vn") {
+            await route.fallback();
+            return;
+        }
+        throw new Error(`Unexpected real VNDB request in E2E: ${route.request().url()}`);
     });
 }
 
