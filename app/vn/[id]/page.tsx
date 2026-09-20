@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { getVNById } from "@/lib/vndb";
-import { mergeLibraryItemMetadata } from "@/lib/library-state";
+import { mergeLibraryItemMetadata, type LibraryItemEdits } from "@/lib/library-state";
 import { VN } from "@/types/vndb";
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
@@ -22,7 +22,7 @@ const MarkdownEditor = dynamic(
     { ssr: false }
 );
 
-import { GameStatus, getLibraryValidationError } from "@/types/library";
+import { GameStatus, OwnershipStatus, getLibraryValidationError } from "@/types/library";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,11 +67,16 @@ export default function VNPage() {
 
     // Local state for editing
     const [status, setStatus] = useState<GameStatus>("plan_to_play");
-    const [score, setScore] = useState(0);
+    const [ownership, setOwnership] = useState<OwnershipStatus>("unknown");
+    const [score, setScore] = useState<number | null>(null);
     const [notes, setNotes] = useState("");
     const [review, setReview] = useState("");
     const [playTime, setPlayTime] = useState(0);
     const [purchaseLocation, setPurchaseLocation] = useState("");
+    const [startedOn, setStartedOn] = useState("");
+    const [completedOn, setCompletedOn] = useState("");
+    const [lastPlayedOn, setLastPlayedOn] = useState("");
+    const [resumeNote, setResumeNote] = useState("");
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -108,18 +113,28 @@ export default function VNPage() {
         if (libraryItem) {
             setVn(libraryItem.vn);
             setStatus(libraryItem.status);
+            setOwnership(libraryItem.ownership);
             setScore(libraryItem.score);
             setNotes(libraryItem.notes);
             setReview(libraryItem.review || "");
             setPlayTime(libraryItem.playTime || 0);
             setPurchaseLocation(libraryItem.purchaseLocation || "");
+            setStartedOn(libraryItem.startedOn || "");
+            setCompletedOn(libraryItem.completedOn || "");
+            setLastPlayedOn(libraryItem.lastPlayedOn || "");
+            setResumeNote(libraryItem.resumeNote || "");
         } else {
             setStatus("plan_to_play");
-            setScore(0);
+            setOwnership("unknown");
+            setScore(null);
             setNotes("");
             setReview("");
             setPlayTime(0);
             setPurchaseLocation("");
+            setStartedOn("");
+            setCompletedOn("");
+            setLastPlayedOn("");
+            setResumeNote("");
         }
         setIsDirty(false);
     }, [routeId, isLibraryLoading, libraryItem]);
@@ -155,17 +170,30 @@ export default function VNPage() {
     const handleSave = async () => {
         if (!vn || isSaving) return;
 
-        const invalidField = getLibraryValidationError({ status, score, playTime });
-        if (invalidField === "status") {
-            toast.error(t.modal.invalidStatus);
-            return;
-        }
-        if (invalidField === "score") {
-            toast.error(t.modal.invalidScore);
-            return;
-        }
-        if (invalidField === "playTime") {
-            toast.error(t.modal.invalidPlayTime);
+        const edits: LibraryItemEdits = {
+            status,
+            ownership,
+            score,
+            notes,
+            review,
+            playTime,
+            purchaseLocation: purchaseLocation || undefined,
+            startedOn: startedOn || undefined,
+            completedOn: completedOn || undefined,
+            lastPlayedOn: lastPlayedOn || undefined,
+            resumeNote: resumeNote || undefined,
+        };
+        const invalidField = getLibraryValidationError(edits);
+        const validationMessage =
+            invalidField === "status" ? t.modal.invalidStatus :
+            invalidField === "ownership" ? t.modal.invalidOwnership :
+            invalidField === "score" ? t.modal.invalidScore :
+            invalidField === "playTime" ? t.modal.invalidPlayTime :
+            invalidField === "dateOrder" ? t.modal.invalidDateOrder :
+            invalidField === "resumeNote" ? t.modal.invalidResumeNote :
+            invalidField ? t.modal.invalidDate : null;
+        if (validationMessage) {
+            toast.error(validationMessage);
             return;
         }
 
@@ -173,10 +201,10 @@ export default function VNPage() {
         try {
             if (libraryItem) {
                 const itemWithLatestMetadata = mergeLibraryItemMetadata(libraryItem, vn);
-                await updateItem({ ...itemWithLatestMetadata, status, score, notes, review, playTime, purchaseLocation });
+                await updateItem({ ...itemWithLatestMetadata, ...edits });
                 toast.success(t.modal.saveSuccess);
             } else {
-                await addItem(vn, status, score, notes, playTime, review, purchaseLocation);
+                await addItem(vn, edits);
                 toast.success(t.modal.addToLibrarySuccess);
             }
             setIsDirty(false);
@@ -196,11 +224,16 @@ export default function VNPage() {
                 await removeItem(vn.id);
                 toast.success(t.modal.deleteSuccess);
                 setStatus("plan_to_play");
-                setScore(0);
+                setOwnership("unknown");
+                setScore(null);
                 setNotes("");
                 setReview("");
                 setPlayTime(0);
                 setPurchaseLocation("");
+                setStartedOn("");
+                setCompletedOn("");
+                setLastPlayedOn("");
+                setResumeNote("");
                 setIsDirty(false);
             } catch (error) {
                 console.error(error);
@@ -403,15 +436,14 @@ export default function VNPage() {
                                         type="number"
                                         min="0"
                                         max="100"
-                                        value={score}
+                                        value={score ?? ""}
+                                        placeholder={t.common.unrated}
                                         onChange={(e) => {
-                                            const val = parseInt(e.target.value);
-                                            if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                setScore(val);
-                                                setIsDirty(true);
-                                            }
+                                            const raw = e.target.value;
+                                            setScore(raw === "" ? null : Number(raw));
+                                            setIsDirty(true);
                                         }}
-                                        className="h-11 w-20 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                        className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
                                     />
                                     <span className="text-sm text-gray-500">/ 100</span>
                                 </div>
@@ -420,11 +452,20 @@ export default function VNPage() {
                                 min={0}
                                 max={100}
                                 step={1}
-                                value={[score]}
+                                value={[score ?? 0]}
                                 onValueChange={(vals) => { setScore(vals[0]); setIsDirty(true); }}
                                 aria-label={t.common.score}
                                 className="cursor-pointer"
                             />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={score === null}
+                                onClick={() => { setScore(null); setIsDirty(true); }}
+                            >
+                                {t.common.markUnrated}
+                            </Button>
                         </div>
 
                         <div className="space-y-2">
@@ -453,6 +494,46 @@ export default function VNPage() {
                                 onChange={(v) => { setPurchaseLocation(v); setIsDirty(true); }}
                             />
                         </div>
+
+                        <details className="rounded-lg border border-white/10 p-4">
+                            <summary className="cursor-pointer font-medium">{t.common.recordDetails}</summary>
+                            <div className="mt-4 space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
+                                    <Select
+                                        value={ownership}
+                                        onValueChange={(value) => {
+                                            setOwnership(value as OwnershipStatus);
+                                            setIsDirty(true);
+                                        }}
+                                    >
+                                        <SelectTrigger id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
+                                            <SelectItem value="owned">{t.ownership.owned}</SelectItem>
+                                            <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <RecordDateInput id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); setIsDirty(true); }} />
+                                <RecordDateInput id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); setIsDirty(true); }} todayLabel={t.common.today} />
+                                <RecordDateInput id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); setIsDirty(true); }} />
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
+                                    <Input
+                                        id="detail-resume-note"
+                                        value={resumeNote}
+                                        maxLength={200}
+                                        onChange={(e) => { setResumeNote(e.target.value); setIsDirty(true); }}
+                                        placeholder={t.common.resumeNotePlaceholder}
+                                    />
+                                </div>
+                            </div>
+                        </details>
 
                         <div className="pt-2 flex gap-3">
                             {libraryItem && (
@@ -729,6 +810,39 @@ export default function VNPage() {
                     </DialogContent>
                 )}
             </Dialog>
+        </div>
+    );
+}
+
+function RecordDateInput({
+    id,
+    label,
+    value,
+    onChange,
+    todayLabel,
+}: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    todayLabel?: string;
+}) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="flex gap-2">
+                <Input id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+                {todayLabel && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onChange(new Date().toLocaleDateString("en-CA"))}
+                    >
+                        {todayLabel}
+                    </Button>
+                )}
+            </div>
         </div>
     );
 }
