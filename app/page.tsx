@@ -93,8 +93,12 @@ export default function Home() {
         return [...result].sort((a, b) => {
             switch (sort) {
                 case "score_desc":
+                    if (a.score === null) return b.score === null ? 0 : 1;
+                    if (b.score === null) return -1;
                     return b.score - a.score;
                 case "score_asc":
+                    if (a.score === null) return b.score === null ? 0 : 1;
+                    if (b.score === null) return -1;
                     return a.score - b.score;
                 case "added_desc":
                     return b.addedAt - a.addedAt;
