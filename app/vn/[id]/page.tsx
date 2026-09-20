@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Star, Clock, Calendar, Tag, Image as ImageIcon, Trash2, Save, BookOpen, MessageSquare, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { getVisibleSynopsisText, getVisibleTags } from "@/lib/spoiler-safety";
+import { SpoilerSynopsis, SpoilerTagList } from "@/components/Spoiler";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Accordion } from "@/components/Accordion";
@@ -292,10 +294,10 @@ export default function VNPage() {
         "@context": "https://schema.org",
         "@type": "VideoGame",
         "name": vn.title,
-        "description": vn.description?.replace(/\[.*?\]/g, ""),
+        "description": getVisibleSynopsisText(vn.description),
         "image": vn.image?.url,
         "datePublished": vn.released,
-        "genre": vn.tags?.map(t => t.name),
+        "genre": getVisibleTags(vn.tags).map((tag) => tag.name),
         "author": {
             "@type": "Organization",
             "name": vn.developers?.[0]?.name
@@ -604,9 +606,7 @@ export default function VNPage() {
                             title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> {t.common.synopsis}</div>}
                             defaultOpen={true}
                         >
-                            <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                {vn.description?.replace(/\[.*?\]/g, "") || t.common.noSynopsis}
-                            </p>
+                            <SpoilerSynopsis key={vn.id} description={vn.description} />
                         </Accordion>
 
                         <Accordion
@@ -625,13 +625,7 @@ export default function VNPage() {
                                 </div>
                                 <div>
                                     <h4 className="text-sm font-medium text-gray-400 mb-2">{t.common.tags}</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {vn.tags?.map((tag) => (
-                                            <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                                                {tag.name}
-                                            </Badge>
-                                        ))}
-                                    </div>
+                                    <SpoilerTagList key={vn.id} tags={vn.tags} />
                                 </div>
                             </div>
                         </Accordion>

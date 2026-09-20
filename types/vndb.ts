@@ -10,6 +10,12 @@ export interface VNTag {
   id: string;
   name: string;
   category: string;
+  /**
+   * VNDBのネタバレ区分（0 = ネタバレなし、1 = 軽度、2 = 重度）。
+   * 旧版で保存したタグやAPIが返さない場合は undefined。
+   * 不明な値を安全とみなさないため、判定は lib/spoiler-safety.ts を使う。
+   */
+  spoiler?: number | null;
 }
 
 export interface VNDeveloper {

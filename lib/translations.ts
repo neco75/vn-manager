@@ -41,6 +41,8 @@ export const translations = {
             notFound: "見つかりませんでした",
             synopsis: "あらすじ",
             noSynopsis: "あらすじはありません。",
+            showSpoilers: "ネタバレを表示",
+            spoilerTag: "ネタバレ",
             tags: "タグ",
             developer: "開発元",
             gallery: "ギャラリー",
@@ -255,6 +257,7 @@ export const translations = {
             notFoundTitle: "作品が見つかりませんでした",
             notFoundDesc: "VNDBに該当する作品がありません。作品IDを確認して再試行できます。",
             retryExternal: "VNDBから再取得",
+            spoilerTagNote: "VNDBのネタバレ判定がないタグは、安全と見なさず非表示にしています。",
         },
         settings: {
             title: "設定",
@@ -303,6 +306,8 @@ export const translations = {
             notFound: "Not Found",
             synopsis: "Synopsis",
             noSynopsis: "No synopsis available.",
+            showSpoilers: "Show spoilers",
+            spoilerTag: "Spoiler",
             tags: "Tags",
             developer: "Developer",
             gallery: "Gallery",
@@ -517,6 +522,7 @@ export const translations = {
             notFoundTitle: "Title not found",
             notFoundDesc: "VNDB returned no matching title. Check the title ID and try again.",
             retryExternal: "Retry VNDB",
+            spoilerTagNote: "Tags without a VNDB spoiler rating are hidden instead of being assumed safe.",
         },
         settings: {
             title: "Settings",

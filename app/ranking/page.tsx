@@ -9,6 +9,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { getVisibleTags } from "@/lib/spoiler-safety";
 
 export default function RankingPage() {
     const { items } = useLibrary();
@@ -72,7 +73,7 @@ export default function RankingPage() {
                         <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{item.vn.title}</h3>
                             <div className="flex gap-2 mt-1">
-                                {item.vn.tags.slice(0, 3).map(tag => (
+                                {getVisibleTags(item.vn.tags).slice(0, 3).map(tag => (
                                     <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-gray-400">
                                         {tag.name}
                                     </span>

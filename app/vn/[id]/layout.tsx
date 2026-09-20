@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { getVNMetadataById } from "@/lib/vndb";
+import { getVisibleSynopsisText } from "@/lib/spoiler-safety";
 
 type Props = {
     params: Promise<{ id: string }>;
@@ -21,7 +22,7 @@ export async function generateMetadata(
             };
         }
 
-        const description = vn.description?.slice(0, 160).replace(/\[.*?\]/g, "") || `Details about ${vn.title}`;
+        const description = getVisibleSynopsisText(vn.description).slice(0, 160) || `Details about ${vn.title}`;
         return {
             title: vn.title,
             description,

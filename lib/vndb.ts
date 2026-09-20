@@ -51,7 +51,8 @@ const setCache = <T>(key: string, data: T) => {
 };
 
 export async function searchVNs(query: string): Promise<VN[]> {
-    const cacheKey = `vndb_v2_search_${query}`;
+    // tags.spoiler を取得するようになったため、旧形式のキャッシュを再利用しない
+    const cacheKey = `vndb_v3_search_${query}`;
     const cached = getCache<VN[]>(cacheKey);
     if (cached) return cached;
 
@@ -62,7 +63,7 @@ export async function searchVNs(query: string): Promise<VN[]> {
         },
         body: JSON.stringify({
             filters: ["search", "=", query],
-            fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, developers.name",
+            fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name",
             sort: "searchrank",
         }),
     });
@@ -84,7 +85,8 @@ export async function getVNById(
     id: string,
     options: { signal?: AbortSignal } = {},
 ): Promise<VN | null> {
-    const cacheKey = `vndb_v2_vn_${id}`;
+    // tags.spoiler を取得するようになったため、旧形式のキャッシュを再利用しない
+    const cacheKey = `vndb_v3_vn_${id}`;
     const cached = getCache<VN>(cacheKey);
     if (cached) return cached;
 
@@ -96,7 +98,7 @@ export async function getVNById(
         signal: options.signal,
         body: JSON.stringify({
             filters: ["id", "=", id],
-            fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
+            fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
         }),
     });
 
@@ -169,7 +171,7 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
             },
             body: JSON.stringify({
                 filters: filters,
-                fields: "id, title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
+                fields: "id, title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
                 results: CHUNK_SIZE,
             }),
         });
