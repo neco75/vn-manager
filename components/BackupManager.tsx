@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type ChangeEvent } from "react";
 import { Download, Loader2, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ export function BackupManager() {
         fileInputRef.current?.click();
     };
 
-    const importData = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const importData = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         event.target.value = "";
         if (!file) return;
