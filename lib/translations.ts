@@ -209,8 +209,9 @@ export const translations = {
         },
         settings: {
             title: "設定",
-            nsfwBlur: "18禁コンテンツをぼかす",
-            nsfwBlurDescription: "性的表現を含む画像にぼかしフィルターを適用します。",
+            nsfwBlur: "画像をぼかす",
+            nsfwBlurDescription: "VNDBの画像フラグが1以上、または不明な画像にぼかしを適用します。",
+            imageBlurred: "画像をぼかしています",
         },
     },
     en: {
@@ -421,8 +422,9 @@ export const translations = {
         },
         settings: {
             title: "Settings",
-            nsfwBlur: "Blur 18+ content",
-            nsfwBlurDescription: "Apply a blur filter to images containing sexual expressions.",
+            nsfwBlur: "Blur images",
+            nsfwBlurDescription: "Blur images when the VNDB image flag is 1 or higher, or unknown.",
+            imageBlurred: "Image blurred",
         },
     },
 };
