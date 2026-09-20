@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { LibraryItem, GameStatus } from "@/types/library";
 import { VN } from "@/types/vndb";
 import * as db from "@/lib/db";
-import { createLibraryItemForAdd, mergeLibraryItemMetadata, upsertLibraryItem } from "@/lib/library-state";
+import { createLibraryItemForAdd, upsertLibraryItem } from "@/lib/library-state";
 
 interface LibraryContextType {
     items: LibraryItem[];
@@ -14,7 +14,6 @@ interface LibraryContextType {
     reloadLibrary: () => Promise<void>;
     addItem: (vn: VN, status: GameStatus, score?: number, notes?: string, playTime?: number, review?: string, purchaseLocation?: string) => Promise<void>;
     updateItem: (item: LibraryItem) => Promise<void>;
-    updateItemMetadata: (id: string, vn: VN) => Promise<void>;
     removeItem: (id: string) => Promise<void>;
     getItem: (id: string) => LibraryItem | undefined;
     addPurchaseSource: (name: string) => Promise<void>;
@@ -71,15 +70,6 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
     async function updateItem(item: LibraryItem) {
         const updatedItem = { ...item, updatedAt: Date.now() };
-        await db.addToLibrary(updatedItem);
-        setItems((prev) => upsertLibraryItem(prev, updatedItem));
-    }
-
-    async function updateItemMetadata(id: string, vn: VN) {
-        const existingItem = await db.getLibraryItem(id);
-        if (!existingItem) return;
-
-        const updatedItem = mergeLibraryItemMetadata(existingItem, vn);
         await db.addToLibrary(updatedItem);
         setItems((prev) => upsertLibraryItem(prev, updatedItem));
     }
@@ -149,7 +139,6 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
                 reloadLibrary: loadLibrary,
                 addItem,
                 updateItem,
-                updateItemMetadata,
                 removeItem,
                 getItem,
                 addPurchaseSource,
