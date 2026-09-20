@@ -12,7 +12,12 @@ export class VNDBRequestError extends Error {
     }
 }
 
-export type VNMetadata = Pick<VN, "id" | "title" | "description" | "image">;
+export interface VNMetadata {
+    id: string;
+    title: string;
+    description?: string;
+    image: { url: string } | null;
+}
 
 // Simple cache helper
 const getCache = <T>(key: string): T | null => {
