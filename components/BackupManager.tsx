@@ -13,7 +13,6 @@ import {
     createBackupDocument,
     createRestorePreview,
     parseBackup,
-    selectLibraryItemsForRestore,
     type ParsedBackup,
     type RestorePreview,
 } from "@/lib/backup";
@@ -27,7 +26,7 @@ interface ImportState {
 export function BackupManager() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const overwriteId = useId();
-    const { items, reloadLibrary } = useLibrary();
+    const { reloadLibrary } = useLibrary();
     const { language, setLanguage, t } = useLanguage();
     const { backgroundImage, nsfwBlur, setBackgroundImage, setNsfwBlur } = useSettings();
     const [importState, setImportState] = useState<ImportState | null>(null);
@@ -82,10 +81,11 @@ export function BackupManager() {
         try {
             const raw = JSON.parse(await file.text()) as unknown;
             const backup = parseBackup(raw);
+            const currentItems = await db.getAllLibraryItems();
             setOverwriteConflicts(false);
             setImportState({
                 backup,
-                preview: createRestorePreview(backup, items),
+                preview: createRestorePreview(backup, currentItems),
             });
         } catch (error) {
             console.error("Backup import validation failed:", error);
@@ -102,12 +102,11 @@ export function BackupManager() {
         setIsRestoring(true);
         setMessage(null);
         try {
-            const itemsToWrite = selectLibraryItemsForRestore(
-                importState.backup,
-                items,
+            const restoreResult = await db.restoreBackupData(
+                importState.backup.library,
+                importState.backup.purchaseSources,
                 overwriteConflicts,
             );
-            await db.restoreBackupData(itemsToWrite, importState.backup.purchaseSources);
 
             const partialFailures: string[] = [];
             try {
@@ -145,11 +144,8 @@ export function BackupManager() {
                 toast.error(t.stats.toasts.importPartialError);
             } else {
                 const successText = t.stats.importSuccessDetail
-                    .replace("{added}", String(importState.preview.additions))
-                    .replace(
-                        "{conflicts}",
-                        String(overwriteConflicts ? importState.preview.conflicts : 0),
-                    );
+                    .replace("{added}", String(restoreResult.additions))
+                    .replace("{conflicts}", String(restoreResult.overwritten));
                 setMessage({ kind: "success", text: successText });
                 toast.success(t.stats.toasts.importSuccess);
             }
