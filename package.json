@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:regression": "node scripts/check-settings-restoration.mjs && node scripts/check-library-validation.mjs",
+    "check:regression": "node scripts/check-settings-restoration.mjs && node scripts/check-library-validation.mjs && node scripts/check-backup.mjs",
     "typecheck": "tsc --noEmit",
     "check:push": "npm run check:regression && npm run lint && npm run typecheck",
     "check:review": "npm run check:regression && npm run lint && npm run typecheck && npm run build && npm audit --audit-level=high"
