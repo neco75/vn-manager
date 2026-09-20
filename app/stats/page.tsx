@@ -2,10 +2,9 @@
 
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
-import { PieChart, Save, Upload, Download, Gamepad2, Trophy, Clock, Star, Share2, Hash, RefreshCw, Loader2 } from "lucide-react";
+import { PieChart, Gamepad2, Trophy, Clock, Star, Share2, Hash, RefreshCw, Loader2 } from "lucide-react";
 import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import * as db from "@/lib/db";
 import {
     Radar,
     RadarChart,
@@ -21,10 +20,10 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BackupManager } from "@/components/BackupManager";
 
 export default function StatsPage() {
     const { items, refreshNSFWFlags } = useLibrary();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const shareRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -70,64 +69,6 @@ export default function StatsPage() {
             .sort((a, b) => b.count - a.count)
             .slice(0, 6); // Top 6 tags for Radar Chart
     }, [items]);
-
-    const exportData = async () => {
-        const data = await db.getAllLibraryItems();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `vn-manager-backup-${new Date().toISOString().split("T")[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success(t.stats.toasts.exportSuccess);
-    };
-
-    const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const data = JSON.parse(event.target?.result as string);
-                if (!Array.isArray(data)) throw new Error("Invalid format");
-
-                for (const item of data) {
-                    await db.addToLibrary(item);
-                }
-                window.location.reload();
-                toast.success(t.stats.toasts.importSuccess);
-            } catch (error) {
-                console.error(error);
-                toast.error(t.stats.toasts.importError);
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    const handleShare = async () => {
-        if (!shareRef.current) return;
-        try {
-            // Wait a bit for animations/styles
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const dataUrl = await toPng(shareRef.current, {
-                backgroundColor: "#0a0a0a",
-                pixelRatio: 2,
-                cacheBust: true,
-            });
-
-            const link = document.createElement("a");
-            link.href = dataUrl;
-            link.download = "my-vn-stats.png";
-            link.click();
-            toast.success(t.stats.toasts.shareSuccess);
-        } catch (error) {
-            console.error("Share Error:", error);
-            toast.error(t.stats.toasts.shareError);
-        }
-    };
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
@@ -282,46 +223,7 @@ export default function StatsPage() {
             </div>
 
             {/* Data Management Section (Not for share) */}
-            <Card className="border-white/10">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Save className="w-5 h-5 text-primary" />
-                        {t.stats.dataManagement}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <Button
-                            variant="outline"
-                            onClick={exportData}
-                            className="w-full gap-2 h-12"
-                        >
-                            <Download className="w-4 h-4" />
-                            {t.stats.export}
-                        </Button>
-
-                        <div className="relative">
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={importData}
-                                accept=".json"
-                                className="hidden"
-                            />
-                            <Button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full gap-2 h-12 shadow-lg shadow-primary/25"
-                            >
-                                <Upload className="w-4 h-4" />
-                                {t.stats.import}
-                            </Button>
-                        </div>
-                    </div>
-                    <p className="text-xs text-gray-500 text-center">
-                        {t.stats.importWarning}
-                    </p>
-                </CardContent>
-            </Card>
+            <BackupManager />
         </div>
     );
 }
