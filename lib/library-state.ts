@@ -1,7 +1,5 @@
-import {
-    LIBRARY_RECORD_VERSION,
-    type LibraryItem,
-} from "../types/library";
+import type { LibraryItem } from "../types/library";
+import { LIBRARY_RECORD_VERSION } from "./library-record.mjs";
 import type { VN } from "../types/vndb";
 
 export type LibraryItemEdits = Pick<
