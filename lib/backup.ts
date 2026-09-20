@@ -250,7 +250,7 @@ function validateLibrary(
             }
             if (
                 typeof item.ownership !== "string" ||
-                !OWNERSHIP_STATUSES.includes(item.ownership)
+                !OWNERSHIP_STATUSES.includes(item.ownership as (typeof OWNERSHIP_STATUSES)[number])
             ) {
                 throw new BackupValidationError(`${itemPath}.ownership`, "is invalid");
             }
