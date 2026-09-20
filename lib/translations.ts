@@ -137,7 +137,11 @@ export const translations = {
             loadingMore: "読み込み中...",
             loadMoreError: "追加の取得に失敗しました。",
             alreadyAdded: "登録済み",
+            addSuccess: "「{title}」をライブラリに追加しました",
             addedToast: "「{title}」をプレイ予定に追加しました",
+            addError: "ライブラリへの追加に失敗しました。もう一度お試しください。",
+            selectStatus: "ステータスを選択して追加",
+            addWithStatus: "このステータスで追加",
         },
         ranking: {
             title: "ランキング",
@@ -413,7 +417,11 @@ export const translations = {
             loadingMore: "Loading...",
             loadMoreError: "Could not load more results.",
             alreadyAdded: "In library",
+            addSuccess: "Added \"{title}\" to your library",
             addedToast: "Added \"{title}\" to Plan to Play",
+            addError: "Could not add to your library. Please try again.",
+            selectStatus: "Add with a status",
+            addWithStatus: "Add with this status",
         },
         ranking: {
             title: "Ranking",
