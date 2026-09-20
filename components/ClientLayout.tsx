@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { Library, Search, Trophy, PieChart, HelpCircle, Globe, Eye, EyeOff, Menu } from "lucide-react";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
+import { shouldBlurImage } from "@/lib/image-safety";
 import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
@@ -17,13 +18,15 @@ import {
 } from "@/components/ui/dialog";
 
 function BackgroundLayer() {
-    const { backgroundImage } = useSettings();
+    const { backgroundImage, backgroundImageSexual, nsfwBlur } = useSettings();
 
     if (!backgroundImage) return null;
 
+    const blurBackground = shouldBlurImage(backgroundImageSexual, nsfwBlur);
+
     return (
         <div
-            className="fixed inset-0 z-[-1] bg-cover bg-center opacity-30 blur-sm transition-all duration-1000"
+            className={`fixed inset-0 z-[-1] bg-cover bg-center opacity-30 transition-all duration-1000 ${blurBackground ? "blur-3xl scale-110" : "blur-sm"}`}
             style={{ backgroundImage: `url(${backgroundImage})` }}
         />
     );
