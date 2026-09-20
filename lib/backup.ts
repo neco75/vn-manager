@@ -1,6 +1,13 @@
 import type { LibraryItem } from "../types/library";
+import {
+    LIBRARY_RECORD_VERSION,
+    OWNERSHIP_STATUSES,
+    isValidLibraryDate,
+    migrateLibraryRecord,
+} from "./library-record.mjs";
 
-export const BACKUP_SCHEMA_VERSION = 1;
+export const BACKUP_SCHEMA_VERSION = 2;
+const PREVIOUS_BACKUP_SCHEMA_VERSION = 1;
 
 export interface BackupSettings {
     language: "ja" | "en";
@@ -17,7 +24,7 @@ export interface BackupDocument {
 }
 
 export interface ParsedBackup {
-    schemaVersion: 0 | typeof BACKUP_SCHEMA_VERSION;
+    schemaVersion: 0 | typeof PREVIOUS_BACKUP_SCHEMA_VERSION | typeof BACKUP_SCHEMA_VERSION;
     exportedAt: string | null;
     library: LibraryItem[];
     purchaseSources?: string[];
@@ -212,10 +219,16 @@ function validateVN(value: unknown, path: string): void {
     }
 }
 
-function validateLibrary(value: unknown, path = "library"): LibraryItem[] {
+function validateLibrary(
+    value: unknown,
+    path = "library",
+    legacyRecordFormat = false,
+): LibraryItem[] {
     if (!Array.isArray(value)) throw new BackupValidationError(path, "must be an array");
 
     const ids = new Set<string>();
+    const migrated: LibraryItem[] = [];
+
     value.forEach((item, index) => {
         const itemPath = `${path}[${index}]`;
         if (!isRecord(item)) throw new BackupValidationError(itemPath, "must be an object");
@@ -228,7 +241,44 @@ function validateLibrary(value: unknown, path = "library"): LibraryItem[] {
         if (typeof item.status !== "string" || !["playing", "completed", "on_hold", "dropped", "plan_to_play", "watched"].includes(item.status)) {
             throw new BackupValidationError(`${itemPath}.status`, "is invalid");
         }
-        assertFiniteNumber(item.score, `${itemPath}.score`, { min: 0, max: 100, integer: true });
+
+        if (legacyRecordFormat) {
+            assertFiniteNumber(item.score, `${itemPath}.score`, { min: 0, max: 100, integer: true });
+        } else {
+            if (item.recordVersion !== LIBRARY_RECORD_VERSION) {
+                throw new BackupValidationError(`${itemPath}.recordVersion`, `must be ${LIBRARY_RECORD_VERSION}`);
+            }
+            if (
+                typeof item.ownership !== "string" ||
+                !OWNERSHIP_STATUSES.includes(item.ownership)
+            ) {
+                throw new BackupValidationError(`${itemPath}.ownership`, "is invalid");
+            }
+            if (item.score !== null) {
+                assertFiniteNumber(item.score, `${itemPath}.score`, { min: 0, max: 100, integer: true });
+            }
+
+            for (const field of ["startedOn", "completedOn", "lastPlayedOn"] as const) {
+                const dateValue = item[field];
+                if (dateValue !== undefined && !isValidLibraryDate(dateValue)) {
+                    throw new BackupValidationError(`${itemPath}.${field}`, "must be a valid YYYY-MM-DD date");
+                }
+            }
+            if (
+                typeof item.startedOn === "string" &&
+                typeof item.completedOn === "string" &&
+                item.startedOn > item.completedOn
+            ) {
+                throw new BackupValidationError(`${itemPath}.completedOn`, "must not be before startedOn");
+            }
+            if (
+                item.resumeNote !== undefined &&
+                (typeof item.resumeNote !== "string" || item.resumeNote.length > 200)
+            ) {
+                throw new BackupValidationError(`${itemPath}.resumeNote`, "must be a string of at most 200 characters");
+            }
+        }
+
         if (item.playTime !== undefined) {
             assertFiniteNumber(item.playTime, `${itemPath}.playTime`, { min: 0 });
         }
@@ -238,9 +288,15 @@ function validateLibrary(value: unknown, path = "library"): LibraryItem[] {
         assertOptionalString(item.purchaseLocation, `${itemPath}.purchaseLocation`);
         assertFiniteNumber(item.addedAt, `${itemPath}.addedAt`, { min: 0, integer: true });
         assertFiniteNumber(item.updatedAt, `${itemPath}.updatedAt`, { min: 0, integer: true });
+
+        migrated.push(
+            legacyRecordFormat
+                ? migrateLibraryRecord(item) as LibraryItem
+                : item as unknown as LibraryItem,
+        );
     });
 
-    return value as LibraryItem[];
+    return migrated;
 }
 
 function validatePurchaseSources(value: unknown): string[] {
@@ -284,13 +340,16 @@ export function parseBackup(input: unknown): ParsedBackup {
         return {
             schemaVersion: 0,
             exportedAt: null,
-            library: validateLibrary(input, "legacy"),
+            library: validateLibrary(input, "legacy", true),
             legacy: true,
         };
     }
 
     if (!isRecord(input)) throw new BackupValidationError("backup", "must be an object or legacy library array");
-    if (input.schemaVersion !== BACKUP_SCHEMA_VERSION) {
+    if (
+        input.schemaVersion !== PREVIOUS_BACKUP_SCHEMA_VERSION &&
+        input.schemaVersion !== BACKUP_SCHEMA_VERSION
+    ) {
         throw new BackupValidationError(
             "schemaVersion",
             `unsupported schema version ${String(input.schemaVersion)}`,
@@ -301,13 +360,14 @@ export function parseBackup(input: unknown): ParsedBackup {
         throw new BackupValidationError("exportedAt", "must be a valid date");
     }
 
+    const previousVersion = input.schemaVersion === PREVIOUS_BACKUP_SCHEMA_VERSION;
     return {
-        schemaVersion: BACKUP_SCHEMA_VERSION,
+        schemaVersion: input.schemaVersion,
         exportedAt: input.exportedAt,
-        library: validateLibrary(input.library),
+        library: validateLibrary(input.library, "library", previousVersion),
         purchaseSources: validatePurchaseSources(input.purchaseSources),
         settings: validateSettings(input.settings),
-        legacy: false,
+        legacy: previousVersion,
     };
 }
 
