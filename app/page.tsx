@@ -290,6 +290,11 @@ export default function Home() {
                                         <Badge variant="secondary" className="text-xs">
                                             {statusFilters.find(f => f.value === item.status)?.label}
                                         </Badge>
+                                        {item.ownership !== "unknown" && (
+                                            <Badge variant="outline" className="text-xs">
+                                                {t.ownership[item.ownership]}
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
                             </Link>
