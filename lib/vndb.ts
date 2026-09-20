@@ -1,4 +1,4 @@
-import { VN, VNDBResponse, VNRelease } from "@/types/vndb";
+import { VN, VNDBResponse } from "@/types/vndb";
 
 const API_URL = "https://api.vndb.org/kana/vn";
 
@@ -57,11 +57,7 @@ export async function searchVNs(query: string): Promise<VN[]> {
     }
 
     const data: VNDBResponse<VN> = await response.json();
-    const vns = data.results;
-    const releases = await getReleasesByVnIds(vns.map((v: VN) => v.id));
-    vns.forEach((vn: VN) => {
-        vn.releases = releases.filter(r => r.vns?.some(v => v.id === vn.id));
-    });
+    const vns = data.results.map((vn) => ({ ...vn, releases: vn.releases ?? [] }));
 
     setCache(cacheKey, vns);
     return vns;
@@ -88,10 +84,9 @@ export async function getVNById(id: string): Promise<VN | null> {
     }
 
     const data: VNDBResponse<VN> = await response.json();
-    const result = data.results[0] || null;
+    const rawResult = data.results[0] || null;
+    const result = rawResult ? { ...rawResult, releases: rawResult.releases ?? [] } : null;
     if (result) {
-        const releases = await getReleasesByVnIds([result.id]);
-        result.releases = releases;
         setCache(cacheKey, result);
     }
     return result;
@@ -135,59 +130,11 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
         }
 
         const data: VNDBResponse<VN> = await response.json();
-        const vns = data.results;
-
-        // Fetch releases for this chunk
-        const releases = await getReleasesByVnIds(vns.map((v: VN) => v.id));
-        vns.forEach((vn: VN) => {
-            vn.releases = releases.filter(r => r.vns?.some(v => v.id === vn.id));
-        });
+        const vns = data.results.map((vn) => ({ ...vn, releases: vn.releases ?? [] }));
 
         allResults.push(...vns);
 
         if (onProgress) onProgress(allResults.length, ids.length);
-    }
-
-    return allResults;
-}
-
-async function getReleasesByVnIds(ids: string[]): Promise<VNRelease[]> {
-    if (ids.length === 0) return [];
-
-    const CHUNK_SIZE = 10;
-    const allResults: VNRelease[] = [];
-
-    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-        // Add a delay between chunks to avoid rate limiting (0.5r/sec is safe)
-        if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        const chunk = ids.slice(i, i + CHUNK_SIZE);
-        const vnFilter = chunk.length > 1
-            ? ["or", ...chunk.map(id => ["id", "=", id])]
-            : ["id", "=", chunk[0]];
-
-        const response = await fetch("https://api.vndb.org/kana/release", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                filters: ["vn", "=", vnFilter],
-                fields: "vns.id, minage",
-                results: 100, // Max per page
-            }),
-        });
-
-        if (!response.ok) {
-            const text = await response.text();
-            console.error(`VNDB Release API Error (chunk starting at ${i}):`, text);
-            continue;
-        }
-
-        const data: VNDBResponse<VNRelease> = await response.json();
-        allResults.push(...data.results);
     }
 
     return allResults;
