@@ -40,15 +40,6 @@ export class BackupValidationError extends Error {
 
 const VN_ID_PATTERN = /^v[1-9]\d*$/;
 const IMAGE_HOSTS = new Set(["t.vndb.org"]);
-const LIBRARY_STATUSES = new Set([
-    "playing",
-    "completed",
-    "on_hold",
-    "dropped",
-    "plan_to_play",
-    "watched",
-]);
-
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -227,7 +218,7 @@ function validateLibrary(value: unknown, path = "library"): LibraryItem[] {
         if (ids.has(vnId)) throw new BackupValidationError(`${itemPath}.vn.id`, `duplicate id ${vnId}`);
         ids.add(vnId);
 
-        if (typeof item.status !== "string" || !LIBRARY_STATUSES.has(item.status)) {
+        if (typeof item.status !== "string" || !["playing", "completed", "on_hold", "dropped", "plan_to_play", "watched"].includes(item.status)) {
             throw new BackupValidationError(`${itemPath}.status`, "is invalid");
         }
         assertFiniteNumber(item.score, `${itemPath}.score`, { min: 0, max: 100, integer: true });
