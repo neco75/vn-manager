@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
     createLibraryItemForAdd,
     mergeLibraryItemEdits,
+    mergeLibraryItemMetadata,
     upsertLibraryItem,
 } from "../lib/library-state.ts";
 import { getLibraryValidationError } from "../types/library.ts";
@@ -95,6 +96,26 @@ assert.throws(
 );
 assert.deepEqual(existingItem, beforeDuplicateAdd);
 
+const refreshedMetadata = mergeLibraryItemMetadata(
+    existingItem,
+    {
+        ...detailedVN,
+        title: "Refreshed VN title",
+        rating: 88,
+    },
+    250,
+);
+assert.equal(refreshedMetadata.vn.title, "Refreshed VN title");
+assert.equal(refreshedMetadata.vn.rating, 88);
+assert.equal(refreshedMetadata.status, existingItem.status);
+assert.equal(refreshedMetadata.score, existingItem.score);
+assert.equal(refreshedMetadata.notes, existingItem.notes);
+assert.equal(refreshedMetadata.review, existingItem.review);
+assert.equal(refreshedMetadata.playTime, existingItem.playTime);
+assert.equal(refreshedMetadata.purchaseLocation, existingItem.purchaseLocation);
+assert.equal(refreshedMetadata.addedAt, existingItem.addedAt);
+assert.equal(refreshedMetadata.updatedAt, 250);
+
 const newItem = createLibraryItemForAdd(undefined, {
     vn: { id: "v2", title: "New VN" },
     status: "plan_to_play",
@@ -108,4 +129,4 @@ assert.equal(newItem.vn.id, "v2");
 assert.equal(newItem.addedAt, 300);
 assert.equal(newItem.updatedAt, 300);
 
-console.log("Library save regression check passed (18 scenarios).");
+console.log("Library save regression check passed (28 scenarios).");

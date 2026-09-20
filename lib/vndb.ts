@@ -2,6 +2,23 @@ import { VN, VNDBResponse, VNRelease } from "@/types/vndb";
 
 const API_URL = "https://api.vndb.org/kana/vn";
 
+export class VNDBRequestError extends Error {
+    status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = "VNDBRequestError";
+        this.status = status;
+    }
+}
+
+export interface VNMetadata {
+    id: string;
+    title: string;
+    description?: string;
+    image: { url: string } | null;
+}
+
 // Simple cache helper
 const getCache = <T>(key: string): T | null => {
     if (typeof window === "undefined") return null;
@@ -67,7 +84,10 @@ export async function searchVNs(query: string): Promise<VN[]> {
     return vns;
 }
 
-export async function getVNById(id: string): Promise<VN | null> {
+export async function getVNById(
+    id: string,
+    options: { signal?: AbortSignal } = {},
+): Promise<VN | null> {
     const cacheKey = `vndb_v2_vn_${id}`;
     const cached = getCache<VN>(cacheKey);
     if (cached) return cached;
@@ -77,6 +97,7 @@ export async function getVNById(id: string): Promise<VN | null> {
         headers: {
             "Content-Type": "application/json",
         },
+        signal: options.signal,
         body: JSON.stringify({
             filters: ["id", "=", id],
             fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
@@ -84,17 +105,47 @@ export async function getVNById(id: string): Promise<VN | null> {
     });
 
     if (!response.ok) {
-        throw new Error("Failed to fetch VN");
+        throw new VNDBRequestError(
+            `Failed to fetch VN: ${response.status} ${response.statusText}`,
+            response.status,
+        );
     }
 
     const data: VNDBResponse<VN> = await response.json();
     const result = data.results[0] || null;
     if (result) {
-        const releases = await getReleasesByVnIds([result.id]);
+        const releases = await getReleasesByVnIds([result.id], options.signal);
         result.releases = releases;
         setCache(cacheKey, result);
     }
     return result;
+}
+
+export async function getVNMetadataById(
+    id: string,
+    options: { signal?: AbortSignal } = {},
+): Promise<VNMetadata | null> {
+    const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        signal: options.signal,
+        body: JSON.stringify({
+            filters: ["id", "=", id],
+            fields: "title, description, image.url",
+        }),
+    });
+
+    if (!response.ok) {
+        throw new VNDBRequestError(
+            `Failed to fetch VN metadata: ${response.status} ${response.statusText}`,
+            response.status,
+        );
+    }
+
+    const data: VNDBResponse<VNMetadata> = await response.json();
+    return data.results[0] || null;
 }
 
 export async function getVNsByIds(ids: string[], onProgress?: (current: number, total: number) => void): Promise<VN[]> {
@@ -151,7 +202,7 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
     return allResults;
 }
 
-async function getReleasesByVnIds(ids: string[]): Promise<VNRelease[]> {
+async function getReleasesByVnIds(ids: string[], signal?: AbortSignal): Promise<VNRelease[]> {
     if (ids.length === 0) return [];
 
     const CHUNK_SIZE = 10;
@@ -173,6 +224,7 @@ async function getReleasesByVnIds(ids: string[]): Promise<VNRelease[]> {
             headers: {
                 "Content-Type": "application/json",
             },
+            signal,
             body: JSON.stringify({
                 filters: ["vn", "=", vnFilter],
                 fields: "vns.id, minage",
