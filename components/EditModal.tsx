@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { VN } from "@/types/vndb";
-import { getLibraryValidationError, LibraryItem, GameStatus } from "@/types/library";
+import {
+    getLibraryValidationError,
+    LibraryItem,
+    GameStatus,
+    OwnershipStatus,
+} from "@/types/library";
+import type { LibraryItemEdits } from "@/lib/library-state";
 import { Loader2, Save, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
-
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 
 interface EditModalProps {
@@ -20,7 +25,7 @@ interface EditModalProps {
     libraryItem?: LibraryItem;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (status: GameStatus, score: number, notes: string, playTime: number, purchaseLocation?: string) => Promise<void>;
+    onSave: (edits: LibraryItemEdits) => Promise<void>;
     onDelete?: () => void;
 }
 
@@ -28,10 +33,15 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
     const { t } = useLanguage();
     const { nsfwBlur } = useSettings();
     const [status, setStatus] = useState<GameStatus>(libraryItem?.status || "plan_to_play");
-    const [score, setScore] = useState(libraryItem?.score || 0);
+    const [ownership, setOwnership] = useState<OwnershipStatus>(libraryItem?.ownership || "unknown");
+    const [score, setScore] = useState<number | null>(libraryItem?.score ?? null);
     const [notes, setNotes] = useState(libraryItem?.notes || "");
     const [playTime, setPlayTime] = useState(libraryItem?.playTime || 0);
     const [purchaseLocation, setPurchaseLocation] = useState(libraryItem?.purchaseLocation || "");
+    const [startedOn, setStartedOn] = useState(libraryItem?.startedOn || "");
+    const [completedOn, setCompletedOn] = useState(libraryItem?.completedOn || "");
+    const [lastPlayedOn, setLastPlayedOn] = useState(libraryItem?.lastPlayedOn || "");
+    const [resumeNote, setResumeNote] = useState(libraryItem?.resumeNote || "");
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -45,41 +55,60 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
     ];
 
     useEffect(() => {
-        if (isOpen) {
-            const timeoutId = window.setTimeout(() => {
-                setStatus(libraryItem?.status || "plan_to_play");
-                setScore(libraryItem?.score || 0);
-                setNotes(libraryItem?.notes || "");
-                setPlayTime(libraryItem?.playTime || 0);
-                setPurchaseLocation(libraryItem?.purchaseLocation || "");
-                setIsSaving(false);
-                setSaveError(null);
-            }, 0);
-            return () => window.clearTimeout(timeoutId);
-        }
+        if (!isOpen) return;
+        const timeoutId = window.setTimeout(() => {
+            setStatus(libraryItem?.status || "plan_to_play");
+            setOwnership(libraryItem?.ownership || "unknown");
+            setScore(libraryItem?.score ?? null);
+            setNotes(libraryItem?.notes || "");
+            setPlayTime(libraryItem?.playTime || 0);
+            setPurchaseLocation(libraryItem?.purchaseLocation || "");
+            setStartedOn(libraryItem?.startedOn || "");
+            setCompletedOn(libraryItem?.completedOn || "");
+            setLastPlayedOn(libraryItem?.lastPlayedOn || "");
+            setResumeNote(libraryItem?.resumeNote || "");
+            setIsSaving(false);
+            setSaveError(null);
+        }, 0);
+        return () => window.clearTimeout(timeoutId);
     }, [isOpen, libraryItem]);
 
     async function handleSave() {
         if (isSaving) return;
 
-        const invalidField = getLibraryValidationError({ status, score, playTime });
-        if (invalidField === "status") {
-            setSaveError(t.modal.invalidStatus);
-            return;
-        }
-        if (invalidField === "score") {
-            setSaveError(t.modal.invalidScore);
-            return;
-        }
-        if (invalidField === "playTime") {
-            setSaveError(t.modal.invalidPlayTime);
+        const edits: LibraryItemEdits = {
+            status,
+            ownership,
+            score,
+            notes,
+            playTime,
+            purchaseLocation: purchaseLocation || undefined,
+            startedOn: startedOn || undefined,
+            completedOn: completedOn || undefined,
+            lastPlayedOn: lastPlayedOn || undefined,
+            resumeNote: resumeNote || undefined,
+        };
+        const invalidField = getLibraryValidationError(edits);
+        if (invalidField) {
+            const errorMap: Partial<Record<typeof invalidField, string>> = {
+                status: t.modal.invalidStatus,
+                ownership: t.modal.invalidOwnership,
+                score: t.modal.invalidScore,
+                playTime: t.modal.invalidPlayTime,
+                startedOn: t.modal.invalidDate,
+                completedOn: t.modal.invalidDate,
+                lastPlayedOn: t.modal.invalidDate,
+                dateOrder: t.modal.invalidDateOrder,
+                resumeNote: t.modal.invalidResumeNote,
+            };
+            setSaveError(errorMap[invalidField] || t.modal.saveError);
             return;
         }
 
         setIsSaving(true);
         setSaveError(null);
         try {
-            await onSave(status, score, notes, playTime, purchaseLocation);
+            await onSave(edits);
             onClose();
         } catch (error) {
             console.error("Failed to save library item:", error);
@@ -147,16 +176,15 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     type="number"
                                     min="0"
                                     max="100"
-                                    value={score}
+                                    value={score ?? ""}
                                     onChange={(e) => {
-                                        const val = Number(e.target.value);
-                                        if (e.target.value !== "" && Number.isFinite(val)) {
-                                            setScore(val);
-                                            setSaveError(null);
-                                        }
+                                        const raw = e.target.value;
+                                        setScore(raw === "" ? null : Number(raw));
+                                        setSaveError(null);
                                     }}
                                     disabled={isSaving}
-                                    className="h-11 w-20 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                    placeholder={t.common.unrated}
+                                    className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
                                 />
                                 <span className="text-sm text-gray-500">/ 100</span>
                             </div>
@@ -165,7 +193,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             min={0}
                             max={100}
                             step={1}
-                            value={[Number.isFinite(score) ? score : 0]}
+                            value={[score ?? 0]}
                             onValueChange={(vals) => {
                                 setScore(vals[0]);
                                 setSaveError(null);
@@ -173,6 +201,15 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             disabled={isSaving}
                             aria-label={t.common.score}
                         />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setScore(null)}
+                            disabled={isSaving || score === null}
+                        >
+                            {t.common.markUnrated}
+                        </Button>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -206,6 +243,44 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             />
                         </div>
                     </div>
+
+                    <details className="rounded-lg border border-white/10 p-4">
+                        <summary className="cursor-pointer font-medium">{t.common.recordDetails}</summary>
+                        <div className="mt-4 space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-ownership">{t.common.ownership}</Label>
+                                <select
+                                    id="edit-ownership"
+                                    value={ownership}
+                                    onChange={(e) => setOwnership(e.target.value as OwnershipStatus)}
+                                    disabled={isSaving}
+                                    className="min-h-11 w-full rounded-md border border-white/10 bg-secondary/50 px-3 text-sm"
+                                >
+                                    <option value="unknown">{t.ownership.unknown}</option>
+                                    <option value="owned">{t.ownership.owned}</option>
+                                    <option value="wishlist">{t.ownership.wishlist}</option>
+                                </select>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <DateField id="edit-started-on" label={t.common.startedOn} value={startedOn} onChange={setStartedOn} disabled={isSaving} />
+                                <DateField id="edit-completed-on" label={t.common.completedOn} value={completedOn} onChange={setCompletedOn} disabled={isSaving} todayLabel={t.common.today} />
+                                <DateField id="edit-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={setLastPlayedOn} disabled={isSaving} />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-resume-note">{t.common.resumeNote}</Label>
+                                <Input
+                                    id="edit-resume-note"
+                                    value={resumeNote}
+                                    maxLength={200}
+                                    onChange={(e) => setResumeNote(e.target.value)}
+                                    disabled={isSaving}
+                                    placeholder={t.common.resumeNotePlaceholder}
+                                />
+                            </div>
+                        </div>
+                    </details>
 
                     <div className="space-y-2">
                         <Label htmlFor="edit-notes">{t.common.notes}</Label>
@@ -255,3 +330,44 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
     );
 }
 
+function DateField({
+    id,
+    label,
+    value,
+    onChange,
+    disabled,
+    todayLabel,
+}: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    disabled: boolean;
+    todayLabel?: string;
+}) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="flex gap-2">
+                <Input
+                    id={id}
+                    type="date"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    disabled={disabled}
+                />
+                {todayLabel && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={disabled}
+                        onClick={() => onChange(new Date().toLocaleDateString("en-CA"))}
+                    >
+                        {todayLabel}
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+}
