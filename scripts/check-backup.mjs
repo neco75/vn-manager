@@ -9,7 +9,7 @@ import {
     selectLibraryItemsForRestore,
 } from "../lib/backup.ts";
 
-const item = {
+const legacyItem = {
     vn: {
         id: "v1",
         title: "Example",
@@ -29,7 +29,7 @@ const item = {
         releases: [],
     },
     status: "playing",
-    score: 50,
+    score: 0,
     notes: "memo",
     review: "review",
     playTime: 30,
@@ -38,25 +38,57 @@ const item = {
     updatedAt: 200,
 };
 
+const item = {
+    ...legacyItem,
+    recordVersion: 2,
+    ownership: "owned",
+    score: 0,
+    startedOn: "2026-09-01",
+    completedOn: "2026-09-20",
+    lastPlayedOn: "2026-09-20",
+    resumeNote: "epilogue",
+};
+
 const current = createBackupDocument(
     [item],
     ["Steam", "Package"],
     { language: "ja", backgroundImage: null, nsfwBlur: true },
     new Date("2026-09-20T00:00:00.000Z"),
 );
+assert.equal(BACKUP_SCHEMA_VERSION, 2);
 assert.equal(current.schemaVersion, BACKUP_SCHEMA_VERSION);
 assert.equal(current.exportedAt, "2026-09-20T00:00:00.000Z");
 
 const parsed = parseBackup(current);
 assert.equal(parsed.legacy, false);
 assert.deepEqual(parsed.library, [item]);
+assert.equal(parsed.library[0].score, 0);
 assert.deepEqual(parsed.purchaseSources, ["Steam", "Package"]);
 assert.deepEqual(parsed.settings, { language: "ja", backgroundImage: null, nsfwBlur: true });
 
-const legacy = parseBackup([item]);
+const versionOne = parseBackup({
+    ...current,
+    schemaVersion: 1,
+    library: [legacyItem],
+});
+assert.equal(versionOne.legacy, false);
+assert.equal(versionOne.schemaVersion, 1);
+assert.equal(versionOne.library[0].recordVersion, 2);
+assert.equal(versionOne.library[0].ownership, "unknown");
+assert.equal(versionOne.library[0].score, null);
+assert.deepEqual(versionOne.purchaseSources, ["Steam", "Package"]);
+assert.deepEqual(versionOne.settings, current.settings);
+
+const legacy = parseBackup([legacyItem]);
 assert.equal(legacy.legacy, true);
+assert.equal(legacy.library[0].recordVersion, 2);
+assert.equal(legacy.library[0].ownership, "unknown");
+assert.equal(legacy.library[0].score, null);
 assert.equal(legacy.purchaseSources, undefined);
 assert.equal(legacy.settings, undefined);
+
+const legacyRated = parseBackup([{ ...legacyItem, vn: { ...legacyItem.vn, id: "v2" }, score: 75 }]);
+assert.equal(legacyRated.library[0].score, 75);
 
 const existing = [{ ...item, vn: { ...item.vn, id: "v2" } }];
 assert.deepEqual(createRestorePreview(parsed, existing), {
@@ -125,6 +157,38 @@ assert.throws(
 assert.throws(
     () => parseBackup({
         ...current,
+        library: [item, { ...item, ownership: "borrowed" }],
+    }),
+    (error) => error instanceof BackupValidationError && /ownership/.test(error.message),
+);
+
+assert.throws(
+    () => parseBackup({
+        ...current,
+        library: [item, { ...item, startedOn: "2026-02-30" }],
+    }),
+    (error) => error instanceof BackupValidationError && /startedOn/.test(error.message),
+);
+
+assert.throws(
+    () => parseBackup({
+        ...current,
+        library: [item, { ...item, startedOn: "2026-09-20", completedOn: "2026-09-19" }],
+    }),
+    (error) => error instanceof BackupValidationError && /completedOn/.test(error.message),
+);
+
+assert.throws(
+    () => parseBackup({
+        ...current,
+        library: [item, { ...item, resumeNote: "x".repeat(201) }],
+    }),
+    (error) => error instanceof BackupValidationError && /resumeNote/.test(error.message),
+);
+
+assert.throws(
+    () => parseBackup({
+        ...current,
         library: [item, structuredClone(item)],
     }),
     (error) => error instanceof BackupValidationError && /duplicate id v1/.test(error.message),
@@ -178,8 +242,8 @@ assert.throws(
 );
 
 assert.throws(
-    () => parseBackup([item, { ...item, vn: { id: "v2", title: "" } }]),
+    () => parseBackup([legacyItem, { ...legacyItem, vn: { id: "v2", title: "" } }]),
     (error) => error instanceof BackupValidationError && /legacy\[1\]\.vn\.title/.test(error.message),
 );
 
-console.log("Backup validation regression check passed (17 scenarios).");
+console.log("Backup validation regression check passed (27 scenarios).");
