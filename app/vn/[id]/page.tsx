@@ -114,6 +114,7 @@ export default function VNPage() {
     const [draftStatus, setDraftStatus] = useState<DraftStatus>("unsaved");
     const [pendingDraft, setPendingDraft] = useState<DetailDraft | null>(null);
     const [draftStorageError, setDraftStorageError] = useState(false);
+    const [isDraftReady, setIsDraftReady] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
@@ -135,6 +136,13 @@ export default function VNPage() {
     ];
 
     const libraryItem = routeId ? getItem(routeId) : undefined;
+    const formLocked = initializedRouteRef.current !== routeId || !isDraftReady || Boolean(pendingDraft);
+
+    const markDirty = () => {
+        if (formLocked) return;
+        setIsDirty(true);
+        setDraftStatus("unsaved");
+    };
 
     useEffect(() => {
         const previousSnapshot = latestDraftRef.current;
@@ -158,6 +166,7 @@ export default function VNPage() {
         setPendingDraft(null);
         setDraftStorageError(false);
         setDraftStatus("unsaved");
+        setIsDraftReady(false);
     }, [routeId]);
 
     useEffect(() => {
@@ -205,6 +214,7 @@ export default function VNPage() {
             setDraftStatus("error");
         }
         draftReadyRef.current = true;
+        setIsDraftReady(true);
     }, [routeId, isLibraryLoading, libraryItem]);
 
     useEffect(() => {
@@ -245,7 +255,7 @@ export default function VNPage() {
     ]);
 
     useEffect(() => {
-        if (!routeId || !draftReadyRef.current || !isDirty) return;
+        if (!routeId || !draftReadyRef.current || !isDirty || pendingDraft) return;
 
         const timeoutId = window.setTimeout(() => {
             const snapshot = latestDraftRef.current;
@@ -278,6 +288,7 @@ export default function VNPage() {
         lastPlayedOn,
         resumeNote,
         isDirty,
+        pendingDraft,
     ]);
 
     useEffect(() => {
@@ -379,7 +390,7 @@ export default function VNPage() {
     };
 
     const handleSave = async () => {
-        if (!vn || isSaving) return;
+        if (!vn || isSaving || formLocked) return;
 
         const edits: LibraryItemEdits = {
             status,
@@ -440,7 +451,7 @@ export default function VNPage() {
     };
 
     const handleDelete = async () => {
-        if (!vn || !libraryItem || isDeleting) return;
+        if (!vn || !libraryItem || isDeleting || formLocked) return;
         if (confirm(t.modal.confirmDelete)) {
             setIsDeleting(true);
             try {
@@ -690,7 +701,7 @@ export default function VNPage() {
                             variant="destructive"
                             size="sm"
                             onClick={handleDelete}
-                            disabled={isDeleting || isSaving}
+                            disabled={formLocked || isDeleting || isSaving}
                             aria-label={t.common.delete}
                             title={t.common.delete}
                             className="min-h-11 gap-2"
@@ -703,7 +714,7 @@ export default function VNPage() {
                         type="button"
                         className="min-h-11 gap-2 font-bold shadow-lg shadow-primary/25"
                         onClick={handleSave}
-                        disabled={isSaving || isDeleting || (!!libraryItem && !isDirty)}
+                        disabled={formLocked || isSaving || isDeleting || (!!libraryItem && !isDirty)}
                     >
                         <Save className="h-5 w-5" />
                         {isSaving ? t.modal.saving : (libraryItem ? t.common.saveChanges : t.common.addToLibrary)}
@@ -723,8 +734,8 @@ export default function VNPage() {
                         <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
                         <div className="space-y-2">
                             <Label htmlFor="detail-status">{t.common.status}</Label>
-                            <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); setIsDirty(true); }}>
-                                <SelectTrigger id="detail-status" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                            <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
+                                <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full bg-secondary/50 border-white/10">
                                     <SelectValue placeholder={t.common.selectStatus} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -741,6 +752,7 @@ export default function VNPage() {
                                 <div className="flex items-center gap-2">
                                     <Input
                                         id="detail-score"
+                                        disabled={Boolean(pendingDraft)}
                                         type="number"
                                         min="0"
                                         max="100"
@@ -749,7 +761,7 @@ export default function VNPage() {
                                         onChange={(e) => {
                                             const raw = e.target.value;
                                             setScore(raw === "" ? null : Number(raw));
-                                            setIsDirty(true);
+                                            markDirty();
                                         }}
                                         className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
                                     />
@@ -757,11 +769,12 @@ export default function VNPage() {
                                 </div>
                             </div>
                             <Slider
+                                disabled={Boolean(pendingDraft)}
                                 min={0}
                                 max={100}
                                 step={1}
                                 value={[score ?? 0]}
-                                onValueChange={(vals) => { setScore(vals[0]); setIsDirty(true); }}
+                                onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
                                 aria-label={t.common.score}
                                 className="cursor-pointer"
                             />
@@ -769,8 +782,8 @@ export default function VNPage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                disabled={score === null}
-                                onClick={() => { setScore(null); setIsDirty(true); }}
+                                disabled={Boolean(pendingDraft) || score === null}
+                                onClick={() => { setScore(null); markDirty(); }}
                             >
                                 {t.common.markUnrated}
                             </Button>
@@ -781,6 +794,7 @@ export default function VNPage() {
                             <Label htmlFor="detail-play-time">{t.common.playTime} ({t.common.hours})</Label>
                             <Input
                                 id="detail-play-time"
+                                disabled={Boolean(pendingDraft)}
                                 type="number"
                                 min="0"
                                 step="0.5"
@@ -788,7 +802,7 @@ export default function VNPage() {
                                 onChange={(e) => {
                                     const rawValue = e.target.value.trim();
                                     setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
-                                    setIsDirty(true);
+                                    markDirty();
                                 }}
                                 className="min-h-11 bg-secondary/50 border-white/10"
                                 placeholder="0.0"
@@ -799,8 +813,9 @@ export default function VNPage() {
                             <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
                             <PurchaseLocationSelector
                                 id="detail-purchase-location"
+                                disabled={Boolean(pendingDraft)}
                                 value={purchaseLocation}
-                                onChange={(v) => { setPurchaseLocation(v); setIsDirty(true); }}
+                                onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
                             />
                         </div>
 
@@ -810,8 +825,9 @@ export default function VNPage() {
                                 <MarkdownEditor
                                     id="detail-notes"
                                     ariaLabel={t.vn.memoPrivate}
+                                    disabled={Boolean(pendingDraft)}
                                     value={notes}
-                                    onChange={(val) => { setNotes(val); setIsDirty(true); }}
+                                    onChange={(val) => { setNotes(val); markDirty(); }}
                                     height="h-64"
                                     placeholder={t.vn.memoPlaceholder}
                                 />
@@ -824,8 +840,9 @@ export default function VNPage() {
                                 <MarkdownEditor
                                     id="detail-review"
                                     ariaLabel={t.vn.review}
+                                    disabled={Boolean(pendingDraft)}
                                     value={review}
-                                    onChange={(val) => { setReview(val); setIsDirty(true); }}
+                                    onChange={(val) => { setReview(val); markDirty(); }}
                                     height="h-64"
                                     placeholder={t.vn.reviewPlaceholder}
                                 />
@@ -837,14 +854,14 @@ export default function VNPage() {
                             <div className="mt-4 space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
-                                    <Select
-                                        value={ownership}
+                            <Select
+                                value={ownership}
                                         onValueChange={(value) => {
                                             setOwnership(value as OwnershipStatus);
-                                            setIsDirty(true);
+                                            markDirty();
                                         }}
                                     >
-                                        <SelectTrigger id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                                        <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -855,17 +872,18 @@ export default function VNPage() {
                                     </Select>
                                 </div>
 
-                                <RecordDateInput id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); setIsDirty(true); }} />
-                                <RecordDateInput id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); setIsDirty(true); }} todayLabel={t.common.today} />
-                                <RecordDateInput id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); setIsDirty(true); }} />
+                                <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
+                                <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
+                                <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
 
                                 <div className="space-y-2">
                                     <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
                                     <Input
                                         id="detail-resume-note"
+                                        disabled={Boolean(pendingDraft)}
                                         value={resumeNote}
                                         maxLength={200}
-                                        onChange={(e) => { setResumeNote(e.target.value); setIsDirty(true); }}
+                                        onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
                                         placeholder={t.common.resumeNotePlaceholder}
                                     />
                                 </div>
@@ -1118,23 +1136,26 @@ function RecordDateInput({
     value,
     onChange,
     todayLabel,
+    disabled = false,
 }: {
     id: string;
     label: string;
     value: string;
     onChange: (value: string) => void;
     todayLabel?: string;
+    disabled?: boolean;
 }) {
     return (
         <div className="space-y-2">
             <Label htmlFor={id}>{label}</Label>
             <div className="flex gap-2">
-                <Input id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+                <Input disabled={disabled} id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
                 {todayLabel && (
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
+                        disabled={disabled}
                         onClick={() => onChange(new Date().toLocaleDateString("en-CA"))}
                     >
                         {todayLabel}
