@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackupManager } from "@/components/BackupManager";
+import { calculateAverageScore } from "@/lib/library-score";
 
 export default function StatsPage() {
     const { items, refreshNSFWFlags } = useLibrary();
@@ -35,9 +36,7 @@ export default function StatsPage() {
             completed: items.filter((i) => i.status === "completed").length,
             watched: items.filter((i) => i.status === "watched").length,
             playing: items.filter((i) => i.status === "playing").length,
-            avgScore:
-                items.filter((i) => i.score > 0).reduce((acc, i) => acc + i.score, 0) /
-                items.filter((i) => i.score > 0).length || 0,
+            avgScore: calculateAverageScore(items),
             totalPlaytime: items.reduce((acc, i) => {
                 // Exclude watched games from total playtime
                 if (i.status === "watched") return acc;
@@ -187,7 +186,7 @@ export default function StatsPage() {
                     <StatCard
                         icon={<Star className="w-6 h-6 text-accent" />}
                         label={t.stats.avgScore}
-                        value={stats.avgScore.toFixed(1)}
+                        value={stats.avgScore === null ? "—" : stats.avgScore.toFixed(1)}
                     />
                     <StatCard
                         icon={<Clock className="w-6 h-6 text-green-500" />}

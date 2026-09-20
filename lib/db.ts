@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { assertValidLibraryItem, LibraryItem } from "@/types/library";
+import { migrateLibraryRecord } from "@/lib/library-record.mjs";
 import { planLibraryRestore } from "@/lib/backup";
 
 interface VNDBManagerDB extends DBSchema {
@@ -15,14 +16,14 @@ interface VNDBManagerDB extends DBSchema {
 }
 
 const DB_NAME = "vn-manager-db";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<VNDBManagerDB>>;
 
 export function getDB() {
     if (!dbPromise) {
         dbPromise = openDB<VNDBManagerDB>(DB_NAME, DB_VERSION, {
-            upgrade(db, oldVersion) {
+            upgrade(db, oldVersion, _newVersion, transaction) {
                 if (oldVersion < 1) {
                     const store = db.createObjectStore("library", { keyPath: "vn.id" });
                     store.createIndex("by-status", "status");
@@ -32,6 +33,16 @@ export function getDB() {
                     store.add({ name: "Steam" });
                     store.add({ name: "DMM" });
                     store.add({ name: "Package" });
+                }
+                if (oldVersion < 3) {
+                    const libraryStore = transaction.objectStore("library");
+                    void (async () => {
+                        let cursor = await libraryStore.openCursor();
+                        while (cursor) {
+                            await cursor.update(migrateLibraryRecord(cursor.value) as LibraryItem);
+                            cursor = await cursor.continue();
+                        }
+                    })();
                 }
             },
         });

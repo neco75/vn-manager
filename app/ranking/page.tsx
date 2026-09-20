@@ -17,8 +17,8 @@ export default function RankingPage() {
 
     const rankedItems = useMemo(() => {
         return [...items]
-            .filter((item) => item.score > 0)
-            .sort((a, b) => b.score - a.score);
+            .filter((item) => item.score !== null)
+            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     }, [items]);
 
     if (rankedItems.length === 0) {

@@ -26,6 +26,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { cn } from "@/lib/utils";
+import { compareLibraryScores } from "@/lib/library-score";
 
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 
@@ -93,9 +94,9 @@ export default function Home() {
         return [...result].sort((a, b) => {
             switch (sort) {
                 case "score_desc":
-                    return b.score - a.score;
+                    return compareLibraryScores(a, b, "desc");
                 case "score_asc":
-                    return a.score - b.score;
+                    return compareLibraryScores(a, b, "asc");
                 case "added_desc":
                     return b.addedAt - a.addedAt;
                 case "added_asc":
@@ -277,7 +278,7 @@ export default function Home() {
                                     <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
                                         <div className="flex items-center gap-1">
                                             <Star className="w-3 h-3 text-yellow-500" />
-                                            <span className="text-yellow-500 font-bold">{item.score}/100</span>
+                                            <span className="text-yellow-500 font-bold">{item.score === null ? t.common.unrated : `${item.score}/100`}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-green-500" />
@@ -286,6 +287,11 @@ export default function Home() {
                                         <Badge variant="secondary" className="text-xs">
                                             {statusFilters.find(f => f.value === item.status)?.label}
                                         </Badge>
+                                        {item.ownership !== "unknown" && (
+                                            <Badge variant="outline" className="text-xs">
+                                                {t.ownership[item.ownership]}
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
                             </Link>
