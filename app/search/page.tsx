@@ -217,7 +217,8 @@ function SearchPageInner() {
                             placeholder={t.search.searchLabel}
                             className="flex-1"
                         />
-                        <Button type="submit" disabled={searchState === "searching"} className="min-h-11 shrink-0 gap-1.5">
+                        {/* 検索中も次の検索を送信できるようにし、古い応答はsequenceで破棄する */}
+                        <Button type="submit" className="min-h-11 shrink-0 gap-1.5">
                             {searchState === "searching" ? (
                                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                             ) : null}

@@ -7,12 +7,17 @@ Lefthookを使用して、push前に回帰チェック・Lint・Type checkを自
 
 ```sh
 npm ci
+npx playwright install chromium
 npm run check:regression
+npm run test:unit
+npm run test:e2e
 npm run lint
 npm run typecheck
 npm run build
 npm audit --audit-level=high
 ```
+
+`test:unit` は Vitest + React Testing Library、`test:e2e` は Playwright の Chromium 実行です。E2E は `next build` / `next start` を使い、VNDB API は `e2e/fixtures/vndb.json` を route interception で返すため、実APIへ接続しません。E2E間のIndexedDBはテスト用BrowserContextごとに分離されます。
 
 CIはPR作成・更新時とmainへのpush時に上記を実行します。
 監査は開発依存も対象とし、high / criticalで失敗します。低・中レベルも出力を確認してください。
