@@ -3,11 +3,13 @@
 Node.js 24を使用します（バージョンの基準は `.nvmrc`）。
 `nvm`を利用する環境では `nvm install && nvm use`、それ以外はNode.js 24をインストールしてください。
 
+Lefthookを使用して、push前に回帰チェック・Lint・Type checkを自動実行します。通常の `npm ci` / `npm install` でLefthookのpostinstallがGit hookを設定します。`ignore-scripts=true` の環境では自動設定されないため、依存インストール後に `npx lefthook install` を実行してください。
+
 ```sh
 npm ci
 npm run check:regression
 npm run lint
-npx tsc --noEmit
+npm run typecheck
 npm run build
 npm audit --audit-level=high
 ```
@@ -15,6 +17,21 @@ npm audit --audit-level=high
 CIはPR作成・更新時とmainへのpush時に上記を実行します。
 監査は開発依存も対象とし、high / criticalで失敗します。低・中レベルも出力を確認してください。
 Lintの既存警告を理由なく増やさないでください。
+
+## pre-pushチェック
+
+通常の `git push` では `lefthook.yml` のpre-push hookから次を順番に実行します。
+
+1. `npm run check:regression`
+2. `npm run lint`
+3. `npm run typecheck`
+
+いずれかが失敗するとpushを中断します。BuildとDependency auditはpre-pushには含めず、最終ゲートとしてCIで実行します。
+手動で同じチェックを実行する場合は次を使用します。
+
+```sh
+npm run check:push
+```
 
 ## 作業手順
 
