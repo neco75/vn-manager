@@ -98,8 +98,8 @@ export function getLibraryValidationError(values: {
     }
 
     if (
-        values.startedOn !== undefined &&
-        values.completedOn !== undefined &&
+        typeof values.startedOn === "string" &&
+        typeof values.completedOn === "string" &&
         values.startedOn > values.completedOn
     ) {
         return "dateOrder";
