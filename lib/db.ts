@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { assertValidLibraryItem, LibraryItem } from "@/types/library";
+import { planLibraryRestore } from "@/lib/backup";
 
 interface VNDBManagerDB extends DBSchema {
     library: {
@@ -52,6 +53,53 @@ export async function getLibraryItem(id: string) {
 export async function getAllLibraryItems() {
     const db = await getDB();
     return db.getAll("library");
+}
+
+
+export async function restoreBackupData(
+    items: LibraryItem[],
+    purchaseSources?: string[],
+    overwriteConflicts = false,
+) {
+    items.forEach(assertValidLibraryItem);
+
+    const db = await getDB();
+    const tx = db.transaction(["library", "purchase_sources"], "readwrite");
+    const libraryStore = tx.objectStore("library");
+    const purchaseSourceStore = tx.objectStore("purchase_sources");
+
+    // Read and decide conflicts inside the same readwrite transaction that performs
+    // the writes. This prevents a stale React Context / preview from overwriting a
+    // record that another tab saved before this restore started.
+    const existingItems = await libraryStore.getAll();
+    const plan = planLibraryRestore(items, existingItems, overwriteConflicts);
+    const finalItems = new Map(existingItems.map((item) => [item.vn.id, item]));
+
+    for (const item of plan.itemsToWrite) {
+        await libraryStore.put(item);
+        finalItems.set(item.vn.id, item);
+    }
+
+    if (purchaseSources) {
+        const finalSources = new Set(purchaseSources);
+        for (const item of finalItems.values()) {
+            if (item.purchaseLocation) {
+                finalSources.add(item.purchaseLocation);
+            }
+        }
+
+        await purchaseSourceStore.clear();
+        for (const name of finalSources) {
+            await purchaseSourceStore.put({ name });
+        }
+    }
+
+    await tx.done;
+    return {
+        additions: plan.additions,
+        overwritten: plan.overwritten,
+        skippedConflicts: plan.skippedConflicts,
+    };
 }
 
 export async function removeFromLibrary(id: string) {
