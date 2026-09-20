@@ -22,7 +22,7 @@ let dbPromise: Promise<IDBPDatabase<VNDBManagerDB>>;
 export function getDB() {
     if (!dbPromise) {
         dbPromise = openDB<VNDBManagerDB>(DB_NAME, DB_VERSION, {
-            upgrade(db, oldVersion) {
+            upgrade(db, oldVersion, _newVersion, transaction) {
                 if (oldVersion < 1) {
                     const store = db.createObjectStore("library", { keyPath: "vn.id" });
                     store.createIndex("by-status", "status");
@@ -34,7 +34,7 @@ export function getDB() {
                     store.add({ name: "Package" });
                 }
                 if (oldVersion < 3) {
-                    const libraryStore = db.transaction.objectStore("library");
+                    const libraryStore = transaction.objectStore("library");
                     void (async () => {
                         let cursor = await libraryStore.openCursor();
                         while (cursor) {
