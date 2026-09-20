@@ -355,7 +355,7 @@ export default function VNPage() {
                                     />
                                     {shouldBlurImage(vn.image?.sexual, nsfwBlur) && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">18+</Badge>
+                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">{t.settings.imageBlurred}</Badge>
                                         </div>
                                     )}
                                 </div>
@@ -610,7 +610,7 @@ export default function VNPage() {
                                                     />
                                                     {shouldBlurImage(ss.sexual, nsfwBlur) && (
                                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">18+</Badge>
+                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">{t.settings.imageBlurred}</Badge>
                                                         </div>
                                                     )}
                                                 </button>
@@ -719,7 +719,7 @@ export default function VNPage() {
                             />
                             {shouldBlurImage(vn.screenshots[selectedImageIndex].sexual, nsfwBlur) && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">18+</Badge>
+                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">{t.settings.imageBlurred}</Badge>
                                     <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
                                         {t.settings?.nsfwBlurDescription || "NSFW content is hidden"}
                                     </p>
