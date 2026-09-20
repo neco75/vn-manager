@@ -3,7 +3,7 @@
 Node.js 24を使用します（バージョンの基準は `.nvmrc`）。
 `nvm`を利用する環境では `nvm install && nvm use`、それ以外はNode.js 24をインストールしてください。
 
-Lefthookを使用して、push前に回帰チェック・Lint・Type checkを自動実行します。通常の `npm ci` / `npm install` でLefthookのpostinstallがGit hookを設定します。`ignore-scripts=true` の環境では自動設定されないため、依存インストール後に `npx lefthook install` を実行してください。
+Lefthookを使用して、push前に回帰チェック・Lint・Type checkを自動実行します。`package.json` で `lefthook@2.1.14` のinstall scriptを明示承認しているため、通常の `npm ci` / `npm install` でLefthookのpostinstallがGit hookを設定します。`ignore-scripts=true` の環境では自動設定されないため、依存インストール後に `npx lefthook install` を実行してください。
 
 ```sh
 npm ci
