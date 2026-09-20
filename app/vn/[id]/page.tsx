@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { getVNById } from "@/lib/vndb";
+import { mergeLibraryItemMetadata } from "@/lib/library-state";
 import { VN } from "@/types/vndb";
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
@@ -44,11 +45,23 @@ import {
 import { useLanguage } from "@/context/LanguageContext";
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 
+type ExternalFetchState = "idle" | "loading" | "success" | "not-found" | "error";
+
 export default function VNPage() {
     const { id } = useParams();
+    const routeId = typeof id === "string" ? id : null;
     const [vn, setVn] = useState<VN | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const { getItem, addItem, updateItem, removeItem } = useLibrary();
+    const [externalState, setExternalState] = useState<ExternalFetchState>("idle");
+    const [retryVersion, setRetryVersion] = useState(0);
+    const {
+        getItem,
+        addItem,
+        updateItem,
+        removeItem,
+        isLoading: isLibraryLoading,
+        loadError,
+        reloadLibrary,
+    } = useLibrary();
     const { setBackgroundImage, nsfwBlur } = useSettings();
     const { t } = useLanguage();
 
@@ -65,6 +78,8 @@ export default function VNPage() {
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const screenshotButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
     const openedScreenshotIndexRef = useRef<number | null>(null);
+    const initializedRouteRef = useRef<string | null>(null);
+    const requestSequenceRef = useRef(0);
 
     const STATUSES: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -75,26 +90,23 @@ export default function VNPage() {
         { value: "plan_to_play", label: t.status.plan_to_play },
     ];
 
-    useEffect(() => {
-        async function fetchVN() {
-            if (typeof id !== "string") return;
-            try {
-                const data = await getVNById(id);
-                setVn(data);
-            } catch (error) {
-                console.error(error);
-                toast.error(t.modal.fetchError);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        fetchVN();
-    }, [id, t]);
-
-    const libraryItem = vn ? getItem(vn.id) : undefined;
+    const libraryItem = routeId ? getItem(routeId) : undefined;
 
     useEffect(() => {
+        initializedRouteRef.current = null;
+        requestSequenceRef.current += 1;
+        setVn(null);
+        setExternalState("idle");
+        setRetryVersion(0);
+        setSelectedImageIndex(null);
+    }, [routeId]);
+
+    useEffect(() => {
+        if (!routeId || isLibraryLoading || initializedRouteRef.current === routeId) return;
+
+        initializedRouteRef.current = routeId;
         if (libraryItem) {
+            setVn(libraryItem.vn);
             setStatus(libraryItem.status);
             setScore(libraryItem.score);
             setNotes(libraryItem.notes);
@@ -102,7 +114,6 @@ export default function VNPage() {
             setPlayTime(libraryItem.playTime || 0);
             setPurchaseLocation(libraryItem.purchaseLocation || "");
         } else {
-            // Reset to default if not in library
             setStatus("plan_to_play");
             setScore(0);
             setNotes("");
@@ -110,8 +121,36 @@ export default function VNPage() {
             setPlayTime(0);
             setPurchaseLocation("");
         }
-        setIsDirty(false); // Reset dirty state when libraryItem changes
-    }, [libraryItem]);
+        setIsDirty(false);
+    }, [routeId, isLibraryLoading, libraryItem]);
+
+    useEffect(() => {
+        if (!routeId || isLibraryLoading || loadError) return;
+
+        const controller = new AbortController();
+        const requestSequence = ++requestSequenceRef.current;
+        setExternalState("loading");
+
+        void getVNById(routeId, { signal: controller.signal })
+            .then((data) => {
+                if (controller.signal.aborted || requestSequenceRef.current !== requestSequence) return;
+
+                if (!data) {
+                    setExternalState("not-found");
+                    return;
+                }
+
+                setVn(data);
+                setExternalState("success");
+            })
+            .catch((error) => {
+                if (controller.signal.aborted || requestSequenceRef.current !== requestSequence) return;
+                console.error("Failed to fetch VN details:", error);
+                setExternalState("error");
+            });
+
+        return () => controller.abort();
+    }, [routeId, isLibraryLoading, loadError, retryVersion]);
 
     const handleSave = async () => {
         if (!vn || isSaving) return;
@@ -133,7 +172,8 @@ export default function VNPage() {
         setIsSaving(true);
         try {
             if (libraryItem) {
-                await updateItem({ ...libraryItem, status, score, notes, review, playTime, purchaseLocation });
+                const itemWithLatestMetadata = mergeLibraryItemMetadata(libraryItem, vn);
+                await updateItem({ ...itemWithLatestMetadata, status, score, notes, review, playTime, purchaseLocation });
                 toast.success(t.modal.saveSuccess);
             } else {
                 await addItem(vn, status, score, notes, playTime, review, purchaseLocation);
@@ -171,7 +211,48 @@ export default function VNPage() {
         }
     };
 
-    if (isLoading) return <div className="flex justify-center py-20">{t.common.loading}</div>;
+    if (isLibraryLoading) {
+        return <div className="flex justify-center py-20">{t.common.loading}</div>;
+    }
+
+    if (loadError) {
+        return (
+            <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
+                <h1 className="text-xl font-semibold">{t.home.loadErrorTitle}</h1>
+                <p className="text-sm text-gray-400">{t.home.loadErrorDesc}</p>
+                <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+            </div>
+        );
+    }
+
+    if (!vn && (externalState === "idle" || externalState === "loading")) {
+        return <div className="flex justify-center py-20">{t.common.loading}</div>;
+    }
+
+    if (!vn && externalState === "not-found") {
+        return (
+            <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
+                <h1 className="text-xl font-semibold">{t.vn.notFoundTitle}</h1>
+                <p className="text-sm text-gray-400">{t.vn.notFoundDesc}</p>
+                <Button variant="outline" onClick={() => setRetryVersion((value) => value + 1)}>
+                    {t.vn.retryExternal}
+                </Button>
+            </div>
+        );
+    }
+
+    if (!vn && externalState === "error") {
+        return (
+            <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
+                <h1 className="text-xl font-semibold">{t.vn.externalErrorTitle}</h1>
+                <p className="text-sm text-gray-400">{t.vn.externalErrorDesc}</p>
+                <Button variant="outline" onClick={() => setRetryVersion((value) => value + 1)}>
+                    {t.vn.retryExternal}
+                </Button>
+            </div>
+        );
+    }
+
     if (!vn) return <div>{t.common.notFound}</div>;
 
     const jsonLd = {
@@ -222,6 +303,34 @@ export default function VNPage() {
                 {t.common.back}
             </Link>
 
+            {libraryItem && externalState !== "success" && (
+                <div className="mb-6 rounded-lg border border-white/10 bg-card/80 p-4 text-sm">
+                    {externalState === "loading" ? (
+                        <p className="text-gray-400">{t.vn.externalLoadingSaved}</p>
+                    ) : (
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="font-medium">
+                                    {externalState === "not-found"
+                                        ? t.vn.externalNotFoundSaved
+                                        : t.vn.externalErrorSaved}
+                                </p>
+                                <p className="mt-1 text-gray-400">{t.vn.localRecordAvailable}</p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRetryVersion((value) => value + 1)}
+                            >
+                                {t.vn.retryExternal}
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+
             <div className="grid lg:grid-cols-[350px_1fr] gap-8">
                 {/* Left Column: Image & Controls */}
                 <motion.div
@@ -246,7 +355,7 @@ export default function VNPage() {
                                     />
                                     {shouldBlurImage(vn.image?.sexual, nsfwBlur) && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">{t.settings.imageBlurred}</Badge>
+                                            <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-4 py-2 text-lg">18+</Badge>
                                         </div>
                                     )}
                                 </div>
@@ -501,7 +610,7 @@ export default function VNPage() {
                                                     />
                                                     {shouldBlurImage(ss.sexual, nsfwBlur) && (
                                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">{t.settings.imageBlurred}</Badge>
+                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">18+</Badge>
                                                         </div>
                                                     )}
                                                 </button>
@@ -610,7 +719,7 @@ export default function VNPage() {
                             />
                             {shouldBlurImage(vn.screenshots[selectedImageIndex].sexual, nsfwBlur) && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">{t.settings.imageBlurred}</Badge>
+                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">18+</Badge>
                                     <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
                                         {t.settings?.nsfwBlurDescription || "NSFW content is hidden"}
                                     </p>
