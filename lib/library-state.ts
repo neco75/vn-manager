@@ -1,4 +1,4 @@
-import type { GameStatus, LibraryItem } from "../types/library";
+import type { LibraryItem } from "../types/library";
 import type { VN } from "../types/vndb";
 
 export type LibraryItemEdits = Pick<
