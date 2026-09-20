@@ -65,7 +65,14 @@
       "length_minutes": 180,
       "tags": [{ "id": "g5", "name": "Drama", "category": "cont", "spoiler": 0 }],
       "developers": [{ "id": "d3", "name": "Fixture Games", "original": "" }],
-      "screenshots": [],
+      "screenshots": [
+        {
+          "url": "https://t.vndb.org/3/screenshot.jpg",
+          "thumbnail": "https://t.vndb.org/3/screenshot-thumb.jpg",
+          "sexual": 1.5,
+          "violence": 0
+        }
+      ],
       "extlinks": [],
       "releases": []
     },
