@@ -281,7 +281,7 @@ export default function Home() {
                                     <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
                                         <div className="flex items-center gap-1">
                                             <Star className="w-3 h-3 text-yellow-500" />
-                                            <span className="text-yellow-500 font-bold">{item.score}/100</span>
+                                            <span className="text-yellow-500 font-bold">{item.score === null ? t.common.unrated : `${item.score}/100`}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-green-500" />
