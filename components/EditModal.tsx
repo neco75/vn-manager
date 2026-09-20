@@ -210,6 +210,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         >
                             {t.common.markUnrated}
                         </Button>
+                        <p className="text-xs text-gray-500">{t.common.legacyZeroScoreNote}</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
