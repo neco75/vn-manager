@@ -25,7 +25,7 @@ VNDB（Visual Novel Database）と連携し、プレイしたゲームや積ん�
 https://vn-manager.vercel.app
 
 **注意点:**
-- データはブラウザに保存されます。キャッシュクリアに注意してください。
+- データはこのブラウザのIndexedDB / localStorageに保存されます。サイトデータやブラウザストレージを削除すると記録も削除されるため注意してください。
 - 異なるデバイス間での同期機能はありません。
 - 「設定」ページから定期的にバックアップ（JSONエクスポート）を取ることを推奨します。
 
@@ -34,7 +34,7 @@ https://vn-manager.vercel.app
 - アカウント、クラウド同期、サーバーへのライブラリ保存はありません。ブラウザのデータを消去すると記録も消えるため、設定ページからバックアップしてください。
 - タイトル検索では検索語が、作品詳細の表示や情報更新ではVNDBの作品IDがVNDB APIへ送信されます。
 - 作品画像はVNDBが提供する画像URLからブラウザが取得します。
-- 公開環境ではVercel Speed Insightsが有効な場合、匿名のWeb VitalsなどのパフォーマンスデータがVercelへ送信されます。個人のライブラリ、スコア、メモは送信しません。
+- 公開環境でVercel Speed Insightsが有効な場合、ライブラリ・スコア・メモ本文は送信されません。一方、匿名のdata pointとして閲覧route/URL（例: `/vn/v123`）、network speed、browser、device type/OS、country、Web Vital/attribution、SDK情報、サーバー受信時刻などがVercelへ送信されます。個人visitorやIPに紐付けたり、ページ横断のsessionを再構成できる情報は保存されません。詳しくは[Vercelの公式説明](https://vercel.com/docs/speed-insights/privacy-policy)を参照してください。
 
 ### 制限事項
 

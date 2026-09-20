@@ -43,6 +43,26 @@ test.describe("settings", () => {
         );
     });
 
+    test("keeps the previous export time when export fails", async ({ page }) => {
+        const previousExportAt = "2025-01-02T03:04:05.000Z";
+        await page.addInitScript((exportAt) => {
+            localStorage.setItem("vn-manager-last-export-at", exportAt);
+            Object.defineProperty(URL, "createObjectURL", {
+                configurable: true,
+                value: () => {
+                    throw new Error("fixture export failure");
+                },
+            });
+        }, previousExportAt);
+        await page.goto("/settings");
+
+        await page.getByRole("button", { name: "バックアップをダウンロード (JSON)", exact: true }).click();
+        await expect(page.getByRole("region", { name: "データとバックアップ" }).getByRole("alert")).toContainText(
+            "データのエクスポートに失敗しました",
+        );
+        await expect(page.evaluate(() => localStorage.getItem("vn-manager-last-export-at"))).resolves.toBe(previousExportAt);
+    });
+
     test("reaches settings from the mobile menu", async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto("/");
