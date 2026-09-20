@@ -31,6 +31,13 @@ export async function mockVNDB(
         });
     });
 
+    await page.route("https://t.vndb.org/**", async (route) => {
+        await route.fulfill({
+            contentType: "image/png",
+            body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+        });
+    });
+
     await page.route(VNDB_API, async (route) => {
         const request = route.request();
         const body = request.postDataJSON() as { filters?: unknown[]; page?: number };
@@ -128,6 +135,27 @@ export async function failDetailDraftWrites(page: Page) {
     });
 }
 
+export async function failBackupRestoreWrites(page: Page) {
+    await page.addInitScript(() => {
+        const testWindow = window as Window & { __vnManagerFailBackupRestore?: boolean };
+        testWindow.__vnManagerFailBackupRestore = false;
+        const originalClear = IDBObjectStore.prototype.clear;
+        IDBObjectStore.prototype.clear = function () {
+            if (this.name === "purchase_sources" && testWindow.__vnManagerFailBackupRestore) {
+                testWindow.__vnManagerFailBackupRestore = false;
+                this.transaction.abort();
+            }
+            return Reflect.apply(originalClear, this, []);
+        };
+    });
+}
+
+export async function armBackupRestoreFailure(page: Page) {
+    await page.evaluate(() => {
+        (window as Window & { __vnManagerFailBackupRestore?: boolean }).__vnManagerFailBackupRestore = true;
+    });
+}
+
 export async function seedLibraryItem(
     page: Page,
     id = "v1",
@@ -173,4 +201,73 @@ export async function seedLibraryItem(
         }),
         { item, dbName: DB_NAME, dbVersion: DB_VERSION },
     );
+}
+
+export async function readLibraryIds(page: Page) {
+    return page.evaluate(({ dbName, dbVersion }) => new Promise<string[]>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction("library", "readonly");
+            const getAllRequest = transaction.objectStore("library").getAllKeys();
+            getAllRequest.onsuccess = () => {
+                database.close();
+                resolve(getAllRequest.result as string[]);
+            };
+            getAllRequest.onerror = () => reject(getAllRequest.error);
+        };
+    }), { dbName: DB_NAME, dbVersion: DB_VERSION });
+}
+
+export async function readLibraryItem(page: Page, id: string) {
+    return page.evaluate(({ dbName, dbVersion, id }) => new Promise<LibraryItem | undefined>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction("library", "readonly");
+            const getRequest = transaction.objectStore("library").get(id);
+            getRequest.onsuccess = () => {
+                database.close();
+                resolve(getRequest.result as LibraryItem | undefined);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        };
+    }), { dbName: DB_NAME, dbVersion: DB_VERSION, id });
+}
+
+export async function seedPurchaseSources(page: Page, names: string[]) {
+    await page.evaluate(({ dbName, dbVersion, names }) => new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction("purchase_sources", "readwrite");
+            const store = transaction.objectStore("purchase_sources");
+            for (const name of names) store.put({ name });
+            transaction.oncomplete = () => {
+                database.close();
+                resolve();
+            };
+            transaction.onerror = () => reject(transaction.error);
+        };
+    }), { dbName: DB_NAME, dbVersion: DB_VERSION, names });
+}
+
+export async function readPurchaseSourceNames(page: Page) {
+    return page.evaluate(({ dbName, dbVersion }) => new Promise<string[]>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction("purchase_sources", "readonly");
+            const getAllRequest = transaction.objectStore("purchase_sources").getAllKeys();
+            getAllRequest.onsuccess = () => {
+                database.close();
+                resolve((getAllRequest.result as string[]).sort());
+            };
+            getAllRequest.onerror = () => reject(getAllRequest.error);
+        };
+    }), { dbName: DB_NAME, dbVersion: DB_VERSION });
 }

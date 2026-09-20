@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
@@ -47,6 +47,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
     const { language, setLanguage, t } = useLanguage();
     const { nsfwBlur, setNsfwBlur } = useSettings();
     const [menuOpen, setMenuOpen] = useState(false);
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
 
     const navItems = [
         { href: "/", icon: <Library className="w-4 h-4" />, label: t.nav.library },
@@ -113,6 +114,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                             variant="outline"
                             className="min-h-11 shrink-0 gap-2 lg:hidden"
                             onClick={() => setMenuOpen(true)}
+                            ref={menuButtonRef}
                             aria-haspopup="dialog"
                             aria-expanded={menuOpen}
                         >
@@ -123,7 +125,13 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                 </header>
 
                 <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-                    <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-white/10">
+                    <DialogContent
+                        className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-white/10"
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault();
+                            menuButtonRef.current?.focus();
+                        }}
+                    >
                         <DialogHeader>
                             <DialogTitle>{t.nav.menu}</DialogTitle>
                         </DialogHeader>
