@@ -54,6 +54,31 @@ export async function getAllLibraryItems() {
     return db.getAll("library");
 }
 
+
+export async function restoreBackupData(
+    items: LibraryItem[],
+    purchaseSources?: string[],
+) {
+    items.forEach(assertValidLibraryItem);
+
+    const db = await getDB();
+    const tx = db.transaction(["library", "purchase_sources"], "readwrite");
+    const libraryStore = tx.objectStore("library");
+    const purchaseSourceStore = tx.objectStore("purchase_sources");
+
+    for (const item of items) {
+        await libraryStore.put(item);
+    }
+
+    if (purchaseSources) {
+        for (const name of purchaseSources) {
+            await purchaseSourceStore.put({ name });
+        }
+    }
+
+    await tx.done;
+}
+
 export async function removeFromLibrary(id: string) {
     const db = await getDB();
     return db.delete("library", id);
