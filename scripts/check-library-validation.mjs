@@ -6,6 +6,7 @@ import {
     upsertLibraryItem,
 } from "../lib/library-state.ts";
 import { getLibraryValidationError } from "../types/library.ts";
+import { calculateAverageScore, compareLibraryScores } from "../lib/library-score.ts";
 import {
     LIBRARY_RECORD_VERSION,
     migrateLibraryRecord,
@@ -76,6 +77,11 @@ const currentZero = {
     score: 0,
 };
 assert.equal(migrateLibraryRecord(currentZero).score, 0);
+
+assert.equal(calculateAverageScore([{ score: 0 }, { score: 100 }, { score: null }]), 50);
+assert.equal(calculateAverageScore([{ score: null }, { score: null }]), null);
+assert.equal(compareLibraryScores({ score: 0 }, { score: null }, "asc"), -1);
+assert.equal(compareLibraryScores({ score: null }, { score: 100 }, "desc"), 1);
 
 const detailedVN = {
     id: "v1",
@@ -193,4 +199,4 @@ const wishlist = [newItem, { ...newItem, vn: { id: "v5", title: "Wish" }, owners
 assert.equal(ownedBacklog.length, 1);
 assert.equal(wishlist.length, 1);
 
-console.log("Library save regression check passed (48 scenarios).");
+console.log("Library save regression check passed (52 scenarios).");
