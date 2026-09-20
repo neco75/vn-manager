@@ -5,6 +5,7 @@ import {
     createBackupDocument,
     createRestorePreview,
     parseBackup,
+    planLibraryRestore,
     selectLibraryItemsForRestore,
 } from "../lib/backup.ts";
 
@@ -70,6 +71,43 @@ assert.deepEqual(createRestorePreview(parsed, [item]), {
 });
 assert.deepEqual(selectLibraryItemsForRestore(parsed, [item], false), []);
 assert.deepEqual(selectLibraryItemsForRestore(parsed, [item], true), [item]);
+
+const stalePreview = createRestorePreview(parsed, []);
+assert.deepEqual(stalePreview, {
+    total: 1,
+    additions: 1,
+    conflicts: 0,
+});
+
+const newerDbItem = {
+    ...item,
+    notes: "saved in another tab",
+    updatedAt: 300,
+};
+const preservePlan = planLibraryRestore(parsed.library, [newerDbItem], false);
+assert.deepEqual(preservePlan, {
+    itemsToWrite: [],
+    additions: 0,
+    overwritten: 0,
+    skippedConflicts: 1,
+});
+assert.equal(newerDbItem.notes, "saved in another tab");
+
+const overwritePlan = planLibraryRestore(parsed.library, [newerDbItem], true);
+assert.deepEqual(overwritePlan, {
+    itemsToWrite: [item],
+    additions: 0,
+    overwritten: 1,
+    skippedConflicts: 0,
+});
+
+const additionPlan = planLibraryRestore(parsed.library, [], false);
+assert.deepEqual(additionPlan, {
+    itemsToWrite: [item],
+    additions: 1,
+    overwritten: 0,
+    skippedConflicts: 0,
+});
 
 assert.throws(
     () => parseBackup({ ...current, schemaVersion: 999 }),
@@ -144,4 +182,4 @@ assert.throws(
     (error) => error instanceof BackupValidationError && /legacy\[1\]\.vn\.title/.test(error.message),
 );
 
-console.log("Backup validation regression check passed (13 scenarios).");
+console.log("Backup validation regression check passed (17 scenarios).");
