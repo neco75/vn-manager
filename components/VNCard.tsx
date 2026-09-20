@@ -93,7 +93,7 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
                     </div>
                 </div>
 
-                {libraryItem?.score ? (
+                {libraryItem && libraryItem.score !== null ? (
                     <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
                         <span className="text-xs text-gray-400">{t.common.score}</span>
                         <span className="text-sm font-bold text-yellow-500">{libraryItem.score}/100</span>
