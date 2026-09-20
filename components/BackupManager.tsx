@@ -108,11 +108,18 @@ export function BackupManager() {
                 overwriteConflicts,
             );
             await db.restoreBackupData(itemsToWrite, importState.backup.purchaseSources);
-            await reloadLibrary();
 
-            let settingsFailed = false;
+            const partialFailures: string[] = [];
+            try {
+                await reloadLibrary();
+            } catch (error) {
+                partialFailures.push(t.stats.libraryReloadFailed);
+                console.error("Library reload after restore failed:", error);
+            }
+
             if (importState.backup.settings) {
                 const settings = importState.backup.settings;
+                let settingsFailed = false;
                 for (const apply of [
                     () => setBackgroundImage(settings.backgroundImage),
                     () => setNsfwBlur(settings.nsfwBlur),
@@ -125,12 +132,17 @@ export function BackupManager() {
                         console.error("Backup setting restore failed:", error);
                     }
                 }
+                if (settingsFailed) partialFailures.push(t.stats.settingsRestoreFailed);
             }
 
             setImportState(null);
-            if (settingsFailed) {
-                setMessage({ kind: "error", text: t.stats.toasts.importSettingsError });
-                toast.error(t.stats.toasts.importSettingsError);
+            if (partialFailures.length > 0) {
+                const partialText = t.stats.importPartialError.replace(
+                    "{details}",
+                    partialFailures.join(" / "),
+                );
+                setMessage({ kind: "error", text: partialText });
+                toast.error(t.stats.toasts.importPartialError);
             } else {
                 const successText = t.stats.importSuccessDetail
                     .replace("{added}", String(importState.preview.additions))
