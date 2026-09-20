@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { shouldBlurImage } from "@/lib/image-safety";
 
 interface VNCardProps {
     vn: VN;
@@ -25,8 +26,7 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
     const { t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
-    const isNSFW = (vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false);
-    const shouldBlur = isNSFW && nsfwBlur;
+    const shouldBlur = shouldBlurImage(vn.image?.sexual, nsfwBlur);
 
     const Content = (
         <MotionCard
@@ -58,7 +58,7 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
                         />
                         {shouldBlur && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                                <Badge variant="destructive" className="bg-red-600/80 text-white border-none shadow-lg">18+</Badge>
+                                <Badge variant="destructive" className="bg-red-600/80 text-white border-none shadow-lg">{t.settings.imageBlurred}</Badge>
                             </div>
                         )}
                     </motion.div>
