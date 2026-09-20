@@ -157,7 +157,7 @@ assert.throws(
 assert.throws(
     () => parseBackup({
         ...current,
-        library: [item, { ...item, ownership: "borrowed" }],
+        library: [item, { ...item, ownership: "borrowed", vn: { ...item.vn, id: "v3" } }],
     }),
     (error) => error instanceof BackupValidationError && /ownership/.test(error.message),
 );
@@ -165,7 +165,7 @@ assert.throws(
 assert.throws(
     () => parseBackup({
         ...current,
-        library: [item, { ...item, startedOn: "2026-02-30" }],
+        library: [item, { ...item, startedOn: "2026-02-30", vn: { ...item.vn, id: "v4" } }],
     }),
     (error) => error instanceof BackupValidationError && /startedOn/.test(error.message),
 );
@@ -173,7 +173,7 @@ assert.throws(
 assert.throws(
     () => parseBackup({
         ...current,
-        library: [item, { ...item, startedOn: "2026-09-20", completedOn: "2026-09-19" }],
+        library: [item, { ...item, startedOn: "2026-09-20", completedOn: "2026-09-19", vn: { ...item.vn, id: "v5" } }],
     }),
     (error) => error instanceof BackupValidationError && /completedOn/.test(error.message),
 );
@@ -181,7 +181,7 @@ assert.throws(
 assert.throws(
     () => parseBackup({
         ...current,
-        library: [item, { ...item, resumeNote: "x".repeat(201) }],
+        library: [item, { ...item, resumeNote: "x".repeat(201), vn: { ...item.vn, id: "v6" } }],
     }),
     (error) => error instanceof BackupValidationError && /resumeNote/.test(error.message),
 );
