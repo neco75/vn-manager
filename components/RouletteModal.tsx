@@ -18,6 +18,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { cn } from "@/lib/utils";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 interface RouletteModalProps {
     isOpen: boolean;
@@ -26,7 +27,7 @@ interface RouletteModalProps {
 }
 
 export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
     const [spinning, setSpinning] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -72,6 +73,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
     };
 
     const currentItem = pool[currentIndex];
+    const currentTitle = currentItem ? getDisplayTitle(currentItem.vn, language) : "";
     const shouldBlurCurrentImage = shouldBlurImage(currentItem?.vn.image?.sexual, nsfwBlur);
 
     return (
@@ -92,7 +94,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                         {currentItem?.vn.image ? (
                             <Image
                                 src={currentItem.vn.image.url}
-                                alt={currentItem.vn.title}
+                                alt={currentTitle}
                                 fill
                                 className={cn("object-cover transition-all", shouldBlurCurrentImage && "blur-xl scale-110")}
                                 sizes="(max-width: 640px) 192px, 224px"
@@ -117,7 +119,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
 
                     <div className="space-y-2 text-center w-full">
                         <h3 className="text-xl font-bold px-4 line-clamp-2 min-h-[3.5rem] flex items-center justify-center">
-                            {currentItem?.vn.title || "No Games Found"}
+                            {currentTitle || "No Games Found"}
                         </h3>
                         {winner && (
                             <motion.div

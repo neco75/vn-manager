@@ -37,15 +37,31 @@ export interface VNExtLink {
   name?: string;
   id: string;
 }
+
+export interface VNTitle {
+  lang: string;
+  title: string;
+  latin?: string | null;
+  official?: boolean;
+  main?: boolean;
+}
+
+export interface VNTitleFields {
+  title: string;
+  alttitle?: string | null;
+  titles?: VNTitle[];
+  aliases?: string[];
+  olang?: string | null;
+}
+
 export interface VNRelease {
   id?: string;
   minage: number | null;
   vns?: Array<Pick<VN, "id">>;
 }
 
-export interface VN {
+export interface VN extends VNTitleFields {
   id: string;
-  title: string;
   released: string;
   languages: string[];
   platforms: string[];

@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { getVisibleTags } from "@/lib/spoiler-safety";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 export default function RankingPage() {
     const { items } = useLibrary();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
     const rankedItems = useMemo(() => {
@@ -43,6 +44,7 @@ export default function RankingPage() {
                 {rankedItems.map((item, index) => (
                     <Link
                         href={`/vn/${item.vn.id}`}
+                        aria-label={getDisplayTitle(item.vn, language)}
                         key={item.vn.id}
                         className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors group"
                     >
@@ -71,7 +73,10 @@ export default function RankingPage() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{item.vn.title}</h3>
+                            <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors">{getDisplayTitle(item.vn, language)}</h3>
+                            {item.vn.developers?.[0]?.name && (
+                                <p className="truncate text-xs text-muted-foreground">{item.vn.developers[0].name}</p>
+                            )}
                             <div className="flex gap-2 mt-1">
                                 {getVisibleTags(item.vn.tags).slice(0, 3).map(tag => (
                                     <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-gray-400">

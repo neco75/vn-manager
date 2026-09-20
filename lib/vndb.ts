@@ -1,4 +1,4 @@
-import { VN, VNDBResponse } from "@/types/vndb";
+import { VN, VNDBResponse, VNTitleFields } from "@/types/vndb";
 
 const API_URL = "https://api.vndb.org/kana/vn";
 
@@ -12,9 +12,8 @@ export class VNDBRequestError extends Error {
     }
 }
 
-export interface VNMetadata {
+export interface VNMetadata extends VNTitleFields {
     id: string;
-    title: string;
     description?: string;
     image: { url: string } | null;
 }
@@ -57,15 +56,16 @@ export interface VNSearchPage {
 }
 
 const SEARCH_RESULTS_PER_PAGE = 25;
+const TITLE_FIELDS = "title, alttitle, titles.lang, titles.title, titles.latin, aliases, olang";
 
 export async function searchVNs(
     query: string,
     options: { page?: number; signal?: AbortSignal } = {},
 ): Promise<VNSearchPage> {
     const page = Number.isInteger(options.page) && (options.page as number) > 0 ? (options.page as number) : 1;
-    // tags.spoiler とページングを扱うため、旧形式のキャッシュを再利用しない。
+    // タイトル情報・tags.spoiler・ページングを扱うため、旧形式のキャッシュを再利用しない。
     // 成功した応答だけをキャッシュし、失敗は空結果として保持しない。
-    const cacheKey = `vndb_v4_search_${query}_${page}`;
+    const cacheKey = `vndb_v5_search_${query}_${page}`;
     const cached = getCache<VNSearchPage>(cacheKey);
     if (cached) return cached;
 
@@ -77,7 +77,7 @@ export async function searchVNs(
         signal: options.signal,
         body: JSON.stringify({
             filters: ["search", "=", query],
-            fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name",
+            fields: `${TITLE_FIELDS}, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name`,
             sort: "searchrank",
             results: SEARCH_RESULTS_PER_PAGE,
             page,
@@ -104,8 +104,8 @@ export async function getVNById(
     id: string,
     options: { signal?: AbortSignal } = {},
 ): Promise<VN | null> {
-    // tags.spoiler を取得するようになったため、旧形式のキャッシュを再利用しない
-    const cacheKey = `vndb_v3_vn_${id}`;
+    // タイトル情報とtags.spoilerを取得するため、旧形式のキャッシュを再利用しない
+    const cacheKey = `vndb_v4_vn_${id}`;
     const cached = getCache<VN>(cacheKey);
     if (cached) return cached;
 
@@ -117,7 +117,7 @@ export async function getVNById(
         signal: options.signal,
         body: JSON.stringify({
             filters: ["id", "=", id],
-            fields: "title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
+            fields: `${TITLE_FIELDS}, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label`,
         }),
     });
 
@@ -149,7 +149,7 @@ export async function getVNMetadataById(
         signal: options.signal,
         body: JSON.stringify({
             filters: ["id", "=", id],
-            fields: "title, description, image.url",
+            fields: `${TITLE_FIELDS}, description, image.url`,
         }),
     });
 
@@ -190,7 +190,7 @@ export async function getVNsByIds(ids: string[], onProgress?: (current: number, 
             },
             body: JSON.stringify({
                 filters: filters,
-                fields: "id, title, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label",
+                fields: `id, ${TITLE_FIELDS}, released, image.url, image.sexual, description, rating, votecount, length_minutes, tags.name, tags.spoiler, developers.name, screenshots.url, screenshots.thumbnail, screenshots.sexual, extlinks.url, extlinks.label`,
                 results: CHUNK_SIZE,
             }),
         });

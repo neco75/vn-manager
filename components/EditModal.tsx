@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { getDisplayTitle } from "@/lib/vndb-title";
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 
 interface EditModalProps {
@@ -30,8 +31,9 @@ interface EditModalProps {
 }
 
 export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }: EditModalProps) {
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
+    const displayTitle = getDisplayTitle(vn, language);
     const [status, setStatus] = useState<GameStatus>(libraryItem?.status || "plan_to_play");
     const [ownership, setOwnership] = useState<OwnershipStatus>(libraryItem?.ownership || "unknown");
     const [score, setScore] = useState<number | null>(libraryItem?.score ?? null);
@@ -137,7 +139,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                     <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
                     <div className="absolute bottom-4 left-6 z-10">
                         <DialogTitle className="text-2xl font-bold text-white shadow-black drop-shadow-md text-left">
-                            {vn.title}
+                            {displayTitle}
                         </DialogTitle>
                     </div>
                 </div>

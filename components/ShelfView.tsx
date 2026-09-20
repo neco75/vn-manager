@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 interface ShelfViewProps {
     items: LibraryItem[];
@@ -14,7 +15,7 @@ interface ShelfViewProps {
 
 export function ShelfView({ items }: ShelfViewProps) {
     const { nsfwBlur } = useSettings();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     return (
         <div className="bg-[#1a1512] p-8 rounded-xl border border-[#3d2b1f] shadow-2xl overflow-hidden relative">
             {/* Wood Texture Overlay */}
@@ -23,6 +24,7 @@ export function ShelfView({ items }: ShelfViewProps) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
                 {items.map((item) => {
                     const shouldBlur = shouldBlurImage(item.vn.image?.sexual, nsfwBlur);
+                    const displayTitle = getDisplayTitle(item.vn, language);
 
                     return (
                         <div key={item.vn.id} className="relative group">
@@ -30,11 +32,11 @@ export function ShelfView({ items }: ShelfViewProps) {
                             <div className="pt-8 pb-2 px-4 border-b-[12px] border-[#3d2b1f] bg-gradient-to-b from-transparent via-transparent to-black/40 relative z-10 h-full flex items-end justify-center">
 
                                 {/* The Game Case */}
-                                <Link href={`/vn/${item.vn.id}`} className="relative block w-full aspect-[2/3] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 origin-bottom overflow-hidden">
+                                <Link href={`/vn/${item.vn.id}`} aria-label={displayTitle} className="relative block w-full aspect-[2/3] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 origin-bottom overflow-hidden">
                                     {item.vn.image ? (
                                         <img
                                             src={item.vn.image.url}
-                                            alt={item.vn.title}
+                                            alt={displayTitle}
                                             className={cn(
                                                 "w-full h-full object-cover rounded-sm shadow-md group-hover:shadow-xl transition-all",
                                                 shouldBlur && "blur-xl scale-110"

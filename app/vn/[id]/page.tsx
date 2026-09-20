@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { useLanguage } from "@/context/LanguageContext";
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
+import { getDisplayTitle } from "@/lib/vndb-title";
 
 type ExternalFetchState = "idle" | "loading" | "success" | "not-found" | "error";
 
@@ -65,7 +66,7 @@ export default function VNPage() {
         reloadLibrary,
     } = useLibrary();
     const { setBackgroundImage, nsfwBlur } = useSettings();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
 
     // Local state for editing
     const [status, setStatus] = useState<GameStatus>("plan_to_play");
@@ -290,10 +291,11 @@ export default function VNPage() {
 
     if (!vn) return <div>{t.common.notFound}</div>;
 
+    const displayTitle = getDisplayTitle(vn, language);
     const jsonLd = {
         "@context": "https://schema.org",
         "@type": "VideoGame",
-        "name": vn.title,
+        "name": displayTitle,
         "description": getVisibleSynopsisText(vn.description),
         "image": vn.image?.url,
         "datePublished": vn.released,
@@ -379,7 +381,7 @@ export default function VNPage() {
                                 <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-white/10">
                                     <Image
                                         src={vn.image.url}
-                                        alt={vn.title}
+                                        alt={displayTitle}
                                         fill
                                         className={cn(
                                             "object-cover transition-all duration-500",
@@ -572,7 +574,7 @@ export default function VNPage() {
                     className="space-y-8"
                 >
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-bold leading-tight">{vn.title}</h1>
+                        <h1 className="text-4xl md:text-5xl font-bold leading-tight">{displayTitle}</h1>
                         <div className="flex flex-wrap gap-4 mt-4 text-sm">
                             <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
                                 <Star className="w-4 h-4 text-yellow-500" />

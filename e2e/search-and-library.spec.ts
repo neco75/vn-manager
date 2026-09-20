@@ -59,6 +59,23 @@ test.describe("search flows", () => {
         await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
     });
 
+    test("uses localized titles and keeps long card titles identifiable on narrow screens", async ({ page }) => {
+        await mockVNDB(page);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto("/search");
+
+        await search(page, "title-cases");
+        const japaneseTitle = "日本語の長いタイトル 続編 ファンディスク";
+        const englishTitle = "English Sequel Fan Disc Title";
+        const titleLink = page.locator('a[href="/vn/v4"]').filter({ hasText: japaneseTitle });
+        await expect(titleLink).toBeVisible();
+        await expect(titleLink).toHaveClass(/line-clamp-2/);
+
+        await page.evaluate(() => localStorage.setItem("vn-manager-lang", "en"));
+        await page.reload();
+        await expect(page.getByText(englishTitle, { exact: true })).toBeVisible();
+    });
+
     test("ignores stale searches and clears an interrupted load-more state", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/search");
