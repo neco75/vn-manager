@@ -9,7 +9,8 @@
     "lint": "eslint",
     "check:regression": "node scripts/check-settings-restoration.mjs && node scripts/check-library-validation.mjs",
     "typecheck": "tsc --noEmit",
-    "check:push": "npm run check:regression && npm run lint && npm run typecheck"
+    "check:push": "npm run check:regression && npm run lint && npm run typecheck",
+    "check:review": "npm run check:regression && npm run lint && npm run typecheck && npm run build && npm audit --audit-level=high"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
