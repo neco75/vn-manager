@@ -1,14 +1,26 @@
-import type { LibraryItem } from "../types/library";
+import {
+    LIBRARY_RECORD_VERSION,
+    type LibraryItem,
+} from "../types/library";
 import type { VN } from "../types/vndb";
 
 export type LibraryItemEdits = Pick<
     LibraryItem,
-    "status" | "score" | "notes" | "playTime" | "purchaseLocation"
+    | "status"
+    | "ownership"
+    | "score"
+    | "notes"
+    | "review"
+    | "playTime"
+    | "purchaseLocation"
+    | "startedOn"
+    | "completedOn"
+    | "lastPlayedOn"
+    | "resumeNote"
 >;
 
 interface NewLibraryItemValues extends LibraryItemEdits {
     vn: VN;
-    review: string;
 }
 
 export function mergeLibraryItemEdits(
@@ -51,6 +63,12 @@ export function createLibraryItemForAdd(
 
     return {
         ...values,
+        recordVersion: LIBRARY_RECORD_VERSION,
+        ownership: values.ownership ?? "unknown",
+        score: values.score ?? null,
+        notes: values.notes ?? "",
+        review: values.review ?? "",
+        playTime: values.playTime ?? 0,
         addedAt: now,
         updatedAt: now,
     };
