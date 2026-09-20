@@ -66,12 +66,24 @@ export async function restoreBackupData(
     const libraryStore = tx.objectStore("library");
     const purchaseSourceStore = tx.objectStore("purchase_sources");
 
+    const existingItems = await libraryStore.getAll();
+    const finalItems = new Map(existingItems.map((item) => [item.vn.id, item]));
+
     for (const item of items) {
         await libraryStore.put(item);
+        finalItems.set(item.vn.id, item);
     }
 
     if (purchaseSources) {
-        for (const name of purchaseSources) {
+        const finalSources = new Set(purchaseSources);
+        for (const item of finalItems.values()) {
+            if (item.purchaseLocation) {
+                finalSources.add(item.purchaseLocation);
+            }
+        }
+
+        await purchaseSourceStore.clear();
+        for (const name of finalSources) {
             await purchaseSourceStore.put({ name });
         }
     }
