@@ -2,8 +2,8 @@ export interface VNImage {
   id: string;
   url: string;
   dims: [number, number];
-  sexual: number;
-  violence: number;
+  sexual?: number | null;
+  violence?: number | null;
 }
 
 export interface VNTag {
@@ -21,8 +21,8 @@ export interface VNDeveloper {
 export interface VNScreenshot {
   url: string;
   thumbnail: string;
-  sexual: number;
-  violence: number;
+  sexual?: number | null;
+  violence?: number | null;
 }
 
 export interface VNExtLink {
