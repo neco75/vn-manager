@@ -30,14 +30,15 @@ export default function StatsPage() {
     const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
     const stats = useMemo(() => {
+        const ratedItems = items.filter((item) => item.score !== null);
         return {
             total: items.length,
             completed: items.filter((i) => i.status === "completed").length,
             watched: items.filter((i) => i.status === "watched").length,
             playing: items.filter((i) => i.status === "playing").length,
-            avgScore:
-                items.filter((i) => i.score > 0).reduce((acc, i) => acc + i.score, 0) /
-                items.filter((i) => i.score > 0).length || 0,
+            avgScore: ratedItems.length > 0
+                ? ratedItems.reduce((acc, item) => acc + (item.score ?? 0), 0) / ratedItems.length
+                : null,
             totalPlaytime: items.reduce((acc, i) => {
                 // Exclude watched games from total playtime
                 if (i.status === "watched") return acc;
@@ -187,7 +188,7 @@ export default function StatsPage() {
                     <StatCard
                         icon={<Star className="w-6 h-6 text-accent" />}
                         label={t.stats.avgScore}
-                        value={stats.avgScore.toFixed(1)}
+                        value={stats.avgScore === null ? "—" : stats.avgScore.toFixed(1)}
                     />
                     <StatCard
                         icon={<Clock className="w-6 h-6 text-green-500" />}
