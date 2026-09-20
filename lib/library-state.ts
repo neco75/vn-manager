@@ -28,6 +28,18 @@ export function upsertLibraryItem(
     return [...items.filter((existing) => existing.vn.id !== item.vn.id), item];
 }
 
+export function mergeLibraryItemMetadata(
+    existingItem: LibraryItem,
+    vn: VN,
+    now: number = Date.now(),
+): LibraryItem {
+    return {
+        ...existingItem,
+        vn,
+        updatedAt: now,
+    };
+}
+
 export function createLibraryItemForAdd(
     existingItem: LibraryItem | undefined,
     values: NewLibraryItemValues,
