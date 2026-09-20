@@ -26,6 +26,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { cn } from "@/lib/utils";
+import { compareLibraryScores } from "@/lib/library-score";
 
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 
@@ -93,13 +94,9 @@ export default function Home() {
         return [...result].sort((a, b) => {
             switch (sort) {
                 case "score_desc":
-                    if (a.score === null) return b.score === null ? 0 : 1;
-                    if (b.score === null) return -1;
-                    return b.score - a.score;
+                    return compareLibraryScores(a, b, "desc");
                 case "score_asc":
-                    if (a.score === null) return b.score === null ? 0 : 1;
-                    if (b.score === null) return -1;
-                    return a.score - b.score;
+                    return compareLibraryScores(a, b, "asc");
                 case "added_desc":
                     return b.addedAt - a.addedAt;
                 case "added_asc":
