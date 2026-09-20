@@ -31,6 +31,13 @@ export interface RestorePreview {
     conflicts: number;
 }
 
+export interface RestoreLibraryPlan {
+    itemsToWrite: LibraryItem[];
+    additions: number;
+    overwritten: number;
+    skippedConflicts: number;
+}
+
 export class BackupValidationError extends Error {
     constructor(path: string, message: string) {
         super(`${path}: ${message}`);
@@ -329,12 +336,48 @@ export function createRestorePreview(backup: ParsedBackup, existingItems: Librar
     };
 }
 
+export function planLibraryRestore(
+    backupItems: LibraryItem[],
+    existingItems: LibraryItem[],
+    overwriteConflicts: boolean,
+): RestoreLibraryPlan {
+    const existingIds = new Set(existingItems.map((item) => item.vn.id));
+    const itemsToWrite: LibraryItem[] = [];
+    let additions = 0;
+    let overwritten = 0;
+    let skippedConflicts = 0;
+
+    for (const item of backupItems) {
+        const conflicts = existingIds.has(item.vn.id);
+        if (conflicts && !overwriteConflicts) {
+            skippedConflicts += 1;
+            continue;
+        }
+
+        itemsToWrite.push(item);
+        if (conflicts) {
+            overwritten += 1;
+        } else {
+            additions += 1;
+        }
+    }
+
+    return {
+        itemsToWrite,
+        additions,
+        overwritten,
+        skippedConflicts,
+    };
+}
+
 export function selectLibraryItemsForRestore(
     backup: ParsedBackup,
     existingItems: LibraryItem[],
     overwriteConflicts: boolean,
 ): LibraryItem[] {
-    if (overwriteConflicts) return [...backup.library];
-    const existingIds = new Set(existingItems.map((item) => item.vn.id));
-    return backup.library.filter((item) => !existingIds.has(item.vn.id));
+    return planLibraryRestore(
+        backup.library,
+        existingItems,
+        overwriteConflicts,
+    ).itemsToWrite;
 }
