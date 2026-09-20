@@ -32,10 +32,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     const [loadError, setLoadError] = useState(false);
 
     useEffect(() => {
-        loadLibrary();
+        void loadLibrary();
     }, []);
 
-    async function loadLibrary() {
+    async function loadLibrary(rethrow = false) {
         setIsLoading(true);
         setLoadError(false);
         try {
@@ -48,6 +48,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Failed to load library:", error);
             setLoadError(true);
+            if (rethrow) throw error;
         } finally {
             setIsLoading(false);
         }
@@ -136,7 +137,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
                 purchaseSources,
                 isLoading,
                 loadError,
-                reloadLibrary: loadLibrary,
+                reloadLibrary: () => loadLibrary(true),
                 addItem,
                 updateItem,
                 removeItem,
