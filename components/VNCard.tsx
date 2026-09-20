@@ -2,57 +2,47 @@ import { VN } from "@/types/vndb";
 import Image from "next/image";
 import { LibraryItem } from "@/types/library";
 import { cn } from "@/lib/utils";
-import { Star, Calendar } from "lucide-react";
-import { motion } from "framer-motion";
+import { Star, Calendar, Plus, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { shouldBlurImage } from "@/lib/image-safety";
-import { getVisibleSynopsisText } from "@/lib/spoiler-safety";
 
 interface VNCardProps {
     vn: VN;
     libraryItem?: LibraryItem;
-    onClick?: () => void;
     className?: string;
-    index?: number;
+    /** 検索結果として表示（発売年・VNDB評価・ブランドと追加操作を含める） */
+    variant?: "library" | "search";
+    /** 追加操作。渡すと検索カードに独立した「追加」ボタンを出す */
+    onAdd?: () => void;
+    /** 追加処理の進行中（渡された追加操作の状態） */
+    isAdding?: boolean;
 }
-
-const MotionCard = motion.create(Card);
 
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 
-export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCardProps) {
+export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false }: VNCardProps) {
     const { t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
     const shouldBlur = shouldBlurImage(vn.image?.sexual, nsfwBlur);
+    const isSearch = variant === "search";
+    const isAdded = Boolean(libraryItem);
 
-    const Content = (
-        <MotionCard
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.05 }}
-            className={cn(
-                "group h-full overflow-hidden border-white/10 hover:border-primary/50 transition-colors cursor-pointer p-0 gap-0",
-                className
-            )}
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-        >
-            <div className="aspect-[2/3] relative overflow-hidden">
+    // 表紙とタイトルは詳細へ移動する主リンク。追加などの操作はリンク外に置く（入れ子にしない）。
+    const Cover = (
+        <Link href={`/vn/${vn.id}`} className="block" aria-label={vn.title}>
+            <div className="aspect-[2/3] relative overflow-hidden bg-card">
                 {vn.image ? (
-                    <motion.div
-                        className="w-full h-full relative"
-                        whileHover={{ scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                    >
+                    <>
                         <Image
                             src={vn.image.url}
                             alt={vn.title}
                             fill
                             className={cn(
-                                "object-cover transition-all duration-300",
+                                "object-contain transition-all duration-300",
                                 shouldBlur && "blur-xl scale-110"
                             )}
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
@@ -62,60 +52,105 @@ export function VNCard({ vn, libraryItem, onClick, className, index = 0 }: VNCar
                                 <Badge variant="destructive" className="bg-red-600/80 text-white border-none shadow-lg">{t.settings.imageBlurred}</Badge>
                             </div>
                         )}
-                    </motion.div>
+                    </>
                 ) : (
-                    <div className="w-full h-full bg-secondary flex items-center justify-center text-muted-foreground">
+                    <div className="w-full h-full bg-secondary flex items-center justify-center text-muted-foreground text-sm px-2 text-center">
                         {t.common.noImage}
                     </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    <p className="text-sm text-gray-300 line-clamp-3">{getVisibleSynopsisText(vn.description)}</p>
-                </div>
-                {libraryItem && (
-                    <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-                        <Badge variant="secondary" className="bg-black/70 backdrop-blur-md text-white border-white/10 shadow-lg hover:bg-black/80">
-                            {t.status[libraryItem.status]}
-                        </Badge>
-                        {libraryItem.ownership !== "unknown" && (
-                            <Badge variant="outline" className="bg-black/70 backdrop-blur-md text-white border-white/20">
-                                {t.ownership[libraryItem.ownership]}
-                            </Badge>
-                        )}
-                    </div>
-                )}
             </div>
-
-            <CardContent className="p-4 space-y-2">
-                <h3 className="font-bold text-lg leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-                    {vn.title}
-                </h3>
-
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                    <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        <span>{vn.rating ? (vn.rating / 10).toFixed(1) : "N/A"}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{vn.released || "TBA"}</span>
-                    </div>
-                </div>
-
-                {libraryItem && libraryItem.score !== null ? (
-                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
-                        <span className="text-xs text-gray-400">{t.common.score}</span>
-                        <span className="text-sm font-bold text-yellow-500">{libraryItem.score}/100</span>
-                    </div>
-                ) : null}
-            </CardContent>
-        </MotionCard>
+        </Link>
     );
 
-    if (onClick) return <div onClick={onClick}>{Content}</div>;
+    const isRated = vn.rating !== null && vn.rating !== undefined && vn.rating > 0;
 
     return (
-        <Link href={`/vn/${vn.id}`}>
-            {Content}
-        </Link>
+        <Card
+            className={cn("h-full overflow-hidden border-border rounded-xl p-0 gap-0 flex flex-col", className)}
+        >
+            {Cover}
+
+            <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
+                <Link
+                    href={`/vn/${vn.id}`}
+                    className="font-bold text-base leading-snug line-clamp-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                >
+                    {vn.title}
+                </Link>
+
+                {/* 補助情報: 検索カードはブランド・発売年・VNDB評価、ライブラリカードは自分の記録 */}
+                {isSearch ? (
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                        {vn.developers && vn.developers.length > 0 && (
+                            <p className="truncate">{vn.developers[0].name}</p>
+                        )}
+                        <div className="flex items-center gap-3">
+                            <span className="inline-flex items-center gap-1">
+                                <Calendar className="w-3 h-3" aria-hidden="true" />
+                                {vn.released || "TBA"}
+                            </span>
+                            {isRated && (
+                                <span className="inline-flex items-center gap-1">
+                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" aria-hidden="true" />
+                                    VNDB {(vn.rating / 10).toFixed(1)}/10
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" aria-hidden="true" />
+                            <span>{isRated ? (vn.rating / 10).toFixed(1) : "N/A"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" aria-hidden="true" />
+                            <span>{vn.released || "TBA"}</span>
+                        </div>
+                    </div>
+                )}
+
+                <div className="mt-auto pt-2 space-y-2">
+                    {libraryItem ? (
+                        <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
+                            <Badge variant="secondary" className="text-xs">
+                                {isSearch ? t.search.alreadyAdded : t.status[libraryItem.status]}
+                            </Badge>
+                            {!isSearch && libraryItem.ownership !== "unknown" && (
+                                <Badge variant="outline" className="text-xs">
+                                    {t.ownership[libraryItem.ownership]}
+                                </Badge>
+                            )}
+                        </div>
+                    ) : null}
+
+                    {!isSearch && libraryItem && libraryItem.score !== null ? (
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground">{t.common.score}</span>
+                            <span className="text-sm font-bold text-yellow-500">{libraryItem.score}/100</span>
+                        </div>
+                    ) : null}
+
+                    {/* 追加操作: 未登録なら既定でプレイ予定として追加。登録済みは「登録済み」表示のみ */}
+                    {isSearch && !isAdded && onAdd ? (
+                        <button
+                            type="button"
+                            onClick={onAdd}
+                            disabled={isAdding}
+                            className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                        >
+                            {isAdding ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
+                            {t.common.addToLibrary}
+                        </button>
+                    ) : null}
+                    {isSearch && isAdded ? (
+                        <div className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-border px-3 text-sm text-muted-foreground">
+                            <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
+                            {t.search.alreadyAdded}
+                        </div>
+                    ) : null}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
