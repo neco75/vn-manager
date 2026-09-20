@@ -1,4 +1,5 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 import fixture from "./fixtures/vndb.json";
 import {
     failBackupRestoreWrites,
@@ -32,6 +33,14 @@ async function expectNoHorizontalOverflow(page: Page) {
         const width = document.documentElement.clientWidth;
         return Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth ?? 0) <= width + 1;
     })).toBe(true);
+}
+
+async function tabUntilFocused(page: Page, target: Locator, reverse = false) {
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+        if (await target.evaluate((element) => element === document.activeElement)) return;
+        await page.keyboard.press(reverse ? "Shift+Tab" : "Tab");
+    }
+    throw new Error(`Could not reach ${await target.getAttribute("aria-label")} with Tab`);
 }
 
 function legacyBackup() {
@@ -151,6 +160,18 @@ test.describe("final roadmap acceptance", () => {
         ]);
         const downloadPath = await download.path();
         expect(downloadPath).not.toBeNull();
+        const downloadedBackup = JSON.parse(await readFile(downloadPath as string, "utf8")) as {
+            schemaVersion?: number;
+            exportedAt?: string;
+            library?: unknown[];
+            purchaseSources?: unknown[];
+            settings?: unknown;
+        };
+        expect(downloadedBackup.schemaVersion).toBe(2);
+        expect(downloadedBackup.exportedAt).toEqual(expect.any(String));
+        expect(downloadedBackup.library).toHaveLength(1);
+        expect(downloadedBackup.purchaseSources).toEqual(expect.any(Array));
+        expect(downloadedBackup.settings).toEqual(expect.objectContaining({ nsfwBlur: true }));
 
         const emptyContext = await browser.newContext();
         try {
@@ -284,27 +305,43 @@ test.describe("final roadmap acceptance", () => {
         await expect(page.getByText("hidden ending", { exact: true })).toBeVisible();
     });
 
-    test("keeps the main screens within the viewport at every roadmap width", async ({ page }) => {
-        await mockVNDB(page);
-        await page.goto("/");
-        await seedLibraryItem(page, "v1");
-
+    test("keeps major actions reachable within the viewport at every roadmap width", async ({ browser }) => {
         for (const width of [320, 390, 768, 1280]) {
-            await page.setViewportSize({ width, height: 900 });
-            await page.goto("/");
-            await expect(page.getByRole("heading", { name: "ライブラリ", exact: true })).toBeVisible();
-            await expectNoHorizontalOverflow(page);
+            const context = await browser.newContext({ viewport: { width, height: 900 } });
+            try {
+                const page = await context.newPage();
+                await mockVNDB(page);
+                await page.goto("/");
+                await expect(page.getByRole("link", { name: "作品を追加", exact: true })).toBeVisible();
+                await expectNoHorizontalOverflow(page);
 
-            await page.goto("/search");
-            await expectNoHorizontalOverflow(page);
+                await page.getByRole("link", { name: "作品を追加", exact: true }).click();
+                await expect(page).toHaveURL(/\/search$/);
+                await expectNoHorizontalOverflow(page);
+                await search(page, "normal");
+                await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
+                await expectNoHorizontalOverflow(page);
 
-            await page.goto("/vn/v1");
-            await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
-            await expectNoHorizontalOverflow(page);
+                await page.locator('a[href="/vn/v1"]').first().click();
+                await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
+                await expectNoHorizontalOverflow(page);
+                await page.locator("#detail-score").fill("77");
+                await page.getByRole("textbox", { name: "メモ (非公開)" }).fill(`responsive memo ${width}`);
+                await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
+                await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+                await expectNoHorizontalOverflow(page);
 
-            await page.goto("/settings");
-            await expect(page.getByRole("heading", { name: "設定", exact: true })).toBeVisible();
-            await expectNoHorizontalOverflow(page);
+                await page.goto("/settings");
+                await expect(page.getByRole("heading", { name: "設定", exact: true })).toBeVisible();
+                await expectNoHorizontalOverflow(page);
+                const [download] = await Promise.all([
+                    page.waitForEvent("download"),
+                    page.getByRole("button", { name: "バックアップをダウンロード (JSON)", exact: true }).click(),
+                ]);
+                expect(await download.path()).not.toBeNull();
+            } finally {
+                await context.close();
+            }
         }
     });
 
@@ -314,39 +351,39 @@ test.describe("final roadmap acceptance", () => {
         await page.goto("/");
 
         const addLink = page.getByRole("link", { name: "作品を追加", exact: true });
-        await addLink.focus();
+        await tabUntilFocused(page, addLink);
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/search$/);
 
         const searchInput = page.getByLabel("タイトルで検索");
-        await searchInput.focus();
+        await tabUntilFocused(page, searchInput);
         await searchInput.pressSequentially("normal");
         await searchInput.press("Enter");
         await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
 
         const detailLink = page.locator('a[href="/vn/v1"]').first();
-        await detailLink.focus();
+        await tabUntilFocused(page, detailLink);
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/vn\/v1$/);
 
         const score = page.locator("#detail-score");
-        await score.focus();
+        await tabUntilFocused(page, score);
         await page.keyboard.type("91");
         const memo = page.getByRole("textbox", { name: "メモ (非公開)" });
-        await memo.focus();
+        await tabUntilFocused(page, memo);
         await page.keyboard.type("keyboard-only memo");
         const saveButton = page.getByRole("button", { name: "ライブラリに追加", exact: true });
-        await saveButton.focus();
+        await tabUntilFocused(page, saveButton, true);
         await page.keyboard.press("Enter");
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
         const menuButton = page.getByRole("button", { name: "メニュー", exact: true });
-        await menuButton.focus();
+        await tabUntilFocused(page, menuButton, true);
         await page.keyboard.press("Enter");
         const menuDialog = page.getByRole("dialog");
         await expect(menuDialog).toBeVisible();
         const settingsLink = menuDialog.getByRole("link", { name: "設定", exact: true });
-        await settingsLink.focus();
+        await tabUntilFocused(page, settingsLink);
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/settings$/);
     });
@@ -356,13 +393,26 @@ test.describe("final roadmap acceptance", () => {
         await page.goto("/");
 
         const menuButton = page.getByRole("button", { name: "メニュー", exact: true });
-        await menuButton.focus();
+        await tabUntilFocused(page, menuButton);
         await page.keyboard.press("Enter");
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();
 
-        await page.keyboard.press("Tab");
-        await expect.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')))).toBe(true);
+        await page.evaluate(() => document.activeElement?.setAttribute("data-final-qa-focus-start", "true"));
+        let focusCycled = false;
+        for (let attempt = 0; attempt < 40; attempt += 1) {
+            await page.keyboard.press("Tab");
+            const focusState = await page.evaluate(() => ({
+                insideDialog: Boolean(document.activeElement?.closest('[role="dialog"]')),
+                returnedToStart: document.activeElement?.getAttribute("data-final-qa-focus-start") === "true",
+            }));
+            expect(focusState.insideDialog).toBe(true);
+            if (focusState.returnedToStart) {
+                focusCycled = true;
+                break;
+            }
+        }
+        expect(focusCycled).toBe(true);
         await page.keyboard.press("Escape");
         await expect(dialog).not.toBeVisible();
         await expect(menuButton).toBeFocused();
