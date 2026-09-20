@@ -827,7 +827,7 @@ export default function VNPage() {
 
                         <div className="space-y-2">
                             <Label htmlFor="detail-notes">{t.vn.memoPrivate}</Label>
-                            <ErrorBoundary>
+                            <ErrorBoundary errorTitle={t.common.errorTitle}>
                                 <MarkdownEditor
                                     id="detail-notes"
                                     ariaLabel={t.vn.memoPrivate}
@@ -842,7 +842,7 @@ export default function VNPage() {
 
                         <div className="space-y-2">
                             <Label htmlFor="detail-review">{t.vn.review}</Label>
-                            <ErrorBoundary>
+                            <ErrorBoundary errorTitle={t.common.errorTitle}>
                                 <MarkdownEditor
                                     id="detail-review"
                                     ariaLabel={t.vn.review}

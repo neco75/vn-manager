@@ -48,7 +48,7 @@ export function ShelfView({ items, returnTo }: ShelfViewProps) {
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-500">
-                                            No Image
+                                            {t.common.noImage}
                                         </div>
                                     )}
 

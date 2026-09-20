@@ -24,9 +24,16 @@ interface PurchaseLocationSelectorProps {
     onChange: (value: string) => void;
     id?: string;
     disabled?: boolean;
+    managementOnly?: boolean;
 }
 
-export function PurchaseLocationSelector({ value, onChange, id, disabled = false }: PurchaseLocationSelectorProps) {
+export function PurchaseLocationSelector({
+    value,
+    onChange,
+    id,
+    disabled = false,
+    managementOnly = false,
+}: PurchaseLocationSelectorProps) {
     const { purchaseSources, addPurchaseSource, updatePurchaseSource, deletePurchaseSource } = useLibrary();
     const { t } = useLanguage();
     const generatedId = useId();
@@ -85,9 +92,49 @@ export function PurchaseLocationSelector({ value, onChange, id, disabled = false
         }
     };
 
+    const addSourceForm = (
+        <div className="flex gap-2">
+            <Input
+                id={newSourceId}
+                disabled={disabled}
+                value={newSource}
+                onChange={(e) => setNewSource(e.target.value)}
+                placeholder={t.common.newPurchaseLocation}
+                aria-label={t.common.newPurchaseLocation}
+                className="min-h-11 min-w-0 bg-secondary/50 border-white/10"
+                autoFocus
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleAddSource();
+                    if (e.key === "Escape") setIsAdding(false);
+                }}
+            />
+            <Button
+                type="button"
+                size="icon"
+                disabled={disabled}
+                onClick={() => void handleAddSource()}
+                className="h-11 w-11 shrink-0"
+                aria-label={t.common.confirm}
+            >
+                <Check className="w-4 h-4" />
+            </Button>
+            <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                disabled={disabled}
+                onClick={() => setIsAdding(false)}
+                className="h-11 w-11 shrink-0"
+                aria-label={t.common.cancel}
+            >
+                <X className="w-4 h-4" />
+            </Button>
+        </div>
+    );
+
     return (
         <>
-            <div className="space-y-2">
+            {!managementOnly && <div className="space-y-2">
                 {!isAdding ? (
                     <Select value={value || "none"} onValueChange={(v) => {
                         if (v === "add_new") {
@@ -128,46 +175,37 @@ export function PurchaseLocationSelector({ value, onChange, id, disabled = false
                             </SelectItem>
                         </SelectContent>
                     </Select>
-                ) : (
-                    <div className="flex gap-2">
-                        <Input
-                            id={newSourceId}
-                            disabled={disabled}
-                            value={newSource}
-                            onChange={(e) => setNewSource(e.target.value)}
-                            placeholder={t.common.newPurchaseLocation}
-                            aria-label={t.common.newPurchaseLocation}
-                            className="min-h-11 min-w-0 bg-secondary/50 border-white/10"
-                            autoFocus
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") void handleAddSource();
-                                if (e.key === "Escape") setIsAdding(false);
-                            }}
-                        />
-                        <Button
-                            type="button"
-                            size="icon"
-                            disabled={disabled}
-                            onClick={() => void handleAddSource()}
-                            className="h-11 w-11 shrink-0"
-                            aria-label={t.common.confirm}
-                        >
-                            <Check className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            disabled={disabled}
-                            onClick={() => setIsAdding(false)}
-                            className="h-11 w-11 shrink-0"
-                            aria-label={t.common.cancel}
-                        >
-                            <X className="w-4 h-4" />
-                        </Button>
-                    </div>
-                )}
-            </div>
+                ) : addSourceForm}
+            </div>}
+
+            {managementOnly && (
+                <div className="space-y-2">
+                    {isAdding ? addSourceForm : (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={disabled}
+                                onClick={() => setIsAdding(true)}
+                                className="min-h-11 justify-start gap-2"
+                            >
+                                <Plus className="w-4 h-4" />
+                                {t.common.addPurchaseLocation}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={disabled}
+                                onClick={() => setIsManageOpen(true)}
+                                className="min-h-11 justify-start gap-2"
+                            >
+                                <Settings className="w-4 h-4" />
+                                {t.common.managePurchaseLocations}
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
                 <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto bg-card border-white/10">

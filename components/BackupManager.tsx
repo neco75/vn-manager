@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { Download, Loader2, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,9 @@ interface ImportState {
     preview: RestorePreview;
 }
 
-export function BackupManager() {
+const LAST_EXPORT_AT_KEY = "vn-manager-last-export-at";
+
+export function BackupManager({ id }: { id?: string }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const overwriteId = useId();
     const { reloadLibrary } = useLibrary();
@@ -33,9 +35,25 @@ export function BackupManager() {
     const [overwriteConflicts, setOverwriteConflicts] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
     const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+    const [lastExportAt, setLastExportAt] = useState<string | null>(null);
+
+    useEffect(() => {
+        setLastExportAt(localStorage.getItem(LAST_EXPORT_AT_KEY));
+    }, []);
+
+    const formatExportDate = (value: string) => {
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return value;
+
+        return new Intl.DateTimeFormat(language === "ja" ? "ja-JP" : "en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(date);
+    };
 
     const exportData = async () => {
         try {
+            const exportedAt = new Date();
             const [library, sourceRows] = await Promise.all([
                 db.getAllLibraryItems(),
                 db.getAllPurchaseSources(),
@@ -48,6 +66,7 @@ export function BackupManager() {
                     backgroundImage,
                     nsfwBlur,
                 },
+                exportedAt,
             );
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
@@ -58,6 +77,9 @@ export function BackupManager() {
             anchor.click();
             anchor.remove();
             URL.revokeObjectURL(url);
+            const exportedAtValue = exportedAt.toISOString();
+            localStorage.setItem(LAST_EXPORT_AT_KEY, exportedAtValue);
+            setLastExportAt(exportedAtValue);
             setMessage({ kind: "success", text: t.stats.toasts.exportSuccess });
             toast.success(t.stats.toasts.exportSuccess);
         } catch (error) {
@@ -160,12 +182,13 @@ export function BackupManager() {
 
     return (
         <>
-            <Card className="border-white/10">
+            <Card id={id} className="border-white/10">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Save className="w-5 h-5 text-primary" />
-                        {t.stats.dataManagement}
+                        {t.settings.dataAndBackup}
                     </CardTitle>
+                    <p className="text-sm text-gray-400">{t.settings.localStorageDescription}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
@@ -199,6 +222,15 @@ export function BackupManager() {
                     <p className="text-xs text-gray-500 text-center">
                         {t.stats.importWarning}
                     </p>
+
+                    <div className="space-y-1 text-center text-xs text-gray-500">
+                        <p>{t.settings.dataAndBackupDescription}</p>
+                        <p role="status">
+                            {lastExportAt
+                                ? t.settings.lastExportAt.replace("{date}", formatExportDate(lastExportAt))
+                                : t.settings.noExportYet}
+                        </p>
+                    </div>
 
                     {message && (
                         <p

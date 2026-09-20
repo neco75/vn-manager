@@ -304,9 +304,14 @@ function HomeContent() {
                     <h2 className="text-2xl font-bold">{t.home.emptyTitle}</h2>
                     <p className="text-gray-400 max-w-sm">{t.home.emptyDesc}</p>
                 </div>
-                <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/25">
-                    <Link href="/search">{t.home.addButton}</Link>
-                </Button>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/25">
+                        <Link href="/search">{t.home.addButton}</Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline" className="rounded-full">
+                        <Link href="/settings#backup">{t.home.restoreFromBackup}</Link>
+                    </Button>
+                </div>
             </div>
         );
     }
