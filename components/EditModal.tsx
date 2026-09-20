@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
+import { shouldBlurImage } from "@/lib/image-safety";
 
 import { PurchaseLocationSelector } from "@/components/PurchaseLocationSelector";
 
@@ -98,7 +99,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                             alt=""
                             className={cn(
                                 "w-full h-full object-cover opacity-50",
-                                ((vn.image?.sexual === 2) || (vn.releases?.some(r => (r.minage ?? 0) >= 18) ?? false)) && nsfwBlur && "blur-xl grayscale scale-110"
+                                shouldBlurImage(vn.image?.sexual, nsfwBlur) && "blur-xl grayscale scale-110"
                             )}
                         />
                     ) : (
