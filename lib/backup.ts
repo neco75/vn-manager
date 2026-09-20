@@ -1,4 +1,4 @@
-import { getLibraryValidationError, type LibraryItem } from "../types/library";
+import type { LibraryItem } from "../types/library";
 
 export const BACKUP_SCHEMA_VERSION = 1;
 
@@ -218,12 +218,13 @@ function validateLibrary(value: unknown, path = "library"): LibraryItem[] {
         if (ids.has(vnId)) throw new BackupValidationError(`${itemPath}.vn.id`, `duplicate id ${vnId}`);
         ids.add(vnId);
 
-        const invalidField = getLibraryValidationError({
-            status: item.status,
-            score: item.score,
-            playTime: item.playTime,
-        });
-        if (invalidField) throw new BackupValidationError(`${itemPath}.${invalidField}`, "is invalid");
+        if (typeof item.status !== "string" || !LIBRARY_STATUSES.has(item.status)) {
+            throw new BackupValidationError(`${itemPath}.status`, "is invalid");
+        }
+        assertFiniteNumber(item.score, `${itemPath}.score`, { min: 0, max: 100, integer: true });
+        if (item.playTime !== undefined) {
+            assertFiniteNumber(item.playTime, `${itemPath}.playTime`, { min: 0 });
+        }
 
         assertString(item.notes, `${itemPath}.notes`);
         assertOptionalString(item.review, `${itemPath}.review`);
