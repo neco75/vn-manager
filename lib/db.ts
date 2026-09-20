@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
-import { assertValidLibraryItem, LibraryItem, migrateLibraryItem } from "@/types/library";
+import { assertValidLibraryItem, LibraryItem } from "@/types/library";
+import { migrateLibraryRecord } from "@/lib/library-record.mjs";
 import { planLibraryRestore } from "@/lib/backup";
 
 interface VNDBManagerDB extends DBSchema {
@@ -38,7 +39,7 @@ export function getDB() {
                     void (async () => {
                         let cursor = await libraryStore.openCursor();
                         while (cursor) {
-                            await cursor.update(migrateLibraryItem(cursor.value));
+                            await cursor.update(migrateLibraryRecord(cursor.value) as LibraryItem);
                             cursor = await cursor.continue();
                         }
                     })();
