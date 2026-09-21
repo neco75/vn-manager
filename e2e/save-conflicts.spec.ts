@@ -28,8 +28,18 @@ test.describe("concurrent library saves", () => {
         await mockVNDB(editorPage);
         await editorPage.goto("/vn/v1");
         const notes = editorPage.getByRole("textbox", { name: "メモ (非公開)" });
+        const score = editorPage.getByRole("spinbutton", { name: "スコア" });
+        const playTime = editorPage.getByRole("spinbutton", { name: "プレイ時間 (時間)" });
+        const purchaseLocation = editorPage.getByRole("combobox", { name: "購入先を選択" });
         await expect(notes).toHaveValue("before refresh");
+        await expect(score).toHaveValue("80");
+        await expect(playTime).toHaveValue("2.5");
+        await expect(purchaseLocation).toContainText("Steam");
         await notes.fill("saved while refresh is waiting");
+        await score.fill("95");
+        await playTime.fill("3.5");
+        await purchaseLocation.click();
+        await editorPage.getByRole("option", { name: "DMM", exact: true }).click();
         await editorPage.getByRole("button", { name: "変更を保存", exact: true }).click();
         await expect(editorPage.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
@@ -45,9 +55,9 @@ test.describe("concurrent library saves", () => {
             };
         }).toEqual({
             notes: "saved while refresh is waiting",
-            score: 80,
-            playTime: 150,
-            purchaseLocation: "Steam",
+            score: 95,
+            playTime: 210,
+            purchaseLocation: "DMM",
         });
         await editorPage.close();
     });
