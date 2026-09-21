@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { getVNById } from "@/lib/vndb";
-import { mergeLibraryItemMetadata, type LibraryItemEdits } from "@/lib/library-state";
+import type { LibraryItemEdits } from "@/lib/library-state";
+import { LibraryConflictError } from "@/lib/db";
 import { VN } from "@/types/vndb";
 import { useLibrary } from "@/context/LibraryContext";
 import { motion } from "framer-motion";
@@ -114,6 +115,7 @@ export default function VNPage() {
     const [draftStatus, setDraftStatus] = useState<DraftStatus>("unsaved");
     const [pendingDraft, setPendingDraft] = useState<DetailDraft | null>(null);
     const [draftStorageError, setDraftStorageError] = useState(false);
+    const [saveConflict, setSaveConflict] = useState(false);
     const [isDraftReady, setIsDraftReady] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -166,6 +168,7 @@ export default function VNPage() {
         setSelectedImageIndex(null);
         setPendingDraft(null);
         setDraftStorageError(false);
+        setSaveConflict(false);
         setDraftStatus("unsaved");
         setIsDraftReady(false);
     }, [routeId]);
@@ -428,8 +431,7 @@ export default function VNPage() {
         setIsSaving(true);
         try {
             if (libraryItem) {
-                const itemWithLatestMetadata = mergeLibraryItemMetadata(libraryItem, vn);
-                await updateItem({ ...itemWithLatestMetadata, ...edits });
+                await updateItem({ ...libraryItem, vn, ...edits });
                 toast.success(t.modal.saveSuccess);
             } else {
                 await addItem(vn, edits);
@@ -440,6 +442,7 @@ export default function VNPage() {
                 removeDetailDraft(vn.id);
                 setPendingDraft(null);
                 setDraftStorageError(false);
+                setSaveConflict(false);
                 setDraftStatus("saved");
             } catch (error) {
                 console.error("Failed to clear VN draft:", error);
@@ -450,7 +453,17 @@ export default function VNPage() {
             setIsDirty(false);
         } catch (error) {
             console.error(error);
-            toast.error(t.modal.saveError);
+            if (error instanceof LibraryConflictError) {
+                setSaveConflict(true);
+                try {
+                    await reloadLibrary();
+                } catch (reloadError) {
+                    console.error("Failed to reload after a save conflict:", reloadError);
+                }
+                toast.error(t.modal.saveConflict);
+            } else {
+                toast.error(t.modal.saveError);
+            }
         } finally {
             setIsSaving(false);
         }
@@ -697,6 +710,11 @@ export default function VNPage() {
                     {draftStorageError && (
                         <p role="alert" className="mt-1 text-sm text-red-300">
                             {t.vn.draftStorageError}
+                        </p>
+                    )}
+                    {saveConflict && (
+                        <p role="alert" className="mt-1 text-sm text-amber-200">
+                            {t.modal.saveConflict}
                         </p>
                     )}
                 </div>
