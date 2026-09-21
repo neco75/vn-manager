@@ -55,18 +55,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
 
     async function addItem(vn: VN, edits: LibraryItemEdits) {
-        const existingItem = await db.getLibraryItem(vn.id);
-        const newItem = createLibraryItemForAdd(existingItem, {
+        const newItem = createLibraryItemForAdd(undefined, {
             vn,
             ...edits,
         });
-        await db.addToLibrary(newItem);
-        setItems((prev) => upsertLibraryItem(prev, newItem));
+        const savedItem = await db.addLibraryItemIfAbsent(newItem);
+        setItems((prev) => upsertLibraryItem(prev, savedItem));
     }
 
     async function updateItem(item: LibraryItem) {
-        const updatedItem = { ...item, updatedAt: Date.now() };
-        await db.addToLibrary(updatedItem);
+        const updatedItem = await db.updateLibraryItem(item);
         setItems((prev) => upsertLibraryItem(prev, updatedItem));
     }
 
@@ -81,14 +79,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
 
     async function updatePurchaseSource(oldName: string, newName: string) {
-        await db.updatePurchaseSource(oldName, newName);
+        const updatedItems = await db.updatePurchaseSource(oldName, newName);
         setPurchaseSources(prev => prev.map(s => s === oldName ? newName : s));
-        setItems(prev => prev.map(item => {
-            if (item.purchaseLocation === oldName) {
-                return { ...item, purchaseLocation: newName, updatedAt: Date.now() };
-            }
-            return item;
-        }));
+        const updatedById = new Map(updatedItems.map((item) => [item.vn.id, item]));
+        setItems(prev => prev.map(item => updatedById.get(item.vn.id) ?? item));
     }
 
     async function deletePurchaseSource(name: string) {
@@ -104,17 +98,27 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
         try {
             const updatedVNs = await getVNsByIds(ids, onProgress);
-            const updatedItems = items.map(item => {
-                const updatedVN = updatedVNs.find(v => v.id === item.vn.id);
-                if (updatedVN) {
-                    return { ...item, vn: updatedVN, updatedAt: Date.now() };
-                }
-                return item;
-            });
+            const results = await Promise.all(
+                updatedVNs.map(async (updatedVN) => ({
+                    id: updatedVN.id,
+                    item: await db.updateLibraryItemMetadata(updatedVN.id, updatedVN),
+                })),
+            );
+            const updatedItems = results.flatMap(({ item }) => item ? [item] : []);
+            const missingIds = new Set(
+                results.filter(({ item }) => !item).map(({ id }) => id),
+            );
+            const updatedById = new Map(updatedItems.map((item) => [item.vn.id, item]));
 
-            await Promise.all(updatedItems.map(item => db.addToLibrary(item)));
-            setItems(updatedItems);
-            return updatedVNs.length;
+            setItems((prev) => prev
+                .filter((item) => !missingIds.has(item.vn.id))
+                .map((item) => {
+                    const refreshedItem = updatedById.get(item.vn.id);
+                    return refreshedItem && refreshedItem.updatedAt >= item.updatedAt
+                        ? refreshedItem
+                        : item;
+                }));
+            return updatedItems.length;
         } catch (error) {
             console.error("Failed to refresh NSFW flags:", error);
             throw error;

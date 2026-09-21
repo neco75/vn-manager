@@ -111,14 +111,44 @@ export async function mockVNDB(
     });
 }
 
+export async function holdVNDBIdRequest(page: Page, id: string) {
+    let releaseRequest!: () => void;
+    let markRequestStarted!: () => void;
+    const requestStarted = new Promise<void>((resolve) => {
+        markRequestStarted = resolve;
+    });
+    const requestRelease = new Promise<void>((resolve) => {
+        releaseRequest = resolve;
+    });
+
+    await page.route(VNDB_API, async (route) => {
+        const body = route.request().postDataJSON() as { filters?: unknown[] };
+        const filters = body.filters;
+        if (Array.isArray(filters) && filters[0] === "id" && filters[2] === id) {
+            markRequestStarted();
+            await requestRelease;
+        }
+        await route.fallback();
+    });
+
+    return { requestStarted, releaseRequest };
+}
+
 export async function failLibraryWrites(page: Page) {
     await page.addInitScript(() => {
         const originalPut = IDBObjectStore.prototype.put;
+        const originalAdd = IDBObjectStore.prototype.add;
         IDBObjectStore.prototype.put = function (...args: unknown[]) {
             if (this.name === "library") {
                 throw new DOMException("fixture quota exceeded", "QuotaExceededError");
             }
             return Reflect.apply(originalPut, this, args);
+        };
+        IDBObjectStore.prototype.add = function (...args: unknown[]) {
+            if (this.name === "library") {
+                throw new DOMException("fixture quota exceeded", "QuotaExceededError");
+            }
+            return Reflect.apply(originalAdd, this, args);
         };
     });
 }

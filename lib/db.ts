@@ -2,6 +2,7 @@ import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { assertValidLibraryItem, LibraryItem } from "@/types/library";
 import { migrateLibraryRecord } from "@/lib/library-record.mjs";
 import { planLibraryRestore } from "@/lib/backup";
+import type { VN } from "@/types/vndb";
 
 interface VNDBManagerDB extends DBSchema {
     library: {
@@ -19,6 +20,23 @@ const DB_NAME = "vn-manager-db";
 const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<VNDBManagerDB>>;
+
+export class LibraryConflictError extends Error {
+    constructor(public readonly vnId: string) {
+        super(`Library item changed before it could be saved: ${vnId}`);
+        this.name = "LibraryConflictError";
+    }
+}
+
+function errorName(error: unknown): string | null {
+    return typeof error === "object" && error !== null && "name" in error
+        ? String(error.name)
+        : null;
+}
+
+function nextUpdatedAt(previousUpdatedAt: number): number {
+    return Math.max(Date.now(), previousUpdatedAt + 1);
+}
 
 export function getDB() {
     if (!dbPromise) {
@@ -50,10 +68,75 @@ export function getDB() {
     return dbPromise;
 }
 
-export async function addToLibrary(item: LibraryItem) {
+export async function addLibraryItemIfAbsent(item: LibraryItem) {
     assertValidLibraryItem(item);
     const db = await getDB();
-    return db.put("library", item);
+    const tx = db.transaction("library", "readwrite");
+
+    try {
+        await tx.objectStore("library").add(item);
+        await tx.done;
+        return item;
+    } catch (error) {
+        await tx.done.catch(() => undefined);
+        if (errorName(error) === "ConstraintError") {
+            throw new LibraryConflictError(item.vn.id);
+        }
+        throw error;
+    }
+}
+
+export async function updateLibraryItem(item: LibraryItem) {
+    assertValidLibraryItem(item);
+    const db = await getDB();
+    const tx = db.transaction("library", "readwrite");
+
+    try {
+        const store = tx.objectStore("library");
+        const currentItem = await store.get(item.vn.id);
+        if (!currentItem || currentItem.updatedAt !== item.updatedAt) {
+            await tx.done;
+            throw new LibraryConflictError(item.vn.id);
+        }
+
+        const updatedItem = {
+            ...item,
+            updatedAt: nextUpdatedAt(currentItem.updatedAt),
+        };
+        await store.put(updatedItem);
+        await tx.done;
+        return updatedItem;
+    } catch (error) {
+        await tx.done.catch(() => undefined);
+        throw error;
+    }
+}
+
+export async function updateLibraryItemMetadata(id: string, vn: VN) {
+    const db = await getDB();
+    const tx = db.transaction("library", "readwrite");
+
+    try {
+        const store = tx.objectStore("library");
+        const currentItem = await store.get(id);
+        if (!currentItem) {
+            await tx.done;
+            return null;
+        }
+
+        const updatedItem = {
+            ...currentItem,
+            vn,
+            updatedAt: nextUpdatedAt(currentItem.updatedAt),
+        };
+        assertValidLibraryItem(updatedItem);
+        await store.put(updatedItem);
+        await tx.done;
+        return updatedItem;
+    } catch (error) {
+        await tx.done.catch(() => undefined);
+        throw error;
+    }
 }
 
 export async function getLibraryItem(id: string) {
@@ -132,6 +215,7 @@ export async function addPurchaseSource(name: string) {
 export async function updatePurchaseSource(oldName: string, newName: string) {
     const db = await getDB();
     const tx = db.transaction(["purchase_sources", "library"], "readwrite");
+    const updatedItems: LibraryItem[] = [];
 
     // 1. Update the source name in purchase_sources
     await tx.objectStore("purchase_sources").delete(oldName);
@@ -144,13 +228,19 @@ export async function updatePurchaseSource(oldName: string, newName: string) {
     while (cursor) {
         const item = cursor.value;
         if (item.purchaseLocation === oldName) {
-            const updatedItem = { ...item, purchaseLocation: newName, updatedAt: Date.now() };
+            const updatedItem = {
+                ...item,
+                purchaseLocation: newName,
+                updatedAt: nextUpdatedAt(item.updatedAt),
+            };
             await cursor.update(updatedItem);
+            updatedItems.push(updatedItem);
         }
         cursor = await cursor.continue();
     }
 
     await tx.done;
+    return updatedItems;
 }
 
 export async function deletePurchaseSource(name: string) {
