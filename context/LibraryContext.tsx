@@ -79,14 +79,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
 
     async function updatePurchaseSource(oldName: string, newName: string) {
-        await db.updatePurchaseSource(oldName, newName);
+        const updatedItems = await db.updatePurchaseSource(oldName, newName);
         setPurchaseSources(prev => prev.map(s => s === oldName ? newName : s));
-        setItems(prev => prev.map(item => {
-            if (item.purchaseLocation === oldName) {
-                return { ...item, purchaseLocation: newName, updatedAt: Date.now() };
-            }
-            return item;
-        }));
+        const updatedById = new Map(updatedItems.map((item) => [item.vn.id, item]));
+        setItems(prev => prev.map(item => updatedById.get(item.vn.id) ?? item));
     }
 
     async function deletePurchaseSource(name: string) {

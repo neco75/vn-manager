@@ -215,6 +215,7 @@ export async function addPurchaseSource(name: string) {
 export async function updatePurchaseSource(oldName: string, newName: string) {
     const db = await getDB();
     const tx = db.transaction(["purchase_sources", "library"], "readwrite");
+    const updatedItems: LibraryItem[] = [];
 
     // 1. Update the source name in purchase_sources
     await tx.objectStore("purchase_sources").delete(oldName);
@@ -227,13 +228,19 @@ export async function updatePurchaseSource(oldName: string, newName: string) {
     while (cursor) {
         const item = cursor.value;
         if (item.purchaseLocation === oldName) {
-            const updatedItem = { ...item, purchaseLocation: newName, updatedAt: Date.now() };
+            const updatedItem = {
+                ...item,
+                purchaseLocation: newName,
+                updatedAt: nextUpdatedAt(item.updatedAt),
+            };
             await cursor.update(updatedItem);
+            updatedItems.push(updatedItem);
         }
         cursor = await cursor.continue();
     }
 
     await tx.done;
+    return updatedItems;
 }
 
 export async function deletePurchaseSource(name: string) {

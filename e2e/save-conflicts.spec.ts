@@ -12,7 +12,12 @@ test.describe("concurrent library saves", () => {
     test("keeps the newer personal record when metadata refresh is delayed", async ({ page, context }) => {
         await mockVNDB(page);
         await page.goto("/stats");
-        await seedLibraryItem(page, "v1", { notes: "before refresh" });
+        await seedLibraryItem(page, "v1", {
+            notes: "before refresh",
+            score: 80,
+            playTime: 150,
+            purchaseLocation: "Steam",
+        });
         await page.reload();
 
         const heldRequest = await holdVNDBIdRequest(page, "v1");
@@ -30,9 +35,53 @@ test.describe("concurrent library saves", () => {
 
         heldRequest.releaseRequest();
         await expect(page.getByText("1件のNSFW情報を更新しました", { exact: true })).toBeVisible();
-        await expect.poll(async () => (await readLibraryItem(page, "v1"))?.notes)
-            .toBe("saved while refresh is waiting");
+        await expect.poll(async () => {
+            const item = await readLibraryItem(page, "v1");
+            return {
+                notes: item?.notes,
+                score: item?.score,
+                playTime: item?.playTime,
+                purchaseLocation: item?.purchaseLocation,
+            };
+        }).toEqual({
+            notes: "saved while refresh is waiting",
+            score: 80,
+            playTime: 150,
+            purchaseLocation: "Steam",
+        });
         await editorPage.close();
+    });
+
+    test("keeps the save version in sync after renaming a purchase location", async ({ page }) => {
+        await page.addInitScript(() => {
+            const originalNow = Date.now;
+            let nextNow = originalNow();
+            Date.now = () => ++nextNow;
+        });
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", {
+            notes: "before rename",
+            purchaseLocation: "Steam",
+        });
+        await page.reload();
+
+        await page.goto("/settings");
+        await page.getByRole("button", { name: "購入先を管理", exact: true }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("button", { name: "編集: Steam", exact: true }).click();
+        await dialog.getByRole("textbox", { name: "編集: Steam", exact: true }).fill("Renamed store");
+        await dialog.getByRole("button", { name: "確定", exact: true }).click();
+        await expect(dialog).toContainText("Renamed store");
+
+        await page.goto("/vn/v1");
+        await page.getByRole("textbox", { name: "メモ (非公開)" }).fill("after rename");
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+        await expect.poll(async () => readLibraryItem(page, "v1")).toMatchObject({
+            notes: "after rename",
+            purchaseLocation: "Renamed store",
+        });
     });
 
     test("does not resurrect a record deleted while metadata refresh is delayed", async ({ page, context }) => {
