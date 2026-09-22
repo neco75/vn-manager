@@ -67,20 +67,19 @@ test.describe("stats and ranking", () => {
         await expect(page.getByRole("link", { name: "作品を追加", exact: true })).toHaveAttribute("href", "/search");
     });
 
-    test("shows competition ranks and includes an explicitly rated zero", async ({ page }) => {
+    test("shows competition ranks for three-way ties and includes an explicitly rated zero", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/ranking");
         await seedLibraryItem(page, "v1", { status: "completed", score: 100, addedAt: 20 });
         await seedLibraryItem(page, "v2", { status: "completed", score: 100, addedAt: 30 });
-        await seedLibraryItem(page, "v3", { status: "completed", score: 0, addedAt: 40 });
-        await seedLibraryItem(page, "v4", { status: "completed", score: null, addedAt: 50 });
+        await seedLibraryItem(page, "v3", { status: "completed", score: 100, addedAt: 40 });
+        await seedLibraryItem(page, "v4", { status: "completed", score: 0, addedAt: 50 });
         await page.reload();
 
         await expect(page.getByRole("heading", { name: "自分のランキング", exact: true })).toBeVisible();
-        await expect(page.getByText("#1", { exact: true })).toHaveCount(2);
-        await expect(page.getByText("#3", { exact: true })).toHaveCount(1);
+        await expect(page.getByText("#1", { exact: true })).toHaveCount(3);
+        await expect(page.getByText("#4", { exact: true })).toHaveCount(1);
         await expect(page.getByText("0", { exact: true })).toBeVisible();
-        await expect(page.getByText("未評価", { exact: true })).not.toBeVisible();
-        await expect(page.getByText("クリア済み", { exact: true })).toHaveCount(3);
+        await expect(page.getByText("クリア済み", { exact: true })).toHaveCount(4);
     });
 });
