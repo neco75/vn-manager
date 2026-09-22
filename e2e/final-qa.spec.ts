@@ -141,6 +141,45 @@ test.describe("final roadmap acceptance", () => {
         await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("legacy review");
     });
 
+    test("rejects malformed VN title metadata before changing any restored data", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { notes: "keep existing record" });
+        await seedPurchaseSources(page, ["Steam"]);
+        await page.reload();
+        await page.goto("/settings");
+
+        const base = versionedBackup();
+        const invalidTail = {
+            ...base.library[0],
+            vn: {
+                ...structuredClone(fixture.vns.v3),
+                titles: { ja: "bad shape" },
+            },
+        };
+        await setJsonFile(page, {
+            ...base,
+            library: [base.library[0], invalidTail],
+            purchaseSources: ["Injected source"],
+            settings: {
+                ...base.settings,
+                language: "en",
+                nsfwBlur: false,
+            },
+        }, "invalid-titles.json");
+
+        await expect(page.getByRole("alert").filter({ hasText: "library[1].vn.titles" })).toBeVisible();
+        await expect(page.getByRole("dialog")).not.toBeVisible();
+        await expect.poll(() => readLibraryIds(page)).toEqual(["v1"]);
+        await expect.poll(() => readPurchaseSourceNames(page)).toEqual(["Steam"]);
+        await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+        await expect(page.locator("#settings-nsfw-blur")).toHaveAttribute("aria-checked", "true");
+        expect((await readLibraryItem(page, "v1"))?.notes).toBe("keep existing record");
+
+        await page.goto("/");
+        await expect(page.getByRole("link", { name: "Fixture VN One", exact: true }).first()).toBeVisible();
+    });
+
     test("exports a new backup and restores it into an empty browser profile", async ({ page, browser }) => {
         await mockVNDB(page);
         await page.goto("/");
