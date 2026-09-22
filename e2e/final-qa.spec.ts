@@ -146,6 +146,7 @@ test.describe("final roadmap acceptance", () => {
         await page.goto("/");
         await seedLibraryItem(page, "v1", { notes: "keep existing record" });
         await seedPurchaseSources(page, ["Steam"]);
+        const purchaseSourcesBefore = await readPurchaseSourceNames(page);
         await page.reload();
         await page.goto("/settings");
 
@@ -171,7 +172,7 @@ test.describe("final roadmap acceptance", () => {
         await expect(page.getByRole("alert").filter({ hasText: "library[1].vn.titles" })).toBeVisible();
         await expect(page.getByRole("dialog")).not.toBeVisible();
         await expect.poll(() => readLibraryIds(page)).toEqual(["v1"]);
-        await expect.poll(() => readPurchaseSourceNames(page)).toEqual(["Steam"]);
+        await expect.poll(() => readPurchaseSourceNames(page)).toEqual(purchaseSourcesBefore);
         await expect(page.locator("html")).toHaveAttribute("lang", "ja");
         await expect(page.locator("#settings-nsfw-blur")).toHaveAttribute("aria-checked", "true");
         expect((await readLibraryItem(page, "v1"))?.notes).toBe("keep existing record");
