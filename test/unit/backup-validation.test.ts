@@ -40,12 +40,14 @@ function makeBackup(vnOverrides: Record<string, unknown> = {}) {
 }
 
 function expectPath(overrides: Record<string, unknown>, path: RegExp) {
-    expect(() => parseBackup(makeBackup(overrides))).toThrowError(
-        expect.objectContaining({
-            name: "BackupValidationError",
-            message: expect.stringMatching(path),
-        }),
-    );
+    try {
+        parseBackup(makeBackup(overrides));
+    } catch (error) {
+        expect(error).toBeInstanceOf(BackupValidationError);
+        expect((error as Error).message).toMatch(path);
+        return;
+    }
+    throw new Error("Expected backup validation to fail");
 }
 
 describe("backup VN title metadata validation", () => {
@@ -64,7 +66,9 @@ describe("backup VN title metadata validation", () => {
         ["string titles", { titles: "bad" }, /library\[0\]\.vn\.titles/],
         ["null title entry", { titles: [null] }, /library\[0\]\.vn\.titles\[0\]/],
         ["invalid title lang", { titles: [{ lang: 1, title: "Example" }] }, /library\[0\]\.vn\.titles\[0\]\.lang/],
+        ["empty title lang", { titles: [{ lang: "", title: "Example" }] }, /library\[0\]\.vn\.titles\[0\]\.lang/],
         ["invalid title text", { titles: [{ lang: "en", title: 1 }] }, /library\[0\]\.vn\.titles\[0\]\.title/],
+        ["empty title text", { titles: [{ lang: "en", title: "" }] }, /library\[0\]\.vn\.titles\[0\]\.title/],
         ["invalid title latin", { titles: [{ lang: "en", title: "Example", latin: 1 }] }, /library\[0\]\.vn\.titles\[0\]\.latin/],
         ["non-array aliases", { aliases: "Alias" }, /library\[0\]\.vn\.aliases/],
         ["non-string alias", { aliases: ["ok", 1] }, /library\[0\]\.vn\.aliases\[1\]/],
