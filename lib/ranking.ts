@@ -24,13 +24,15 @@ export function rankLibraryItems(items: readonly LibraryItem[]): RankedLibraryIt
             return scoreDifference || compareTies(left.item, right.item) || left.index - right.index;
         });
 
-    return sorted.map(({ item }, index) => ({
-        item,
-        rank: index === 0 || item.score !== sorted[index - 1].item.score
-            ? index + 1
-            : 0,
-    })).map((entry, index, ranked) => ({
-        ...entry,
-        rank: entry.rank || ranked[index - 1].rank,
-    }));
+    const ranked: RankedLibraryItem[] = [];
+    let currentRank = 0;
+
+    sorted.forEach(({ item }, index) => {
+        if (index === 0 || item.score !== sorted[index - 1].item.score) {
+            currentRank = index + 1;
+        }
+        ranked.push({ item, rank: currentRank });
+    });
+
+    return ranked;
 }
