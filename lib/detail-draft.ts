@@ -40,33 +40,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isDetailDraftValues(value: unknown): value is DetailDraftValues {
     if (!isRecord(value)) return false;
 
-    const hasValidScore =
+    const hasStructurallyValidScore =
         value.score === null ||
-        (
-            typeof value.score === "number" &&
-            Number.isFinite(value.score) &&
-            Number.isInteger(value.score) &&
-            value.score >= 0 &&
-            value.score <= 100
-        );
+        (typeof value.score === "number" && Number.isFinite(value.score));
 
     return (
         typeof value.status === "string" &&
         GAME_STATUSES.includes(value.status as GameStatus) &&
         typeof value.ownership === "string" &&
         OWNERSHIP_STATUSES.includes(value.ownership as OwnershipStatus) &&
-        hasValidScore &&
+        hasStructurallyValidScore &&
         typeof value.notes === "string" &&
         typeof value.review === "string" &&
         typeof value.playTime === "number" &&
         Number.isFinite(value.playTime) &&
-        value.playTime >= 0 &&
         typeof value.purchaseLocation === "string" &&
         typeof value.startedOn === "string" &&
         typeof value.completedOn === "string" &&
         typeof value.lastPlayedOn === "string" &&
-        typeof value.resumeNote === "string" &&
-        value.resumeNote.length <= 200
+        typeof value.resumeNote === "string"
     );
 }
 
@@ -84,18 +76,31 @@ function isDetailDraft(value: unknown, vnId: string): value is DetailDraft {
     );
 }
 
+export class DetailDraftReadError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "DetailDraftReadError";
+    }
+}
+
 export function readDetailDraft(vnId: string): DetailDraft | null {
     if (typeof window === "undefined") return null;
 
     const raw = window.localStorage.getItem(getDraftKey(vnId));
     if (!raw) return null;
 
+    let parsed: unknown;
     try {
-        const parsed: unknown = JSON.parse(raw);
-        return isDetailDraft(parsed, vnId) ? parsed : null;
+        parsed = JSON.parse(raw);
     } catch {
-        return null;
+        throw new DetailDraftReadError("Stored draft is not valid JSON");
     }
+
+    if (!isDetailDraft(parsed, vnId)) {
+        throw new DetailDraftReadError("Stored draft has an unsupported or invalid structure");
+    }
+
+    return parsed;
 }
 
 export function writeDetailDraft(draft: DetailDraft): void {
