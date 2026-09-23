@@ -80,6 +80,29 @@ function versionedBackup() {
     };
 }
 
+function invalidTrailingTitleBackup() {
+    const backup = versionedBackup();
+    return {
+        ...backup,
+        library: [
+            ...backup.library,
+            {
+                ...backup.library[0],
+                vn: {
+                    ...structuredClone(fixture.vns.v3),
+                    titles: { ja: "invalid" },
+                },
+            },
+        ],
+        purchaseSources: ["Imported Store"],
+        settings: {
+            language: "ja",
+            backgroundImage: null,
+            nsfwBlur: true,
+        },
+    };
+}
+
 async function expectServerMetadataFixture(request: APIRequestContext, id: string) {
     const response = await request.get(FIXTURE_STATUS_URL);
     expect(response.ok()).toBe(true);
@@ -202,6 +225,34 @@ test.describe("final roadmap acceptance", () => {
         expect(await readLibraryIds(page)).toEqual(["v1"]);
         const existing = await readLibraryItem(page, "v1");
         expect(existing).toMatchObject({ score: 44, notes: "keep existing" });
+    });
+
+    test("rejects invalid trailing VN title data before changing library, purchases, or settings", async ({ page }) => {
+        await mockVNDB(page);
+        await page.addInitScript(() => {
+            localStorage.setItem("vn-manager-lang", "en");
+            localStorage.setItem("vn-manager-nsfw-blur", "false");
+        });
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { score: 44, notes: "keep existing" });
+        await page.reload();
+        await page.goto("/settings");
+
+        await expect(page.locator("html")).toHaveAttribute("lang", "en");
+        await expect(page.locator("#settings-nsfw-blur")).toHaveAttribute("aria-checked", "false");
+        const purchaseSourcesBefore = await readPurchaseSourceNames(page);
+        await setJsonFile(page, invalidTrailingTitleBackup(), "invalid-trailing-title.json");
+
+        await expect(page.locator('p[role="alert"]')).toContainText(
+            "library[1].vn.titles: must be an array",
+        );
+        expect(await readLibraryIds(page)).toEqual(["v1"]);
+        expect(await readPurchaseSourceNames(page)).toEqual(purchaseSourcesBefore);
+        expect(await page.evaluate(() => localStorage.getItem("vn-manager-lang"))).toBe("en");
+        expect(await page.evaluate(() => localStorage.getItem("vn-manager-nsfw-blur"))).toBe("false");
+
+        await page.goto("/");
+        await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
     });
 
     test("rolls back library writes when purchase-source restore fails mid-transaction", async ({ page }) => {

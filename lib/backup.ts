@@ -71,6 +71,18 @@ function assertOptionalString(value: unknown, path: string): void {
     }
 }
 
+function assertNullableString(value: unknown, path: string): void {
+    if (value !== undefined && value !== null && typeof value !== "string") {
+        throw new BackupValidationError(path, "must be a string or null");
+    }
+}
+
+function assertOptionalBoolean(value: unknown, path: string): void {
+    if (value !== undefined && typeof value !== "boolean") {
+        throw new BackupValidationError(path, "must be a boolean");
+    }
+}
+
 function assertFiniteNumber(value: unknown, path: string, options?: { min?: number; max?: number; integer?: boolean }): asserts value is number {
     if (typeof value !== "number" || !Number.isFinite(value)) {
         throw new BackupValidationError(path, "must be a finite number");
@@ -134,11 +146,28 @@ function validateImage(value: unknown, path: string): void {
     if (value.violence !== undefined) assertFiniteNumber(value.violence, `${path}.violence`, { min: 0, max: 2 });
 }
 
+function validateVNTitle(value: unknown, path: string): void {
+    if (!isRecord(value)) throw new BackupValidationError(path, "must be an object");
+
+    assertString(value.lang, `${path}.lang`, { nonEmpty: true });
+    assertString(value.title, `${path}.title`, { nonEmpty: true });
+    assertNullableString(value.latin, `${path}.latin`);
+    assertOptionalBoolean(value.official, `${path}.official`);
+    assertOptionalBoolean(value.main, `${path}.main`);
+}
+
 function validateVN(value: unknown, path: string): void {
     if (!isRecord(value)) throw new BackupValidationError(path, "must be an object");
 
     assertVnId(value.id, `${path}.id`);
     assertString(value.title, `${path}.title`, { nonEmpty: true });
+    assertNullableString(value.alttitle, `${path}.alttitle`);
+    if (value.titles !== undefined) {
+        if (!Array.isArray(value.titles)) throw new BackupValidationError(`${path}.titles`, "must be an array");
+        value.titles.forEach((title, index) => validateVNTitle(title, `${path}.titles[${index}]`));
+    }
+    if (value.aliases !== undefined) assertStringArray(value.aliases, `${path}.aliases`);
+    assertNullableString(value.olang, `${path}.olang`);
 
     if (value.released !== undefined && value.released !== null) assertString(value.released, `${path}.released`);
     if (value.languages !== undefined) assertStringArray(value.languages, `${path}.languages`);
