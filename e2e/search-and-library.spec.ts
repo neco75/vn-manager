@@ -303,28 +303,31 @@ test.describe("library flows", () => {
         const score = page.getByRole("spinbutton", { name: "スコア" });
         const playTime = page.getByRole("spinbutton", { name: "プレイ時間 (時間)" });
 
+        await playTime.fill("-1");
         await notes.fill("draft memo survives invalid values");
         await review.fill("draft review survives invalid values");
-        await score.fill("101");
-        await playTime.fill("-1");
-        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
 
-        page.once("dialog", (dialog) => void dialog.accept());
-        await page.reload();
-        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
-        await page.getByRole("button", { name: "下書きを復元" }).click();
+        for (const expectedScore of ["101", "-1", "80.5"]) {
+            await score.fill(expectedScore);
+            await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
 
-        await expect(notes).toHaveValue("draft memo survives invalid values");
-        await expect(review).toHaveValue("draft review survives invalid values");
-        await expect(score).toHaveValue("101");
-        await expect(playTime).toHaveValue("-1");
+            await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+            await page.goto("/vn/v1");
+            await page.getByRole("button", { name: "下書きを復元" }).click();
+
+            await expect(notes).toHaveValue("draft memo survives invalid values");
+            await expect(review).toHaveValue("draft review survives invalid values");
+            await expect(score).toHaveValue(expectedScore);
+            await expect(playTime).toHaveValue("-1");
+        }
 
         await page.getByRole("button", { name: "変更を保存", exact: true }).click();
-        await expect(page.getByText(/スコアは.*0.*100/).last()).toBeVisible();
+        await expect(page.getByText("スコアは未評価、または0〜100の有限な整数で入力してください。", { exact: true })).toBeVisible();
 
         await score.fill("80");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
         await page.getByRole("button", { name: "変更を保存", exact: true }).click();
-        await expect(page.getByText(/プレイ時間は0以上/).last()).toBeVisible();
+        await expect(page.getByText("プレイ時間は0以上の有限な値で入力してください。", { exact: true })).toBeVisible();
         await expect(notes).toHaveValue("draft memo survives invalid values");
         await expect(review).toHaveValue("draft review survives invalid values");
     });
