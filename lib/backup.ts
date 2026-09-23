@@ -71,6 +71,12 @@ function assertOptionalString(value: unknown, path: string): void {
     }
 }
 
+function assertOptionalNullableString(value: unknown, path: string): void {
+    if (value !== undefined && value !== null && typeof value !== "string") {
+        throw new BackupValidationError(path, "must be a string or null");
+    }
+}
+
 function assertFiniteNumber(value: unknown, path: string, options?: { min?: number; max?: number; integer?: boolean }): asserts value is number {
     if (typeof value !== "number" || !Number.isFinite(value)) {
         throw new BackupValidationError(path, "must be a finite number");
@@ -139,6 +145,33 @@ function validateVN(value: unknown, path: string): void {
 
     assertVnId(value.id, `${path}.id`);
     assertString(value.title, `${path}.title`, { nonEmpty: true });
+
+    assertOptionalNullableString(value.alttitle, `${path}.alttitle`);
+    assertOptionalNullableString(value.olang, `${path}.olang`);
+
+    if (value.titles !== undefined) {
+        if (!Array.isArray(value.titles)) {
+            throw new BackupValidationError(`${path}.titles`, "must be an array");
+        }
+        value.titles.forEach((title, index) => {
+            const titlePath = `${path}.titles[${index}]`;
+            if (!isRecord(title)) {
+                throw new BackupValidationError(titlePath, "must be an object");
+            }
+            assertString(title.lang, `${titlePath}.lang`, { nonEmpty: true });
+            assertString(title.title, `${titlePath}.title`, { nonEmpty: true });
+            assertOptionalNullableString(title.latin, `${titlePath}.latin`);
+        });
+    }
+
+    if (value.aliases !== undefined) {
+        if (!Array.isArray(value.aliases)) {
+            throw new BackupValidationError(`${path}.aliases`, "must be an array");
+        }
+        value.aliases.forEach((alias, index) => {
+            assertString(alias, `${path}.aliases[${index}]`);
+        });
+    }
 
     if (value.released !== undefined && value.released !== null) assertString(value.released, `${path}.released`);
     if (value.languages !== undefined) assertStringArray(value.languages, `${path}.languages`);

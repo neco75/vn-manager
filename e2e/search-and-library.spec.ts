@@ -286,6 +286,68 @@ test.describe("library flows", () => {
         await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("draft after record save");
     });
 
+    test("restores memo and review from a draft with values outside record validation", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", {
+            notes: "saved memo",
+            review: "saved review",
+            score: 80,
+            playTime: 60,
+        });
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        const notes = page.getByRole("textbox", { name: "メモ (非公開)" });
+        const review = page.getByRole("textbox", { name: "感想・レビュー" });
+        const score = page.getByRole("spinbutton", { name: "スコア" });
+        const playTime = page.getByRole("spinbutton", { name: "プレイ時間 (時間)" });
+
+        await playTime.fill("-1");
+        await notes.fill("draft memo survives invalid values");
+        await review.fill("draft review survives invalid values");
+
+        for (const expectedScore of ["101", "-1", "80.5"]) {
+            await score.fill(expectedScore);
+            await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+
+            await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+            await page.goto("/vn/v1");
+            await page.getByRole("button", { name: "下書きを復元" }).click();
+
+            await expect(notes).toHaveValue("draft memo survives invalid values");
+            await expect(review).toHaveValue("draft review survives invalid values");
+            await expect(score).toHaveValue(expectedScore);
+            await expect(playTime).toHaveValue("-1");
+        }
+
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("スコアは未評価、または0〜100の有限な整数で入力してください。", { exact: true })).toBeVisible();
+
+        await score.fill("80");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("プレイ時間は0以上の有限な値で入力してください。", { exact: true })).toBeVisible();
+        await expect(notes).toHaveValue("draft memo survives invalid values");
+        await expect(review).toHaveValue("draft review survives invalid values");
+    });
+
+    test("explains an unreadable stored draft instead of silently discarding it", async ({ page }) => {
+        await mockVNDB(page);
+        await page.addInitScript(() => {
+            localStorage.setItem("vn-manager-detail-draft-v1:v1", "{broken-json");
+        });
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { notes: "saved memo" });
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        await expect(page.getByRole("alert").filter({ hasText: "下書きを読み書きできません" })).toBeVisible();
+        await expect(page.evaluate(() => localStorage.getItem("vn-manager-detail-draft-v1:v1")))
+            .resolves.toBe("{broken-json");
+        await expect(page.getByRole("textbox", { name: "メモ (非公開)" })).toHaveValue("saved memo");
+    });
+
     test("keeps detail actions keyboard reachable on a narrow screen", async ({ page }) => {
         await mockVNDB(page);
         await page.setViewportSize({ width: 390, height: 844 });

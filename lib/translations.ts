@@ -312,7 +312,7 @@ export const translations = {
             draftSaving: "下書きを保存中...",
             draftSaveError: "下書きを保存できませんでした。入力は残っています。",
             recordSaved: "本記録は保存済み",
-            draftStorageError: "下書き保存を利用できません。ブラウザの保存領域を確認してください。",
+            draftStorageError: "下書きを読み書きできません。保存領域または保存済み下書きの形式を確認してください。下書きは自動では破棄していません。",
             draftAvailable: "この作品に未反映の下書きがあります。復元しますか？",
             draftConflict: "保存済み記録が下書き作成後に更新されています。内容を確認してから復元してください。",
             restoreDraft: "下書きを復元",
