@@ -24,13 +24,11 @@ export function rankLibraryItems(items: readonly LibraryItem[]): RankedLibraryIt
             return scoreDifference || compareTies(left.item, right.item) || left.index - right.index;
         });
 
-    return sorted.map(({ item }, index) => ({
-        item,
-        rank: index === 0 || item.score !== sorted[index - 1].item.score
-            ? index + 1
-            : 0,
-    })).map((entry, index, ranked) => ({
-        ...entry,
-        rank: entry.rank || ranked[index - 1].rank,
-    }));
+    let rank = 0;
+    return sorted.map(({ item }, index) => {
+        if (index === 0 || item.score !== sorted[index - 1].item.score) {
+            rank = index + 1;
+        }
+        return { item, rank };
+    });
 }
