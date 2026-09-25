@@ -55,6 +55,7 @@ import {
     type DetailDraft,
     type DetailDraftValues,
 } from "@/lib/detail-draft";
+import { getSafeDetailReturnPath } from "@/lib/detail-return";
 
 type ExternalFetchState = "idle" | "loading" | "success" | "not-found" | "error";
 type DraftStatus = "unsaved" | "saved" | "saving" | "draft-saved" | "error";
@@ -80,10 +81,7 @@ export default function VNPage() {
     const { id } = useParams();
     const searchParams = useSearchParams();
     const routeId = typeof id === "string" ? id : null;
-    const returnToParam = searchParams.get("from");
-    const returnTo = returnToParam && (returnToParam === "/" || returnToParam.startsWith("/?"))
-        ? returnToParam
-        : "/";
+    const returnTo = getSafeDetailReturnPath(searchParams.getAll("from"));
     const [vn, setVn] = useState<VN | null>(null);
     const [externalState, setExternalState] = useState<ExternalFetchState>("idle");
     const [retryVersion, setRetryVersion] = useState(0);

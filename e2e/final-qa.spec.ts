@@ -94,7 +94,7 @@ test.describe("final roadmap acceptance", () => {
 
         await page.getByRole("link", { name: "作品を追加", exact: true }).click();
         await search(page, "normal");
-        await page.locator('a[href="/vn/v1"]').first().click();
+        await page.locator('a[href^="/vn/v1?from="]').first().click();
         await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
         await expectServerMetadataFixture(request, "v1");
 
@@ -362,7 +362,7 @@ test.describe("final roadmap acceptance", () => {
                 await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
                 await expectNoHorizontalOverflow(page);
 
-                await page.locator('a[href="/vn/v1"]').first().click();
+                await page.locator('a[href^="/vn/v1?from="]').first().click();
                 await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
                 await expectNoHorizontalOverflow(page);
                 await page.locator("#detail-score").fill("77");
@@ -401,10 +401,10 @@ test.describe("final roadmap acceptance", () => {
         await searchInput.press("Enter");
         await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
 
-        const detailLink = page.locator('a[href="/vn/v1"]').first();
+        const detailLink = page.locator('a[href^="/vn/v1?from="]').first();
         await tabUntilFocused(page, detailLink);
         await page.keyboard.press("Enter");
-        await expect(page).toHaveURL(/\/vn\/v1$/);
+        await expect(page).toHaveURL(/\/vn\/v1\?from=/);
 
         const score = page.locator("#detail-score");
         await tabUntilFocused(page, score);
