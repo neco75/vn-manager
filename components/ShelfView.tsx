@@ -18,7 +18,7 @@ export function ShelfView({ items, returnTo }: ShelfViewProps) {
     const { nsfwBlur } = useSettings();
     const { language, t } = useLanguage();
     return (
-        <div className="bg-[#1a1512] p-8 rounded-xl border border-[#3d2b1f] shadow-2xl overflow-hidden relative">
+        <div className="bg-[#1a1512] p-3 sm:p-6 lg:p-8 rounded-xl border border-[#3d2b1f] shadow-2xl overflow-hidden relative">
             {/* Wood Texture Overlay */}
             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
 
@@ -33,41 +33,47 @@ export function ShelfView({ items, returnTo }: ShelfViewProps) {
                     return (
                         <div key={item.vn.id} className="relative group">
                             {/* Shelf Structure (The 'box' for each item) */}
-                            <div className="pt-8 pb-2 px-4 border-b-[12px] border-[#3d2b1f] bg-gradient-to-b from-transparent via-transparent to-black/40 relative z-10 h-full flex items-end justify-center">
+                            <div className="pt-5 pb-2 px-2 sm:pt-8 sm:px-3 lg:px-4 border-b-[12px] border-[#3d2b1f] bg-gradient-to-b from-transparent via-transparent to-black/40 relative z-10 h-full flex flex-col items-center">
 
-                                {/* The Game Case */}
-                                <Link href={detailHref} aria-label={displayTitle} className="relative block w-full aspect-[2/3] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 origin-bottom overflow-hidden">
-                                    {item.vn.image ? (
-                                        <img
-                                            src={item.vn.image.url}
-                                            alt={displayTitle}
-                                            className={cn(
-                                                "w-full h-full object-cover rounded-sm shadow-md group-hover:shadow-xl transition-all",
-                                                shouldBlur && "blur-xl scale-110"
-                                            )}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-500">
-                                            {t.common.noImage}
-                                        </div>
-                                    )}
+                                <div className="relative w-full">
+                                    {/* The Game Case */}
+                                    <Link href={detailHref} aria-label={displayTitle} className="relative block w-full aspect-[2/3] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 origin-bottom overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
+                                        {item.vn.image ? (
+                                            <img
+                                                src={item.vn.image.url}
+                                                alt={displayTitle}
+                                                className={cn(
+                                                    "w-full h-full object-cover rounded-sm shadow-md group-hover:shadow-xl transition-all",
+                                                    shouldBlur && "blur-xl scale-110"
+                                                )}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-500">
+                                                {t.common.noImage}
+                                            </div>
+                                        )}
 
-                                    {shouldBlur && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
-                                        </div>
-                                    )}
+                                        {item.vn.image && shouldBlur && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                                                <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
+                                            </div>
+                                        )}
 
-                                    {/* Spine/Side effect (pseudo 3D) */}
-                                    <div className="absolute top-0 right-0 w-[2px] h-full bg-white/20" />
-                                    <div className="absolute top-0 left-0 w-[1px] h-full bg-black/20" />
+                                        {/* Spine/Side effect (pseudo 3D) */}
+                                        <div className="absolute top-0 right-0 w-[2px] h-full bg-white/20" />
+                                        <div className="absolute top-0 left-0 w-[1px] h-full bg-black/20" />
 
-                                    {/* Reflection on the shelf */}
-                                    <div className="absolute top-full left-0 w-full h-12 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-30 transition-opacity duration-300 scale-y-[-1] mask-image-linear-gradient" style={{ WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)' }} />
+                                        {/* Reflection on the shelf */}
+                                        <div className="absolute top-full left-0 w-full h-12 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-30 transition-opacity duration-300 scale-y-[-1] mask-image-linear-gradient" style={{ WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)' }} />
+                                    </Link>
+
+                                    {/* Shadow under the book */}
+                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] h-4 bg-black/60 blur-md rounded-[100%] z-0 group-hover:w-[80%] group-hover:opacity-40 transition-all" />
+                                </div>
+
+                                <Link href={detailHref} data-testid="shelf-title-link" className="mt-2 w-full rounded-sm px-1 py-1 text-center text-sm font-medium leading-snug text-[#ECE8DF] hover:text-primary break-words [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
+                                    {displayTitle}
                                 </Link>
-
-                                {/* Shadow under the book */}
-                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[90%] h-4 bg-black/60 blur-md rounded-[100%] z-0 group-hover:w-[80%] group-hover:opacity-40 transition-all" />
                             </div>
 
                             {/* Vertical Divider (optional, maybe distracting) */}
