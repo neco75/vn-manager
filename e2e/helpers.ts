@@ -204,8 +204,12 @@ export async function seedLibraryItem(
         ...overrides,
     };
 
+    await seedLibraryItems(page, [item]);
+}
+
+export async function seedLibraryItems(page: Page, items: LibraryItem[]) {
     await page.evaluate(
-        ({ item, dbName, dbVersion }) => new Promise<void>((resolve, reject) => {
+        ({ items, dbName, dbVersion }) => new Promise<void>((resolve, reject) => {
             const request = indexedDB.open(dbName, dbVersion);
             request.onerror = () => reject(request.error);
             request.onupgradeneeded = () => {
@@ -221,7 +225,8 @@ export async function seedLibraryItem(
             request.onsuccess = () => {
                 const database = request.result;
                 const transaction = database.transaction("library", "readwrite");
-                transaction.objectStore("library").put(item);
+                const store = transaction.objectStore("library");
+                items.forEach((item) => store.put(item));
                 transaction.oncomplete = () => {
                     database.close();
                     resolve();
@@ -229,7 +234,7 @@ export async function seedLibraryItem(
                 transaction.onerror = () => reject(transaction.error);
             };
         }),
-        { item, dbName: DB_NAME, dbVersion: DB_VERSION },
+        { items, dbName: DB_NAME, dbVersion: DB_VERSION },
     );
 }
 
