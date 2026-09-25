@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ interface AccordionProps {
 
 export function Accordion({ title, children, defaultOpen = false, className }: AccordionProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
+    const reduceMotion = useReducedMotion();
     const id = useId();
     const triggerId = `${id}-trigger`;
     const contentId = `${id}-content`;
@@ -40,10 +41,10 @@ export function Accordion({ title, children, defaultOpen = false, className }: A
                         id={contentId}
                         role="region"
                         aria-labelledby={triggerId}
-                        initial={{ height: 0, opacity: 0 }}
+                        initial={reduceMotion ? false : { height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.2 }}
                     >
                         <div className="p-4 pt-0 border-t border-white/5">
                             {children}

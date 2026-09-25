@@ -140,7 +140,7 @@ export function MarkdownEditor({
                     <textarea
                         ref={textareaRef}
                         id={id}
-                        className={cn("w-full h-full scroll-mt-56 bg-transparent p-4 font-mono text-sm leading-relaxed focus:outline-none resize-none sm:scroll-mt-36", height)}
+                        className={cn("w-full h-full scroll-mt-56 bg-transparent p-4 font-mono text-sm leading-relaxed focus:outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-3px] resize-none sm:scroll-mt-36", height)}
                         value={value}
                         disabled={disabled}
                         onChange={(e) => onChange(e.target.value)}

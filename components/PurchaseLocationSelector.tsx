@@ -161,13 +161,13 @@ export function PurchaseLocationSelector({
                                 </SelectItem>
                             ))}
                             <div className="h-px bg-white/10 my-1" />
-                            <SelectItem value="add_new" className="text-accent focus:text-accent font-medium">
+                            <SelectItem value="add_new" className="text-primary focus:text-primary font-medium">
                                 <div className="flex items-center gap-2">
                                     <Plus className="w-4 h-4" />
                                     {t.common.addPurchaseLocation}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="manage_locations" className="text-gray-400 focus:text-white font-medium">
+                            <SelectItem value="manage_locations" className="text-muted-foreground focus:text-white font-medium">
                                 <div className="flex items-center gap-2">
                                     <Settings className="w-4 h-4" />
                                     {t.common.managePurchaseLocations}
@@ -214,7 +214,7 @@ export function PurchaseLocationSelector({
                     </DialogHeader>
                     <div className="space-y-2">
                         {purchaseSources.length === 0 && (
-                            <div className="text-center text-gray-500 py-4">
+                            <div className="text-center text-muted-foreground py-4">
                                 {t.common.noPurchaseLocations}
                             </div>
                         )}

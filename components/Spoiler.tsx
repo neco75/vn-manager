@@ -79,7 +79,7 @@ export function SpoilerTagList({ tags }: SpoilerTagListProps) {
         <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
                 {visibleTags.length === 0 ? (
-                    <span className="text-sm text-gray-500">{t.common.none}</span>
+                    <span className="text-sm text-muted-foreground">{t.common.none}</span>
                 ) : (
                     visibleTags.map((tag, index) => (
                         <Badge
@@ -103,7 +103,7 @@ export function SpoilerTagList({ tags }: SpoilerTagListProps) {
                                     variant="outline"
                                     className="border-white/15 bg-secondary/40 text-gray-200"
                                 >
-                                    <span className="rounded bg-background/60 px-1 text-[10px] font-normal text-gray-400">
+                                    <span className="rounded bg-background/60 px-1 text-[10px] font-normal text-muted-foreground">
                                         {t.common.spoilerTag}
                                     </span>
                                     {tag.name}
@@ -122,7 +122,7 @@ export function SpoilerTagList({ tags }: SpoilerTagListProps) {
                             >
                                 {t.common.showSpoilers} ({hiddenTags.length})
                             </Button>
-                            <p className="text-xs text-gray-500">{t.vn.spoilerTagNote}</p>
+                            <p className="text-xs text-muted-foreground">{t.vn.spoilerTagNote}</p>
                         </>
                     )}
                 </div>
