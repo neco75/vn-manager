@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchVNs } from "@/lib/vndb";
 import { VN } from "@/types/vndb";
@@ -30,6 +30,49 @@ import { GameStatus, GAME_STATUSES } from "@/types/library";
 import { getDisplayTitle } from "@/lib/vndb-title";
 
 type SearchState = "idle" | "searching" | "success" | "empty" | "error";
+interface SearchReturnSnapshot {
+    version: 1;
+    query: string;
+    results: VN[];
+    page: number;
+    more: boolean;
+    scrollY: number;
+}
+
+const SEARCH_RETURN_STORAGE_KEY = "vn-manager-search-return-v1";
+
+function readSearchReturnSnapshot(query: string): SearchReturnSnapshot | null {
+    try {
+        const raw = window.sessionStorage.getItem(SEARCH_RETURN_STORAGE_KEY);
+        if (!raw) return null;
+
+        const value: unknown = JSON.parse(raw);
+        if (!value || typeof value !== "object") return null;
+
+        const snapshot = value as Partial<SearchReturnSnapshot>;
+        if (
+            snapshot.version !== 1 ||
+            snapshot.query !== query ||
+            !Array.isArray(snapshot.results) ||
+            !snapshot.results.every((vn) =>
+                Boolean(vn) && typeof vn === "object" &&
+                typeof vn.id === "string" && typeof vn.title === "string"
+            ) ||
+            typeof snapshot.page !== "number" ||
+            !Number.isSafeInteger(snapshot.page) || snapshot.page < 1 ||
+            typeof snapshot.more !== "boolean" ||
+            typeof snapshot.scrollY !== "number" ||
+            !Number.isFinite(snapshot.scrollY) || snapshot.scrollY < 0
+        ) {
+            return null;
+        }
+
+        return snapshot as SearchReturnSnapshot;
+    } catch {
+        // Session storage can be unavailable or malformed; fall back to a fresh search.
+        return null;
+    }
+}
 
 export default function SearchPage() {
     return (
@@ -67,6 +110,8 @@ function SearchPageInner() {
     const searchSequenceRef = useRef(0);
     // 「もっと見る」の通信を新検索開始時に中断するための制御
     const loadMoreAbortRef = useRef<AbortController | null>(null);
+    const searchSnapshotRef = useRef<SearchReturnSnapshot | null>(null);
+    const restoreScrollYRef = useRef<number | null>(null);
     // R4: 状態指定フォームを開いた起点（ボタン）を保持し、閉じた後にフォーカスを戻す
     const statusTriggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -75,6 +120,21 @@ function SearchPageInner() {
         const deduped = incoming.filter((vn) => !seen.has(vn.id));
         return [...current, ...deduped];
     }, []);
+
+    const saveSearchSnapshot = useCallback((snapshot: SearchReturnSnapshot) => {
+        searchSnapshotRef.current = snapshot;
+        try {
+            window.sessionStorage.setItem(SEARCH_RETURN_STORAGE_KEY, JSON.stringify(snapshot));
+        } catch {
+            // Search still works when storage is disabled or full; only restoration is lost.
+        }
+    }, []);
+
+    const handleDetailClick = useCallback(() => {
+        const snapshot = searchSnapshotRef.current;
+        if (!snapshot || snapshot.query !== activeQuery) return;
+        saveSearchSnapshot({ ...snapshot, scrollY: window.scrollY });
+    }, [activeQuery, saveSearchSnapshot]);
 
     const runSearch = useCallback(
         async (query: string) => {
@@ -87,6 +147,12 @@ function SearchPageInner() {
             setPage(1);
             setMore(false);
             setLoadMoreError(false);
+            searchSnapshotRef.current = null;
+            try {
+                window.sessionStorage.removeItem(SEARCH_RETURN_STORAGE_KEY);
+            } catch {
+                // A fresh search must still run if session storage is unavailable.
+            }
             // R1: 前検索の「もっと見る」処理を中断し、残留したloading状態を必ずリセットする
             loadMoreAbortRef.current?.abort();
             loadMoreAbortRef.current = null;
@@ -96,10 +162,19 @@ function SearchPageInner() {
                 const firstPage = await searchVNs(trimmed, { page: 1 });
                 if (searchSequenceRef.current !== sequence) return; // より新しい検索が走っている
 
-                setResults(applyPage([], firstPage.results));
+                const firstResults = applyPage([], firstPage.results);
+                setResults(firstResults);
                 setMore(firstPage.more);
                 setPage(1);
                 setSearchState(firstPage.results.length === 0 ? "empty" : "success");
+                saveSearchSnapshot({
+                    version: 1,
+                    query: trimmed,
+                    results: firstResults,
+                    page: 1,
+                    more: firstPage.more,
+                    scrollY: 0,
+                });
             } catch (error) {
                 if (searchSequenceRef.current !== sequence) return;
                 console.error("Search failed:", error);
@@ -108,7 +183,7 @@ function SearchPageInner() {
                 setSearchState("error");
             }
         },
-        [applyPage],
+        [applyPage, saveSearchSnapshot],
     );
 
     // URLの検索語（送信済み）を初期値として検索を実行する
@@ -117,10 +192,30 @@ function SearchPageInner() {
         if (mountedRef.current) return;
         mountedRef.current = true;
         if (activeQuery) {
-            void runSearch(activeQuery);
+            const snapshot = readSearchReturnSnapshot(activeQuery);
+            if (snapshot) {
+                searchSnapshotRef.current = snapshot;
+                restoreScrollYRef.current = snapshot.scrollY;
+                setInputValue(activeQuery);
+                setResults(snapshot.results);
+                setPage(snapshot.page);
+                setMore(snapshot.more);
+                setSearchState(snapshot.results.length === 0 ? "empty" : "success");
+            } else {
+                void runSearch(activeQuery);
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useLayoutEffect(() => {
+        const scrollY = restoreScrollYRef.current;
+        if (scrollY === null) return;
+
+        restoreScrollYRef.current = null;
+        const frame = window.requestAnimationFrame(() => window.scrollTo(0, scrollY));
+        return () => window.cancelAnimationFrame(frame);
+    }, [results.length, searchState]);
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -145,7 +240,17 @@ function SearchPageInner() {
         try {
             const next = await searchVNs(activeQuery, { page: nextPage, signal: controller.signal });
             if (searchSequenceRef.current !== sequence) return;
-            setResults((current) => applyPage(current, next.results));
+            const updatedResults = applyPage(results, next.results);
+            setResults(updatedResults);
+            const currentSnapshot = searchSnapshotRef.current;
+            saveSearchSnapshot({
+                version: 1,
+                query: activeQuery,
+                results: updatedResults,
+                page: nextPage,
+                more: next.more,
+                scrollY: currentSnapshot?.query === activeQuery ? currentSnapshot.scrollY : window.scrollY,
+            });
             setMore(next.more);
             setPage(nextPage);
         } catch (error) {
@@ -199,6 +304,7 @@ function SearchPageInner() {
 
     const statusOptions = GAME_STATUSES.map((value) => ({ value, label: t.status[value] }));
     const isCurrentSearchRunning = searchState === "searching" && inputValue.trim() === activeQuery;
+    const searchReturnPath = `/search?q=${encodeURIComponent(activeQuery)}`;
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto">
@@ -273,6 +379,8 @@ function SearchPageInner() {
                                         vn={vn}
                                         libraryItem={libraryItem}
                                         variant="search"
+                                        detailHref={`/vn/${vn.id}?from=${encodeURIComponent(searchReturnPath)}`}
+                                        onDetailClick={handleDetailClick}
                                         onAdd={() => void handleAdd(vn)}
                                         isAdding={addingIds.includes(vn.id)}
                                     />
