@@ -698,7 +698,7 @@ export default function VNPage() {
                 </div>
             )}
 
-            <div className="sticky top-2 z-20 mb-6 flex flex-col gap-3 rounded-xl border border-white/10 bg-card/95 p-3 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="sticky top-16 z-20 mb-6 flex flex-col gap-3 rounded-xl border border-white/10 bg-card/95 p-3 shadow-xl backdrop-blur lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                     <div
                         role="status"
@@ -718,7 +718,7 @@ export default function VNPage() {
                         </p>
                     )}
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
                     {libraryItem && (
                         <Button
                             type="button"
