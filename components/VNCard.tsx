@@ -19,14 +19,16 @@ interface VNCardProps {
     onAdd?: () => void;
     /** 追加処理の進行中（渡された追加操作の状態） */
     isAdding?: boolean;
-    /** ライブラリから詳細へ遷移するときの復帰先を含むURL */
+    /** 詳細ページから戻るためのアプリ内URLを含むリンク */
     detailHref?: string;
+    /** 詳細へのアプリ内リンクを押したときに呼び出す */
+    onDetailClick?: () => void;
 }
 
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
 
-export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false, detailHref }: VNCardProps) {
+export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false, detailHref, onDetailClick }: VNCardProps) {
     const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
@@ -39,7 +41,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
 
     // 表紙とタイトルは詳細へ移動する主リンク。追加などの操作はリンク外に置く（入れ子にしない）。
     const Cover = (
-        <Link href={href} className="block" aria-label={displayTitle}>
+        <Link href={href} className="block" aria-label={displayTitle} onClick={onDetailClick}>
             <div className="aspect-[2/3] relative overflow-hidden bg-card">
                 {vn.image ? (
                     <>
@@ -79,6 +81,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
             <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
                 <Link
                     href={href}
+                    onClick={onDetailClick}
                     className="min-h-[2.75rem] font-bold text-base leading-snug line-clamp-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
                     {displayTitle}

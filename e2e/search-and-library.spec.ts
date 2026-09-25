@@ -16,23 +16,92 @@ async function expectServerMetadataFixture(request: APIRequestContext, id: strin
 }
 
 test.describe("search flows", () => {
-    test("restores the search state after visiting a detail page", async ({ page, request }) => {
+    test("returns from a loaded search page using the app back link and restores its position", async ({ page, request }) => {
         await mockVNDB(page);
+        await page.setViewportSize({ width: 390, height: 844 });
+
+        const searchPages: number[] = [];
+        page.on("request", (request) => {
+            if (request.url() !== "https://api.vndb.org/kana/vn" || request.method() !== "POST") return;
+            const body = request.postDataJSON() as { filters?: unknown[]; page?: number };
+            if (Array.isArray(body.filters) && body.filters[0] !== "id") {
+                searchPages.push(Number(body.page ?? 1));
+            }
+        });
+
         await page.goto("/search");
 
         await search(page, "normal");
         await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
-        await expect(page.locator('a[href="/vn/v1"]')).toHaveCount(2);
+        await expect(page.locator('a[href^="/vn/v1?from="]')).toHaveCount(2);
+        await page.getByRole("button", { name: "もっと見る", exact: true }).click();
+        await expect(page.getByText("Fixture VN Three", { exact: true })).toBeVisible();
 
-        await page.locator('a[href="/vn/v1"]').first().click();
-        await expect(page).toHaveURL(/\/vn\/v1$/);
-        await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
-        await expectServerMetadataFixture(request, "v1");
+        const loadedResultLink = page.locator('a[href^="/vn/v3?from="]').first();
+        await loadedResultLink.scrollIntoViewIfNeeded();
+        const scrollBeforeDetail = await page.evaluate(() => window.scrollY);
+        expect(scrollBeforeDetail).toBeGreaterThan(0);
+        await loadedResultLink.click();
+        await expect(page).toHaveURL(/\/vn\/v3\?from=%2Fsearch%3Fq%3Dnormal$/);
+        await expect(page.getByRole("heading", { name: "Fixture VN Three" })).toBeVisible();
+        await expectServerMetadataFixture(request, "v3");
 
-        await page.goBack();
+        await page.getByRole("link", { name: "戻る", exact: true }).click();
         await expect(page).toHaveURL(/\/search\?q=normal$/);
         await expect(page.getByLabel("タイトルで検索")).toHaveValue("normal");
         await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
+        await expect(page.getByText("Fixture VN Three", { exact: true })).toBeVisible();
+        await expect(page.getByRole("button", { name: "もっと見る", exact: true })).not.toBeVisible();
+        await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+        const restoredScroll = await page.evaluate(() => window.scrollY);
+        expect(Math.abs(restoredScroll - scrollBeforeDetail)).toBeLessThanOrEqual(2);
+        expect(searchPages).toEqual([1, 2]);
+    });
+
+    test("keeps browser back and forward separate from the app back destination", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/search");
+        await search(page, "normal");
+        await page.locator('a[href^="/vn/v1?from="]').first().click();
+        await expect(page).toHaveURL(/\/vn\/v1\?from=%2Fsearch%3Fq%3Dnormal$/);
+
+        await page.goBack();
+        await expect(page).toHaveURL(/\/search\?q=normal$/);
+        await expect(page.getByText("Fixture VN Two", { exact: true })).toBeVisible();
+
+        await page.goForward();
+        await expect(page).toHaveURL(/\/vn\/v1\?from=%2Fsearch%3Fq%3Dnormal$/);
+        await expect(page.getByRole("link", { name: "戻る", exact: true }))
+            .toHaveAttribute("href", "/search?q=normal");
+    });
+
+    test("direct detail access and invalid from values return to the library", async ({ page }) => {
+        await mockVNDB(page);
+
+        const invalidFromValues = [
+            null,
+            "//evil.example",
+            "https://evil.example/path",
+            "/vn/v2",
+            "/search",
+            "/search?q=normal&next=/",
+            "/search?q=%ZZ",
+        ];
+
+        for (const from of invalidFromValues) {
+            const path = from === null
+                ? "/vn/v1"
+                : `/vn/v1?from=${encodeURIComponent(from)}`;
+            await page.goto(path);
+            const backLink = page.getByRole("link", { name: "戻る", exact: true });
+            await expect(backLink).toHaveAttribute("href", "/");
+            await backLink.click();
+            await expect(page).toHaveURL(/\/$/);
+        }
+
+        await page.goto("/vn/v1?from=%2Fsearch%3Fq%3Dnormal&from=%2F%3Fstatus%3Dplaying");
+        await expect(page.getByRole("link", { name: "戻る", exact: true }))
+            .toHaveAttribute("href", "/");
     });
 
     test("covers empty, retry, load-more, duplicate, and load-more failure states", async ({ page }) => {
@@ -51,7 +120,7 @@ test.describe("search flows", () => {
         await page.getByRole("button", { name: "もっと見る", exact: true }).click();
         await expect(page.getByText("Fixture VN Three", { exact: true })).toBeVisible();
         // v2 is returned on both pages, but the UI keeps one card (two detail links).
-        await expect(page.locator('a[href="/vn/v2"]')).toHaveCount(2);
+        await expect(page.locator('a[href^="/vn/v2?from="]')).toHaveCount(2);
 
         await search(page, "load-fail");
         await page.getByRole("button", { name: "もっと見る", exact: true }).click();
@@ -67,7 +136,7 @@ test.describe("search flows", () => {
         await search(page, "title-cases");
         const japaneseTitle = "日本語の長いタイトル 続編 ファンディスク";
         const englishTitle = "English Sequel Fan Disc Title";
-        const titleLink = page.locator('a[href="/vn/v4"]').filter({ hasText: japaneseTitle });
+        const titleLink = page.locator('a[href^="/vn/v4?from="]').filter({ hasText: japaneseTitle });
         await expect(titleLink).toBeVisible();
         await expect(titleLink).toHaveClass(/line-clamp-2/);
 
@@ -138,11 +207,14 @@ test.describe("library flows", () => {
         await expect(page).toHaveURL(/q=Title\+Works/);
 
         await page.getByRole("tab", { name: /プレイ中/ }).click();
+        await expect(page).toHaveURL(/q=Title\+Works&status=playing$/);
         const ownership = page.getByRole("combobox", { name: "所有状況" });
         await ownership.click();
         await page.getByRole("option", { name: "未設定", exact: true }).click();
+        await expect(page).toHaveURL(/q=Title\+Works&status=playing&ownership=unknown$/);
         await page.getByRole("combobox", { name: "並び替え" }).click();
         await page.getByRole("option", { name: "スコア (低い順)", exact: true }).click();
+        await expect(page).toHaveURL(/q=Title\+Works&status=playing&ownership=unknown&sort=score_asc$/);
         await page.getByRole("button", { name: "リスト表示" }).click();
 
         await expect(page).toHaveURL(/q=Title\+Works&status=playing&ownership=unknown&sort=score_asc&view=list/);
@@ -192,7 +264,7 @@ test.describe("library flows", () => {
         await expect(page.getByText("登録済み", { exact: true }).first()).toBeVisible();
         await expect(page.getByRole("button", { name: "ライブラリに追加", exact: true })).toHaveCount(1);
 
-        await page.locator('a[href="/vn/v1"]').first().click();
+        await page.locator('a[href^="/vn/v1?from="]').first().click();
         await expect(page.locator("#detail-score")).toHaveValue("80");
     });
 
