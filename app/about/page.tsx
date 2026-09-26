@@ -16,10 +16,10 @@ export default function AboutPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center space-y-4"
             >
-                <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground">
                     {t.about.title}
                 </h1>
-                <p className="text-xl text-gray-400">
+                <p className="text-xl text-muted-foreground">
                     {t.about.subtitle}
                 </p>
             </motion.div>
@@ -35,17 +35,17 @@ export default function AboutPage() {
                         <Database className="w-6 h-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold">{t.about.vndb_title}</h3>
-                    <p className="text-gray-400">
+                    <p className="text-muted-foreground">
                         {t.about.vndb_desc}
                     </p>
                 </div>
 
                 <div className="bg-card border border-white/10 rounded-xl p-6 space-y-4">
-                    <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center">
-                        <Shield className="w-6 h-6 text-accent" />
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Shield className="w-6 h-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold">{t.about.privacy_title}</h3>
-                    <p className="text-gray-400">
+                    <p className="text-muted-foreground">
                         {t.about.privacy_desc}
                     </p>
                 </div>
@@ -88,11 +88,11 @@ export default function AboutPage() {
                                 {t.about.local_usage_desc}
                             </p>
                             <div className="bg-black/30 p-4 rounded-lg font-mono text-sm">
-                                <p className="text-gray-500">{t.about.local_usage_clone}</p>
+                                <p className="text-muted-foreground">{t.about.local_usage_clone}</p>
                                 <p>git clone https://github.com/neco75/vn-manager.git</p>
-                                <p className="mt-2 text-gray-500">{t.about.local_usage_install}</p>
+                                <p className="mt-2 text-muted-foreground">{t.about.local_usage_install}</p>
                                 <p>npm install</p>
-                                <p className="mt-2 text-gray-500">{t.about.local_usage_run}</p>
+                                <p className="mt-2 text-muted-foreground">{t.about.local_usage_run}</p>
                                 <p>npm run dev</p>
                             </div>
                             <p>
@@ -140,7 +140,7 @@ export default function AboutPage() {
                 </div>
                 <div>
                     <h3 className="text-lg font-bold text-purple-200 mb-1">{t.about.ai_credit_title}</h3>
-                    <p className="text-gray-400">
+                    <p className="text-muted-foreground">
                         {t.about.ai_credit_desc}
                     </p>
                 </div>

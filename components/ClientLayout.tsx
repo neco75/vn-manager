@@ -10,6 +10,7 @@ import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { shouldBlurImage } from "@/lib/image-safety";
 import { Switch } from "@/components/ui/switch";
+import { MotionConfig } from "framer-motion";
 import {
     Dialog,
     DialogContent,
@@ -26,7 +27,7 @@ function BackgroundLayer() {
 
     return (
         <div
-            className={`fixed inset-0 z-[-1] bg-cover bg-center opacity-30 transition-all duration-1000 ${blurBackground ? "blur-3xl scale-110" : "blur-sm"}`}
+            className={`fixed inset-0 z-[-1] bg-cover bg-center opacity-15 transition-all duration-1000 ${blurBackground ? "blur-3xl scale-110" : "blur-sm"}`}
             style={{ backgroundImage: `url(${backgroundImage})` }}
         />
     );
@@ -36,7 +37,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return (
         <SettingsProvider>
             <LanguageProvider>
-                <ClientLayoutContent>{children}</ClientLayoutContent>
+                <MotionConfig reducedMotion="user">
+                    <ClientLayoutContent>{children}</ClientLayoutContent>
+                </MotionConfig>
             </LanguageProvider>
         </SettingsProvider>
     );
@@ -64,7 +67,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                 <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-background">
                     <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-8">
                         <Link href="/" className="flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight group">
-                            <span className="text-primary group-hover:text-accent transition-colors duration-300">VN</span>
+                            <span className="text-primary group-hover:text-foreground transition-colors duration-300">VN</span>
                             <span className="truncate">Manager</span>
                         </Link>
 
@@ -101,8 +104,8 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
-                                className="min-h-11 items-center gap-2 px-3 text-gray-400 hover:text-white"
-                                aria-label={t.nav.changeLanguage}
+                                className="min-h-11 items-center gap-2 px-3 text-muted-foreground hover:text-white"
+                                aria-label={language === "ja" ? "EN" : "JA"}
                             >
                                 <Globe className="w-4 h-4" aria-hidden="true" />
                                 {language === "ja" ? "EN" : "JA"}
@@ -222,7 +225,7 @@ function NavLink({
             className={
                 mobile
                     ? `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-gray-300 hover:bg-white/5 hover:text-white"}`
-                    : `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`
+                    : `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-muted-foreground hover:bg-white/5 hover:text-white"}`
             }
         >
             {icon}
