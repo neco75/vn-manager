@@ -1,5 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { mockVNDB, seedLibraryItem } from "./helpers";
+import fixture from "./fixtures/vndb.json";
+import type { VN } from "@/types/vndb";
 
 const BRIGHT_BACKGROUND =
     "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E";
@@ -25,6 +27,38 @@ function contrastRatio(foreground: string, background: string) {
     const backgroundLuminance = luminance(channels(background));
     return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
         (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+}
+
+async function renderedColors(locator: Locator) {
+    return locator.evaluate((element) => {
+        let ancestor: HTMLElement | null = element as HTMLElement;
+        let background = getComputedStyle(document.body).backgroundColor;
+
+        while (ancestor) {
+            const candidate = getComputedStyle(ancestor).backgroundColor;
+            const values = candidate.match(/[\d.]+/g);
+            const alpha = values && values.length > 3 ? Number(values[3]) : 1;
+            if (values?.length && alpha >= 0.999) {
+                background = candidate;
+                break;
+            }
+            ancestor = ancestor.parentElement;
+        }
+
+        return { foreground: getComputedStyle(element).color, background };
+    });
+}
+
+async function expectReadableText(locator: Locator, label: string) {
+    await expect(locator).toBeVisible();
+    const colors = await renderedColors(locator);
+    expect(contrastRatio(colors.foreground, colors.background), label).toBeGreaterThanOrEqual(4.5);
+}
+
+async function expectDiscernibleUI(locator: Locator, label: string) {
+    await expect(locator).toBeVisible();
+    const colors = await renderedColors(locator);
+    expect(contrastRatio(colors.foreground, colors.background), label).toBeGreaterThanOrEqual(3);
 }
 
 async function expectSettingsContrast(page: import("@playwright/test").Page, language: "ja" | "en") {
@@ -75,6 +109,39 @@ async function expectSettingsContrast(page: import("@playwright/test").Page, lan
 }
 
 test.describe("Issue #53 accessibility regressions", () => {
+    test("keeps detail, ranking, and image-less shelf labels legible in Japanese and English", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+
+        const fixtureVNs = fixture.vns as unknown as Record<string, VN>;
+        const imageLessVN = structuredClone(fixtureVNs.v4);
+        imageLessVN.image = null;
+        await seedLibraryItem(page, "v1", { status: "playing", score: 0 });
+        await seedLibraryItem(page, "v4", { vn: imageLessVN, status: "completed", score: 0 });
+        await page.reload();
+
+        for (const language of ["ja", "en"] as const) {
+            if (language === "en") await page.getByRole("button", { name: "EN", exact: true }).click();
+
+            await page.goto("/vn/v1");
+            await page.getByRole("button", { name: language === "ja" ? "作品情報" : "Title information", exact: true }).click();
+            await expectReadableText(page.getByTestId("detail-score-suffix"), `${language} detail /100 label`);
+            await expectReadableText(page.getByTestId("detail-legacy-score-note"), `${language} legacy zero-score note`);
+            await expectReadableText(page.getByTestId("detail-vndb-score-suffix"), `${language} VNDB score label`);
+            await expectDiscernibleUI(page.getByTestId("detail-tags-icon"), `${language} tags/developer icon`);
+
+            await page.goto("/ranking");
+            const firstRankedItem = page.locator('a[href="/vn/v1"]');
+            await expectReadableText(firstRankedItem.getByTestId("ranking-rank"), `${language} ranking position`);
+            await expectReadableText(firstRankedItem.getByTestId("ranking-status"), `${language} ranking status`);
+            await expectReadableText(firstRankedItem.getByTestId("ranking-score-label"), `${language} ranking score label`);
+
+            await page.goto("/?view=shelf");
+            await expectReadableText(page.getByTestId("shelf-no-image-label"), `${language} image-less shelf label`);
+            await expect(page.getByTestId("shelf-no-image-label")).toHaveText(language === "ja" ? "画像なし" : "No image");
+        }
+    });
+
     test("keeps Japanese and English settings text and controls legible with backgrounds on and off", async ({ page }) => {
         await page.addInitScript((background) => localStorage.setItem("vn-manager-bg", background), BRIGHT_BACKGROUND);
         await page.goto("/settings");

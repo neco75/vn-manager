@@ -787,7 +787,7 @@ export default function VNPage() {
                                         }}
                                         className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
                                     />
-                                    <span className="text-sm text-gray-500">/ 100</span>
+                                    <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
                                 </div>
                             </div>
                             <Slider
@@ -809,7 +809,7 @@ export default function VNPage() {
                             >
                                 {t.common.markUnrated}
                             </Button>
-                            <p className="text-xs text-gray-500">{t.common.legacyZeroScoreNote}</p>
+                            <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
                         </div>
 
                         <div className="space-y-2">
@@ -931,7 +931,7 @@ export default function VNPage() {
                                     <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
                                         <Star className="h-4 w-4 text-yellow-500" />
                                         <span className="font-bold">{vn.rating ? (vn.rating / 10).toFixed(1) : t.common.unrated}</span>
-                                        <span className="text-gray-500">/ 10 (VNDB)</span>
+                                        <span data-testid="detail-vndb-score-suffix" className="text-muted-foreground">/ 10 (VNDB)</span>
                                     </Badge>
                                     <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
                                         <Calendar className="h-4 w-4 text-blue-400" />
@@ -978,7 +978,7 @@ export default function VNPage() {
                         </Accordion>
 
                         <Accordion
-                            title={<div className="flex items-center gap-2"><Tag className="w-5 h-5 text-accent" /> {t.common.tags} & {t.common.developer}</div>}
+                            title={<div className="flex items-center gap-2"><Tag data-testid="detail-tags-icon" className="w-5 h-5 text-primary" /> {t.common.tags} & {t.common.developer}</div>}
                         >
                             <div className="space-y-4">
                                 <div>
