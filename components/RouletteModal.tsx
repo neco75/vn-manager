@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Dices, Sparkles } from "lucide-react";
 import { LibraryItem } from "@/types/library";
 import Link from "next/link";
@@ -29,6 +29,7 @@ interface RouletteModalProps {
 export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
     const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
+    const reduceMotion = useReducedMotion();
     const [spinning, setSpinning] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [winner, setWinner] = useState<LibraryItem | null>(null);
@@ -55,6 +56,13 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
         setWinner(null);
 
         const winningIndex = Math.floor(Math.random() * pool.length);
+        if (reduceMotion) {
+            setCurrentIndex(winningIndex);
+            setWinner(pool[winningIndex]);
+            setSpinning(false);
+            return;
+        }
+
         const totalDuration = 3000; // 3 seconds
         const intervalTime = 100;
         const startTime = Date.now();
@@ -81,10 +89,10 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
             <DialogContent className="sm:max-w-lg bg-[#0a0a0a] border-white/10">
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-center gap-2 text-2xl font-bold">
-                        <Dices className="w-6 h-6 text-accent" />
+                        <Dices className="w-6 h-6 text-primary" />
                         {t.roulette.title}
                     </DialogTitle>
-                    <DialogDescription className="text-center text-gray-400">
+                    <DialogDescription className="text-center text-muted-foreground">
                         {t.roulette.desc.replace("{count}", pool.length.toString())}
                     </DialogDescription>
                 </DialogHeader>
@@ -100,7 +108,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                                 sizes="(max-width: 640px) 192px, 224px"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                 {t.common.noImage}
                             </div>
                         )}
@@ -123,9 +131,11 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                         </h3>
                         {winner && (
                             <motion.div
-                                initial={{ opacity: 0, y: 10 }}
+                                data-testid="roulette-winner"
+                                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-accent font-bold flex items-center justify-center gap-2"
+                                transition={{ duration: reduceMotion ? 0 : 0.2 }}
+                                className="text-primary font-bold flex items-center justify-center gap-2"
                             >
                                 <Sparkles className="w-4 h-4" />
                                 {t.roulette.winner}
@@ -154,7 +164,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                                 </Button>
                                 <Button
                                     asChild
-                                    className="flex-1 rounded-full font-bold shadow-lg shadow-accent/25"
+                                    className="flex-1 rounded-full font-bold"
                                 >
                                     <Link href={`/vn/${winner.vn.id}`}>
                                         {t.roulette.details}

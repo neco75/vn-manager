@@ -18,7 +18,7 @@ export default function SettingsPage() {
         <div className="mx-auto max-w-4xl space-y-8 pb-20">
             <header className="space-y-2">
                 <h1 className="text-3xl font-bold">{t.settings.title}</h1>
-                <p className="text-gray-400">{t.settings.dataAndBackupDescription}</p>
+                <p className="text-muted-foreground">{t.settings.dataAndBackupDescription}</p>
             </header>
 
             <section id="backup" aria-labelledby="settings-data-title" className="space-y-3">
@@ -37,7 +37,7 @@ export default function SettingsPage() {
                 <Card className="border-white/10">
                     <CardHeader>
                         <CardTitle>{t.settings.displayAndLanguage}</CardTitle>
-                        <p className="text-sm text-gray-400">{t.settings.displayAndLanguageDescription}</p>
+                        <p className="text-sm text-muted-foreground">{t.settings.displayAndLanguageDescription}</p>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-3">
@@ -72,7 +72,7 @@ export default function SettingsPage() {
                                 <label htmlFor="settings-nsfw-blur" className="text-sm font-medium">
                                     {t.settings.nsfwBlur}
                                 </label>
-                                <p className="text-xs text-gray-400">{t.settings.nsfwBlurDescription}</p>
+                                <p className="text-xs text-muted-foreground">{t.settings.nsfwBlurDescription}</p>
                             </div>
                             <Switch
                                 id="settings-nsfw-blur"
@@ -88,9 +88,9 @@ export default function SettingsPage() {
                                 <ImageOff className="h-4 w-4" aria-hidden="true" />
                                 {t.settings.background}
                             </div>
-                            <p className="text-sm text-gray-400">{t.settings.backgroundDescription}</p>
+                            <p className="text-sm text-muted-foreground">{t.settings.backgroundDescription}</p>
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-sm text-gray-500" role="status">
+                                <p className="text-sm text-muted-foreground" role="status">
                                     {backgroundImage ? t.settings.backgroundSet : t.settings.backgroundNotSet}
                                 </p>
                                 <Button
@@ -117,7 +117,7 @@ export default function SettingsPage() {
                 <Card className="border-white/10">
                     <CardHeader>
                         <CardTitle>{t.settings.purchaseLocations}</CardTitle>
-                        <p className="text-sm text-gray-400">{t.settings.purchaseLocationsDescription}</p>
+                        <p className="text-sm text-muted-foreground">{t.settings.purchaseLocationsDescription}</p>
                     </CardHeader>
                     <CardContent>
                         <PurchaseLocationSelector
@@ -136,8 +136,8 @@ export default function SettingsPage() {
                 </div>
                 <Card className="border-white/10">
                     <CardContent className="space-y-4 pt-6">
-                        <p className="text-sm leading-6 text-gray-400">{t.settings.aboutDescription}</p>
-                        <p className="text-sm leading-6 text-gray-400">{t.about.privacy_desc}</p>
+                        <p className="text-sm leading-6 text-muted-foreground">{t.settings.aboutDescription}</p>
+                        <p className="text-sm leading-6 text-muted-foreground">{t.about.privacy_desc}</p>
                         <Button asChild variant="outline" className="min-h-11">
                             <Link href="/about">{t.settings.openAbout}</Link>
                         </Button>

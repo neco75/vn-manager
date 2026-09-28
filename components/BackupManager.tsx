@@ -188,7 +188,7 @@ export function BackupManager({ id }: { id?: string }) {
                         <Save className="w-5 h-5 text-primary" />
                         {t.settings.dataAndBackup}
                     </CardTitle>
-                    <p className="text-sm text-gray-400">{t.settings.localStorageDescription}</p>
+                    <p className="text-sm text-muted-foreground">{t.settings.localStorageDescription}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
@@ -219,11 +219,11 @@ export function BackupManager({ id }: { id?: string }) {
                         </div>
                     </div>
 
-                    <p className="text-xs text-gray-500 text-center">
+                    <p className="text-xs text-muted-foreground text-center">
                         {t.stats.importWarning}
                     </p>
 
-                    <div className="space-y-1 text-center text-xs text-gray-500">
+                    <div className="space-y-1 text-center text-xs text-muted-foreground">
                         <p>{t.settings.dataAndBackupDescription}</p>
                         <p role="status">
                             {lastExportAt
@@ -256,11 +256,11 @@ export function BackupManager({ id }: { id?: string }) {
 
                     {importState && (
                         <div className="space-y-5">
-                            <p className="text-sm text-gray-400">{t.stats.restorePreviewDesc}</p>
+                            <p className="text-sm text-muted-foreground">{t.stats.restorePreviewDesc}</p>
 
                             <dl className="grid grid-cols-2 gap-3 text-sm">
                                 <div className="rounded-lg bg-secondary/40 p-3">
-                                    <dt className="text-gray-400">{t.stats.backupFormat}</dt>
+                                    <dt className="text-muted-foreground">{t.stats.backupFormat}</dt>
                                     <dd className="font-semibold">
                                         {importState.backup.legacy
                                             ? t.stats.legacyBackup
@@ -268,15 +268,15 @@ export function BackupManager({ id }: { id?: string }) {
                                     </dd>
                                 </div>
                                 <div className="rounded-lg bg-secondary/40 p-3">
-                                    <dt className="text-gray-400">{t.stats.backupItems}</dt>
+                                    <dt className="text-muted-foreground">{t.stats.backupItems}</dt>
                                     <dd className="font-semibold">{importState.preview.total}</dd>
                                 </div>
                                 <div className="rounded-lg bg-secondary/40 p-3">
-                                    <dt className="text-gray-400">{t.stats.additions}</dt>
+                                    <dt className="text-muted-foreground">{t.stats.additions}</dt>
                                     <dd className="font-semibold">{importState.preview.additions}</dd>
                                 </div>
                                 <div className="rounded-lg bg-secondary/40 p-3">
-                                    <dt className="text-gray-400">{t.stats.conflicts}</dt>
+                                    <dt className="text-muted-foreground">{t.stats.conflicts}</dt>
                                     <dd className="font-semibold">{importState.preview.conflicts}</dd>
                                 </div>
                             </dl>
@@ -296,7 +296,7 @@ export function BackupManager({ id }: { id?: string }) {
                                     />
                                     <span>
                                         <span className="block font-medium">{t.stats.overwriteConflicts}</span>
-                                        <span className="block text-sm text-gray-400">{t.stats.overwriteConflictsDesc}</span>
+                                        <span className="block text-sm text-muted-foreground">{t.stats.overwriteConflictsDesc}</span>
                                     </span>
                                 </label>
                             )}
