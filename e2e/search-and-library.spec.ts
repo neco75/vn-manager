@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, seedLibraryItem } from "./helpers";
+import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, openAdditionalRecordFields, seedLibraryItem } from "./helpers";
 
 async function search(page: Parameters<typeof mockVNDB>[0], query: string) {
     const input = page.getByLabel("タイトルで検索");
@@ -294,6 +294,8 @@ test.describe("library flows", () => {
         await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
         await expectServerMetadataFixture(request, "v1");
         await expect(page.getByText("VNDBから最新情報を取得できませんでした。", { exact: true })).toBeVisible();
+        await expect(page.getByText("Visible intro", { exact: false })).not.toBeAttached();
+        await page.getByRole("button", { name: "あらすじ", exact: true }).click();
         await expect(page.getByText("Visible intro", { exact: false })).toBeVisible();
         await expect(page.getByText("hidden ending", { exact: true })).not.toBeAttached();
         await expect(page.getByRole("button", { name: /ネタバレを表示/ }).first()).toBeVisible();
@@ -372,8 +374,9 @@ test.describe("library flows", () => {
 
         const notes = page.getByRole("textbox", { name: "メモ (非公開)" });
         const review = page.getByRole("textbox", { name: "感想・レビュー" });
+        await openAdditionalRecordFields(page);
         const score = page.getByRole("spinbutton", { name: "スコア" });
-        const playTime = page.getByRole("spinbutton", { name: "プレイ時間 (時間)" });
+        const playTime = page.getByRole("spinbutton", { name: "プレイ時間", exact: true });
 
         await playTime.fill("-1");
         await notes.fill("draft memo survives invalid values");
@@ -385,6 +388,7 @@ test.describe("library flows", () => {
 
             await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
             await page.goto("/vn/v1");
+            await openAdditionalRecordFields(page);
             await page.getByRole("button", { name: "下書きを復元" }).click();
 
             await expect(notes).toHaveValue("draft memo survives invalid values");

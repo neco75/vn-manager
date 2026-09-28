@@ -32,6 +32,9 @@ import {
     Dialog,
     DialogClose,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +80,31 @@ function snapshotToDraft(snapshot: DraftSnapshot): DetailDraft {
     };
 }
 
+const ENGLISH_MONTHS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+// Score, play time, purchase location, and dates live in a collapsed section,
+// so a validation error for one of them has to reveal the section.
+const ADDITIONAL_FIELDS = new Set(["score", "playTime", "date", "dateOrder"]);
+
+// VNDB dates arrive as YYYY-MM-DD. Format them per language without Intl so the
+// server and the browser always render the same text.
+function formatReleaseDate(released: string, language: "ja" | "en") {
+    const matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(released.trim());
+    if (!matched) return released;
+
+    const year = Number(matched[1]);
+    const month = Number(matched[2]);
+    const day = Number(matched[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return released;
+
+    return language === "ja"
+        ? `${year}年${month}月${day}日`
+        : `${ENGLISH_MONTHS[month - 1]} ${day}, ${year}`;
+}
+
 export default function VNPage() {
     const { id } = useParams();
     const searchParams = useSearchParams();
@@ -117,8 +145,10 @@ export default function VNPage() {
     const [isDraftReady, setIsDraftReady] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const screenshotButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+    const additionalFieldsRef = useRef<HTMLDetailsElement | null>(null);
     const openedScreenshotIndexRef = useRef<number | null>(null);
     const initializedRouteRef = useRef<string | null>(null);
     const requestSequenceRef = useRef(0);
@@ -422,6 +452,9 @@ export default function VNPage() {
             invalidField === "resumeNote" ? t.modal.invalidResumeNote :
             invalidField ? t.modal.invalidDate : null;
         if (validationMessage) {
+            if (invalidField && ADDITIONAL_FIELDS.has(invalidField)) {
+                additionalFieldsRef.current?.setAttribute("open", "");
+            }
             toast.error(validationMessage);
             return;
         }
@@ -469,38 +502,37 @@ export default function VNPage() {
 
     const handleDelete = async () => {
         if (!vn || !libraryItem || isDeleting || formLocked) return;
-        if (confirm(t.modal.confirmDelete)) {
-            setIsDeleting(true);
+        setIsDeleting(true);
+        try {
+            await removeItem(vn.id);
             try {
-                await removeItem(vn.id);
-                try {
-                    removeDetailDraft(vn.id);
-                } catch (error) {
-                    console.error("Failed to clear VN draft after delete:", error);
-                    setDraftStorageError(true);
-                }
-                toast.success(t.modal.deleteSuccess);
-                setStatus("plan_to_play");
-                setOwnership("unknown");
-                setScore(null);
-                setNotes("");
-                setReview("");
-                setPlayTime(0);
-                setPurchaseLocation("");
-                setStartedOn("");
-                setCompletedOn("");
-                setLastPlayedOn("");
-                setResumeNote("");
-                setIsDirty(false);
-                setPendingDraft(null);
-                setDraftStatus("unsaved");
-                latestDraftRef.current = null;
+                removeDetailDraft(vn.id);
             } catch (error) {
-                console.error(error);
-                toast.error(t.modal.deleteError);
-            } finally {
-                setIsDeleting(false);
+                console.error("Failed to clear VN draft after delete:", error);
+                setDraftStorageError(true);
             }
+            toast.success(t.modal.deleteSuccess);
+            setStatus("plan_to_play");
+            setOwnership("unknown");
+            setScore(null);
+            setNotes("");
+            setReview("");
+            setPlayTime(0);
+            setPurchaseLocation("");
+            setStartedOn("");
+            setCompletedOn("");
+            setLastPlayedOn("");
+            setResumeNote("");
+            setIsDirty(false);
+            setPendingDraft(null);
+            setDraftStatus("unsaved");
+            latestDraftRef.current = null;
+            setIsDeleteDialogOpen(false);
+        } catch (error) {
+            console.error(error);
+            toast.error(t.modal.deleteError);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -582,16 +614,18 @@ export default function VNPage() {
                     ? t.vn.draftSaved
                     : isDirty
                         ? t.vn.draftUnsaved
-                        : draftStatus === "saved"
+                        : libraryItem
                             ? t.vn.recordSaved
-                            : t.vn.draftUnsaved;
+                            : t.vn.notAddedYet;
     const draftStatusClass = draftStatus === "error"
         ? "text-red-300"
         : draftStatus === "draft-saved"
             ? "text-blue-300"
             : isDirty
                 ? "text-amber-300"
-                : "text-emerald-300";
+                : libraryItem
+                    ? "text-emerald-300"
+                    : "text-gray-400";
 
     return (
         <div className="max-w-5xl mx-auto pb-20 relative">
@@ -717,21 +751,6 @@ export default function VNPage() {
                     )}
                 </div>
                 <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
-                    {libraryItem && (
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleDelete}
-                            disabled={formLocked || isDeleting || isSaving}
-                            aria-label={t.common.delete}
-                            title={t.common.delete}
-                            className="min-h-11 gap-2"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            {t.vn.deleteFromLibrary}
-                        </Button>
-                    )}
                     <Button
                         type="button"
                         className="min-h-11 gap-2 font-bold shadow-lg shadow-primary/25"
@@ -752,8 +771,22 @@ export default function VNPage() {
                     animate={{ opacity: 1, x: 0 }}
                     className="space-y-6"
                 >
-                    <div className="bg-card border border-white/10 rounded-xl p-6 space-y-6">
+                    <div className="bg-card border border-white/10 rounded-xl p-4 sm:p-6 space-y-6">
                         <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
+                            <Input
+                                id="detail-resume-note"
+                                disabled={Boolean(pendingDraft)}
+                                value={resumeNote}
+                                maxLength={200}
+                                onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
+                                placeholder={t.common.resumeNotePlaceholder}
+                                className="min-h-11 bg-secondary/50 border-white/10"
+                            />
+                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="detail-status">{t.common.status}</Label>
                             <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
@@ -768,77 +801,24 @@ export default function VNPage() {
                             </Select>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <Label htmlFor="detail-score">{t.common.score}</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        id="detail-score"
-                                        disabled={Boolean(pendingDraft)}
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={score ?? ""}
-                                        placeholder={t.common.unrated}
-                                        onChange={(e) => {
-                                            const raw = e.target.value;
-                                            setScore(raw === "" ? null : Number(raw));
-                                            markDirty();
-                                        }}
-                                        className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
-                                    />
-                                    <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
-                                </div>
-                            </div>
-                            <Slider
-                                disabled={Boolean(pendingDraft)}
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={[score ?? 0]}
-                                onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
-                                aria-label={t.common.score}
-                                className="cursor-pointer"
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                disabled={Boolean(pendingDraft) || score === null}
-                                onClick={() => { setScore(null); markDirty(); }}
-                            >
-                                {t.common.markUnrated}
-                            </Button>
-                            <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
-                        </div>
-
                         <div className="space-y-2">
-                            <Label htmlFor="detail-play-time">{t.common.playTime} ({t.common.hours})</Label>
-                            <Input
-                                id="detail-play-time"
-                                disabled={Boolean(pendingDraft)}
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={playTime ? playTime / 60 : ""}
-                                onChange={(e) => {
-                                    const rawValue = e.target.value.trim();
-                                    setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
+                            <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
+                            <Select
+                                value={ownership}
+                                onValueChange={(value) => {
+                                    setOwnership(value as OwnershipStatus);
                                     markDirty();
                                 }}
-                                className="min-h-11 bg-secondary/50 border-white/10"
-                                placeholder="0.0"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
-                            <PurchaseLocationSelector
-                                id="detail-purchase-location"
-                                disabled={Boolean(pendingDraft)}
-                                value={purchaseLocation}
-                                onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
-                            />
+                            >
+                                <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
+                                    <SelectItem value="owned">{t.ownership.owned}</SelectItem>
+                                    <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="space-y-2">
@@ -871,44 +851,92 @@ export default function VNPage() {
                             </ErrorBoundary>
                         </div>
 
-                        <details className="rounded-lg border border-white/10 p-4">
-                            <summary className="cursor-pointer font-medium">{t.common.recordDetails}</summary>
+                        <details ref={additionalFieldsRef} data-testid="detail-additional-fields" className="rounded-lg border border-white/10 p-4">
+                            <summary className="cursor-pointer">
+                                <span className="inline-flex min-h-11 items-center font-medium">{t.vn.additionalFields}</span>
+                            </summary>
                             <div className="mt-4 space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
-                            <Select
-                                value={ownership}
-                                        onValueChange={(value) => {
-                                            setOwnership(value as OwnershipStatus);
-                                            markDirty();
-                                        }}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="detail-score">{t.common.score}</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="detail-score"
+                                                disabled={Boolean(pendingDraft)}
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={score ?? ""}
+                                                placeholder={t.common.unrated}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    setScore(raw === "" ? null : Number(raw));
+                                                    markDirty();
+                                                }}
+                                                className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                            />
+                                            <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
+                                        </div>
+                                    </div>
+                                    <Slider
+                                        disabled={Boolean(pendingDraft)}
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                        value={[score ?? 0]}
+                                        onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
+                                        aria-label={t.common.score}
+                                        className="cursor-pointer"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={Boolean(pendingDraft) || score === null}
+                                        onClick={() => { setScore(null); markDirty(); }}
                                     >
-                                        <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
-                                            <SelectItem value="owned">{t.ownership.owned}</SelectItem>
-                                            <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                        {t.common.markUnrated}
+                                    </Button>
+                                    {score === 0 && (
+                                        <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-play-time">{t.common.playTime}</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="detail-play-time"
+                                            disabled={Boolean(pendingDraft)}
+                                            type="number"
+                                            min="0"
+                                            step="0.5"
+                                            value={playTime ? playTime / 60 : ""}
+                                            onChange={(e) => {
+                                                const rawValue = e.target.value.trim();
+                                                setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
+                                                markDirty();
+                                            }}
+                                            className="min-h-11 bg-secondary/50 border-white/10"
+                                            placeholder="0.0"
+                                        />
+                                        <span className="text-sm text-muted-foreground">{t.common.hours}</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
+                                    <PurchaseLocationSelector
+                                        id="detail-purchase-location"
+                                        disabled={Boolean(pendingDraft)}
+                                        value={purchaseLocation}
+                                        onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
+                                    />
                                 </div>
 
                                 <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
                                 <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
                                 <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
-                                    <Input
-                                        id="detail-resume-note"
-                                        disabled={Boolean(pendingDraft)}
-                                        value={resumeNote}
-                                        maxLength={200}
-                                        onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
-                                        placeholder={t.common.resumeNotePlaceholder}
-                                    />
-                                </div>
                             </div>
                         </details>
 
@@ -935,7 +963,7 @@ export default function VNPage() {
                                     </Badge>
                                     <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
                                         <Calendar className="h-4 w-4 text-blue-400" />
-                                        <span>{vn.released || t.common.tba}</span>
+                                        <span>{vn.released ? formatReleaseDate(vn.released, language) : t.common.tba}</span>
                                     </Badge>
                                     {vn.length_minutes && (
                                         <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
@@ -971,8 +999,7 @@ export default function VNPage() {
                         </Accordion>
 
                         <Accordion
-                            title={<div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> {t.common.synopsis}</div>}
-                            defaultOpen={true}
+                            title={<div className="flex items-center gap-2"><BookOpen data-testid="detail-synopsis-icon" className="w-5 h-5 text-primary" /> {t.common.synopsis}</div>}
                         >
                             <SpoilerSynopsis key={vn.id} description={vn.description} />
                         </Accordion>
@@ -1068,8 +1095,64 @@ export default function VNPage() {
 
 
                     </div>
+
+                    {libraryItem && (
+                        <div data-testid="detail-delete-zone" className="space-y-2 rounded-xl border border-white/10 bg-card p-4">
+                            <h3 className="text-sm font-bold">{t.vn.deleteZoneTitle}</h3>
+                            <p className="text-xs text-muted-foreground">{t.vn.deleteZoneDescription}</p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="min-h-11 w-full gap-2 border-red-400/30 text-red-300 hover:bg-red-950/40 hover:text-red-200"
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                                disabled={formLocked || isDeleting || isSaving}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                {t.vn.deleteFromLibrary}
+                            </Button>
+                        </div>
+                    )}
                 </motion.div>
             </div>
+
+            <Dialog
+                open={isDeleteDialogOpen}
+                onOpenChange={(open) => {
+                    if (!isDeleting) setIsDeleteDialogOpen(open);
+                }}
+            >
+                <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10">
+                    <DialogHeader>
+                        <DialogTitle>{t.vn.deleteDialogTitle}</DialogTitle>
+                        <DialogDescription>
+                            {t.vn.deleteDialogWork}: <span className="font-medium text-white">{displayTitle}</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 text-sm">
+                        <p className="font-medium">{t.vn.deleteDialogLosesTitle}</p>
+                        <p className="text-muted-foreground">{t.vn.deleteDialogLoses}</p>
+                        <p className="text-muted-foreground">{t.vn.deleteDialogKeepsGame}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            disabled={isDeleting}
+                        >
+                            {t.common.cancel}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? t.modal.deleting : t.vn.deleteDialogAction}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog
                 open={selectedImageIndex !== null}

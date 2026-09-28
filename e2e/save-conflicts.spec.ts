@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
     holdVNDBIdRequest,
     mockVNDB,
+    openAdditionalRecordFields,
     readLibraryItem,
     seedLibraryItem,
 } from "./helpers";
@@ -28,8 +29,9 @@ test.describe("concurrent library saves", () => {
         await mockVNDB(editorPage);
         await editorPage.goto("/vn/v1");
         const notes = editorPage.getByRole("textbox", { name: "メモ (非公開)" });
+        await openAdditionalRecordFields(editorPage);
         const score = editorPage.getByRole("spinbutton", { name: "スコア" });
-        const playTime = editorPage.getByRole("spinbutton", { name: "プレイ時間 (時間)" });
+        const playTime = editorPage.getByRole("spinbutton", { name: "プレイ時間", exact: true });
         const purchaseLocation = editorPage.getByRole("combobox", { name: "購入先を選択" });
         await expect(notes).toHaveValue("before refresh");
         await expect(score).toHaveValue("80");
@@ -107,8 +109,8 @@ test.describe("concurrent library saves", () => {
         const editorPage = await context.newPage();
         await mockVNDB(editorPage);
         await editorPage.goto("/vn/v1");
-        editorPage.once("dialog", (dialog) => void dialog.accept());
-        await editorPage.getByRole("button", { name: "削除", exact: true }).click();
+        await editorPage.getByRole("button", { name: "ライブラリから削除", exact: true }).click();
+        await editorPage.getByRole("dialog").getByRole("button", { name: "この記録を削除", exact: true }).click();
         await expect(editorPage.getByText("削除しました", { exact: true })).toBeVisible();
         await expect.poll(async () => readLibraryItem(page, "v1")).toBeUndefined();
 

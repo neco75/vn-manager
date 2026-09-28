@@ -272,6 +272,15 @@ export async function readLibraryItem(page: Page, id: string) {
     }), { dbName: DB_NAME, dbVersion: DB_VERSION, id });
 }
 
+// The score, play time, purchase location, and dates live in a collapsed
+// section on the detail page. Expand it before interacting with those fields.
+export async function openAdditionalRecordFields(page: Page) {
+    const details = page.getByTestId("detail-additional-fields");
+    const isOpen = await details.evaluate((element) => (element as HTMLDetailsElement).open);
+    if (!isOpen) await details.locator("summary").click();
+    await page.getByTestId("detail-score-suffix").waitFor({ state: "visible" });
+}
+
 export async function seedPurchaseSources(page: Page, names: string[]) {
     await page.evaluate(({ dbName, dbVersion, names }) => new Promise<void>((resolve, reject) => {
         const request = indexedDB.open(dbName, dbVersion);
