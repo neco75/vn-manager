@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Database, Github, Laptop, Shield, Star, Trophy, Sparkles } from "lucide-react";
+import { Database, ExternalLink, Laptop, Shield, Star, Trophy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion } from "@/components/Accordion";
 import { useLanguage } from "@/context/LanguageContext";
@@ -100,7 +100,7 @@ export default function AboutPage() {
                             </p>
                             <Button variant="outline" className="gap-2 mt-2" asChild>
                                 <a href="https://github.com/neco75/vn-manager" target="_blank" rel="noopener noreferrer">
-                                    <Github className="w-4 h-4" />
+                                    <ExternalLink className="w-4 h-4" />
                                     {t.about.github_button}
                                 </a>
                             </Button>
