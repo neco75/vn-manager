@@ -281,14 +281,14 @@ function HomeContent() {
     };
 
     if (isLoading) {
-        return <div className="flex items-center justify-center h-64 text-gray-500">{t.common.loading}</div>;
+        return <div className="flex items-center justify-center h-64 text-muted-foreground">{t.common.loading}</div>;
     }
 
     if (loadError) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
                 <h2 className="text-2xl font-bold">{t.home.loadErrorTitle}</h2>
-                <p className="text-gray-400 max-w-md">{t.home.loadErrorDesc}</p>
+                <p className="text-muted-foreground max-w-md">{t.home.loadErrorDesc}</p>
                 <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
             </div>
         );
@@ -298,11 +298,11 @@ function HomeContent() {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6">
                 <div className="w-24 h-24 rounded-full bg-secondary/50 flex items-center justify-center">
-                    <Plus className="w-10 h-10 text-gray-500" />
+                    <Plus className="w-10 h-10 text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
                     <h2 className="text-2xl font-bold">{t.home.emptyTitle}</h2>
-                    <p className="text-gray-400 max-w-sm">{t.home.emptyDesc}</p>
+                    <p className="text-muted-foreground max-w-sm">{t.home.emptyDesc}</p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/25">
@@ -331,7 +331,7 @@ function HomeContent() {
                         </Button>
                         <Button
                             variant="outline"
-                            className="gap-2 min-h-11 border-accent/20 text-accent hover:bg-accent/10 hover:text-accent"
+                            className="gap-2 min-h-11 border-primary/40 text-primary hover:bg-accent/10 hover:text-primary"
                             onClick={() => setIsRouletteOpen(true)}
                             aria-label={t.home.rouletteButton}
                         >
@@ -371,7 +371,7 @@ function HomeContent() {
                                 <TabsTrigger
                                     key={status.value}
                                     value={status.value}
-                                    className="rounded-full px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-secondary data-[state=inactive]:text-gray-400 transition-all"
+                                    className="rounded-full px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-secondary data-[state=inactive]:text-muted-foreground transition-all"
                                 >
                                     {status.label}
                                     <span className="ml-2 text-xs opacity-70">({statusCounts[status.value] || 0})</span>
@@ -521,7 +521,7 @@ function HomeContent() {
                                     {item.vn.developers?.[0]?.name && (
                                         <p className="truncate text-xs text-muted-foreground">{item.vn.developers[0].name}</p>
                                     )}
-                                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mt-1">
+                                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
                                         <div className="flex items-center gap-1">
                                             <Star className="w-3 h-3 text-yellow-500" aria-hidden="true" />
                                             <span className="text-yellow-500 font-bold">{item.score === null ? t.common.unrated : `${item.score}/100`}</span>

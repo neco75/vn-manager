@@ -1,7 +1,7 @@
 "use client";
 
 import { useLibrary } from "@/context/LibraryContext";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { CalendarDays, Clock, Gamepad2, Hash, Loader2, PieChart, RefreshCw, Share2, Star, Trophy } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -66,14 +66,14 @@ export default function StatsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold">{t.stats.title}</h1>
-                    <p className="text-gray-400">{t.stats.subtitle}</p>
+                    <p className="text-muted-foreground">{t.stats.subtitle}</p>
                 </div>
                 <div className="flex gap-2">
                     <Button
                         variant="ghost"
                         onClick={handleRefresh}
                         disabled={isRefreshing || items.length === 0 || isLoading || loadError}
-                        className="gap-2 rounded-full text-gray-400 hover:text-white"
+                        className="gap-2 rounded-full text-muted-foreground hover:text-white"
                     >
                         <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
                         {t.stats.refreshNSFW}
@@ -103,38 +103,38 @@ export default function StatsPage() {
                     </div>
 
                     <div className="space-y-2 text-center">
-                        <p className="text-gray-400 text-sm">{t.stats.refreshDescription}</p>
+                        <p className="text-muted-foreground text-sm">{t.stats.refreshDescription}</p>
                         <div className="text-2xl font-mono font-bold text-white">
-                            {refreshProgress.current} <span className="text-gray-500 text-lg">/ {refreshProgress.total}</span>
+                            {refreshProgress.current} <span className="text-muted-foreground text-lg">/ {refreshProgress.total}</span>
                         </div>
                     </div>
 
-                    <p className="text-xs text-gray-500 italic">{t.stats.refreshNote}</p>
+                    <p className="text-xs text-muted-foreground italic">{t.stats.refreshNote}</p>
                 </DialogContent>
             </Dialog>
 
             {isLoading ? (
-                <div className="rounded-2xl border border-border bg-card p-8 text-center text-gray-400" role="status">
+                <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground" role="status">
                     {t.common.loading}
                 </div>
             ) : loadError ? (
                 <div className="rounded-2xl border border-destructive/40 bg-card p-8 text-center space-y-4" role="alert">
                     <h2 className="text-xl font-semibold">{t.home.loadErrorTitle}</h2>
-                    <p className="text-sm text-gray-400">{t.home.loadErrorDesc}</p>
+                    <p className="text-sm text-muted-foreground">{t.home.loadErrorDesc}</p>
                     <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
                 </div>
             ) : (
-                <div ref={shareRef} className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">
+                <div ref={shareRef} data-testid="stats-share-root" className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                            <h2 data-testid="stats-share-heading" className="text-2xl font-bold text-foreground">
                                 {t.stats.shareTitle}
                             </h2>
-                            <p className="mt-2 text-sm text-gray-400">
+                            <p className="mt-2 text-sm text-muted-foreground">
                                 {t.stats.sharePeriod} · {t.stats.shareScope} · {t.stats.shareUnits}
                             </p>
                         </div>
-                        <div className="text-sm text-gray-500">VN Manager</div>
+                        <div className="text-sm text-muted-foreground">VN Manager</div>
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -149,7 +149,7 @@ export default function StatsPage() {
                             value={stats.completed}
                         />
                         <StatCard
-                            icon={<Star className="w-6 h-6 text-accent" />}
+                            icon={<Star className="w-6 h-6 text-primary" />}
                             label={t.stats.avgScore}
                             value={stats.averageScore === null ? "—" : stats.averageScore.toFixed(1)}
                             detail={t.stats.ratedCount.replace("{count}", String(stats.ratedCount))}
@@ -161,10 +161,10 @@ export default function StatsPage() {
                         />
                     </div>
 
-                    <p className="-mt-4 text-sm text-gray-400">{t.stats.recordedPlaytimeNote}</p>
+                    <p className="-mt-4 text-sm text-muted-foreground">{t.stats.recordedPlaytimeNote}</p>
 
                     {items.length === 0 ? (
-                        <div className="rounded-2xl border border-white/10 bg-card p-8 text-center text-gray-400 space-y-4">
+                        <div className="rounded-2xl border border-white/10 bg-card p-8 text-center text-muted-foreground space-y-4">
                             <p>{t.stats.noRecords}</p>
                             <Button asChild>
                                 <Link href="/search">{t.home.addButton}</Link>
@@ -178,18 +178,18 @@ export default function StatsPage() {
                                 </CardHeader>
                                 <CardContent>
                                     {stats.estimatedUnstartedCount === 0 ? (
-                                        <p className="text-sm text-gray-400">{t.stats.noEstimatedPlaytimeTarget}</p>
+                                        <p className="text-sm text-muted-foreground">{t.stats.noEstimatedPlaytimeTarget}</p>
                                     ) : (
                                         <>
                                             <div className="text-3xl font-bold">
                                                 {formatHours(stats.estimatedUnstartedMinutes, t.common.hours)}
                                             </div>
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-muted-foreground">
                                                 {t.stats.estimatedTargetCount.replace("{count}", String(stats.estimatedUnstartedCount))}
                                             </p>
                                         </>
                                     )}
-                                    <p className="mt-2 text-sm text-gray-400">{t.stats.estimatedPlaytimeNote}</p>
+                                    <p className="mt-2 text-sm text-muted-foreground">{t.stats.estimatedPlaytimeNote}</p>
                                 </CardContent>
                             </Card>
 
@@ -203,7 +203,7 @@ export default function StatsPage() {
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         {stats.monthlyCompleted.length === 0 ? (
-                                            <p className="text-sm text-gray-400">{t.stats.noCompletionHistory}</p>
+                                            <p className="text-sm text-muted-foreground">{t.stats.noCompletionHistory}</p>
                                         ) : (
                                             stats.monthlyCompleted.map((entry) => (
                                                 <ProgressBar
@@ -216,7 +216,7 @@ export default function StatsPage() {
                                             ))
                                         )}
                                         {stats.completedWithoutDate > 0 && (
-                                            <p className="text-sm text-gray-400">
+                                            <p className="text-sm text-muted-foreground">
                                                 {t.stats.completedWithoutDate.replace("{count}", String(stats.completedWithoutDate))}
                                             </p>
                                         )}
@@ -226,7 +226,7 @@ export default function StatsPage() {
                                 <Card className="border-white/10">
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
-                                            <PieChart className="w-5 h-5 text-accent" />
+                                            <PieChart className="w-5 h-5 text-primary" />
                                             {t.stats.statusDist}
                                         </CardTitle>
                                     </CardHeader>
@@ -249,9 +249,9 @@ export default function StatsPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <p className="text-sm text-gray-400">{t.stats.tagFrequencyNote}</p>
+                                    <p className="text-sm text-muted-foreground">{t.stats.tagFrequencyNote}</p>
                                     {stats.tagFrequencies.length === 0 ? (
-                                        <p className="text-sm text-gray-400">{t.stats.noAggregationTarget}</p>
+                                        <p className="text-sm text-muted-foreground">{t.stats.noAggregationTarget}</p>
                                     ) : (
                                         stats.tagFrequencies.map((tag) => (
                                             <ProgressBar
@@ -259,7 +259,7 @@ export default function StatsPage() {
                                                 label={tag.name}
                                                 value={tag.count}
                                                 total={stats.tagFrequencies[0].count}
-                                                color="bg-accent"
+                                                color="bg-primary"
                                             />
                                         ))
                                     )}
@@ -295,25 +295,27 @@ function StatCard({
         <Card className="flex flex-col items-center justify-center p-6 text-center border-white/10">
             <div className="p-3 rounded-full bg-secondary/50 mb-2">{icon}</div>
             <div className="text-3xl font-bold">{value}</div>
-            <div className="text-sm text-gray-400">{label}</div>
-            {detail && <div className="mt-1 text-xs text-gray-500">{detail}</div>}
+            <div className="text-sm text-muted-foreground">{label}</div>
+            {detail && <div className="mt-1 text-xs text-muted-foreground">{detail}</div>}
         </Card>
     );
 }
 
 function ProgressBar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+    const reduceMotion = useReducedMotion();
     const percentage = total > 0 ? (value / total) * 100 : 0;
     return (
         <div className="space-y-2">
             <div className="flex justify-between gap-4 text-sm font-medium">
                 <span className="truncate">{label}</span>
-                <span className="shrink-0 text-gray-400">{value}</span>
+                <span className="shrink-0 text-muted-foreground">{value}</span>
             </div>
-            <div className="h-3 bg-secondary rounded-full overflow-hidden">
+            <div data-testid="stats-progress-track" className="h-3 bg-secondary rounded-full overflow-hidden">
                 <motion.div
-                    initial={{ width: 0 }}
+                    data-testid="stats-progress-fill"
+                    initial={reduceMotion ? false : { width: 0 }}
                     animate={{ width: `${Math.min(100, percentage)}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
+                    transition={{ duration: reduceMotion ? 0 : 1, ease: "easeOut" }}
                     className={`h-full ${color}`}
                 />
             </div>

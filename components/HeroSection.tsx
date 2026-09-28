@@ -15,7 +15,7 @@ export function HeroSection() {
                     transition={{ duration: 0.5 }}
                     className="text-4xl sm:text-5xl font-bold tracking-tight text-white"
                 >
-                    あなたの<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">物語</span>を<br />管理しよう
+                    あなたの<span className="text-primary">物語</span>を<br />管理しよう
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}

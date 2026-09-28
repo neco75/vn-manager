@@ -160,7 +160,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     disabled={isSaving}
                                     className={cn(
                                         "min-h-11 w-full",
-                                        status === s.value ? "font-bold" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"
+                                        status === s.value ? "font-bold" : "border-white/10 text-muted-foreground hover:text-white hover:bg-white/5"
                                     )}
                                 >
                                     {s.label}
@@ -188,7 +188,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     placeholder={t.common.unrated}
                                     className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
                                 />
-                                <span className="text-sm text-gray-500">/ 100</span>
+                                <span className="text-sm text-muted-foreground">/ 100</span>
                             </div>
                         </div>
                         <Slider
@@ -212,7 +212,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         >
                             {t.common.markUnrated}
                         </Button>
-                        <p className="text-xs text-gray-500">{t.common.legacyZeroScoreNote}</p>
+                        <p className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
