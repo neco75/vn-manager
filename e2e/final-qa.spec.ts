@@ -6,6 +6,7 @@ import {
     armBackupRestoreFailure,
     FIXTURE_STATUS_URL,
     mockVNDB,
+    openAdditionalRecordFields,
     readLibraryIds,
     readLibraryItem,
     readPurchaseSourceNames,
@@ -98,9 +99,9 @@ test.describe("final roadmap acceptance", () => {
         await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
         await expectServerMetadataFixture(request, "v1");
 
+        await openAdditionalRecordFields(page);
         await page.locator("#detail-score").fill("88");
         await page.getByRole("textbox", { name: "メモ (非公開)" }).fill("first-use memo");
-        await page.locator("details").locator("summary").click();
         await page.locator("#detail-ownership").click();
         await page.getByRole("option", { name: "所有済み", exact: true }).click();
         await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
@@ -337,6 +338,8 @@ test.describe("final roadmap acceptance", () => {
         await page.getByRole("button", { name: /タグ/ }).click();
         await expect(page.getByText("Hidden route", { exact: true })).not.toBeAttached();
 
+        await expect(page.getByRole("button", { name: "あらすじ", exact: true })).toHaveAttribute("aria-expanded", "false");
+        await page.getByRole("button", { name: "あらすじ", exact: true }).click();
         const revealButtons = page.getByRole("button", { name: /ネタバレを表示/ });
         await expect(revealButtons).toHaveCount(2);
         await revealButtons.last().click();
@@ -364,6 +367,8 @@ test.describe("final roadmap acceptance", () => {
 
                 await page.locator('a[href^="/vn/v1?from="]').first().click();
                 await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
+                await expectNoHorizontalOverflow(page);
+                await openAdditionalRecordFields(page);
                 await expectNoHorizontalOverflow(page);
                 await page.locator("#detail-score").fill("77");
                 await page.getByRole("textbox", { name: "メモ (非公開)" }).fill(`responsive memo ${width}`);
@@ -405,6 +410,10 @@ test.describe("final roadmap acceptance", () => {
         await tabUntilFocused(page, detailLink);
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/vn\/v1\?from=/);
+
+        const additionalSummary = page.getByTestId("detail-additional-fields").locator("summary");
+        await tabUntilFocused(page, additionalSummary);
+        await page.keyboard.press("Enter");
 
         const score = page.locator("#detail-score");
         await tabUntilFocused(page, score);

@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from "@playwright/test";
-import { mockVNDB, seedLibraryItem } from "./helpers";
+import { mockVNDB, openAdditionalRecordFields, seedLibraryItem } from "./helpers";
 import fixture from "./fixtures/vndb.json";
 import type { VN } from "@/types/vndb";
 
@@ -125,6 +125,7 @@ test.describe("Issue #53 accessibility regressions", () => {
 
             await page.goto("/vn/v1");
             await page.getByRole("button", { name: language === "ja" ? "作品情報" : "Title information", exact: true }).click();
+            await openAdditionalRecordFields(page);
             await expectReadableText(page.getByTestId("detail-score-suffix"), `${language} detail /100 label`);
             await expectReadableText(page.getByTestId("detail-legacy-score-note"), `${language} legacy zero-score note`);
             await expectReadableText(page.getByTestId("detail-vndb-score-suffix"), `${language} VNDB score label`);
@@ -208,6 +209,7 @@ test.describe("Issue #53 accessibility regressions", () => {
     test("names the actual Radix slider thumb", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/vn/v1");
+        await openAdditionalRecordFields(page);
 
         await expect(page.getByRole("slider", { name: "スコア", exact: true })).toBeVisible();
     });
