@@ -64,7 +64,7 @@ export function MarkdownEditor({
     };
 
     return (
-        <div className={cn("flex flex-col overflow-hidden rounded-lg border border-border bg-card", className)}>
+        <div className={cn("flex flex-col overflow-hidden rounded-lg border border-input bg-card", className)}>
             <div className="flex items-center border-b border-border bg-secondary px-2">
                 <button
                     type="button"

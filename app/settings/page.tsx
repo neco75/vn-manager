@@ -18,7 +18,9 @@ export default function SettingsPage() {
         <div className="mx-auto max-w-4xl space-y-8 pb-20">
             <header className="space-y-2">
                 <h1 className="text-3xl font-bold">{t.settings.title}</h1>
-                <p className="text-muted-foreground">{t.settings.dataAndBackupDescription}</p>
+                <p className="inline-block w-fit max-w-full rounded-md bg-background px-2 py-1 text-muted-foreground">
+                    {t.settings.dataAndBackupDescription}
+                </p>
             </header>
 
             <section id="backup" aria-labelledby="settings-data-title" className="space-y-3">

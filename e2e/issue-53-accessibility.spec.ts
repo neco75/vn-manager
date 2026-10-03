@@ -5,6 +5,8 @@ import type { VN } from "@/types/vndb";
 
 const BRIGHT_BACKGROUND =
     "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E";
+const DARK_BACKGROUND =
+    "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22black%22%2F%3E%3C%2Fsvg%3E";
 
 type RGB = [number, number, number];
 
@@ -61,7 +63,11 @@ async function expectDiscernibleUI(locator: Locator, label: string) {
     expect(contrastRatio(colors.foreground, colors.background), label).toBeGreaterThanOrEqual(3);
 }
 
-async function expectSettingsContrast(page: import("@playwright/test").Page, language: "ja" | "en") {
+async function expectSettingsContrast(
+    page: import("@playwright/test").Page,
+    language: "ja" | "en",
+    backgroundPixel: RGB = [255, 255, 255],
+) {
     await expect(page.getByRole("heading", { name: language === "ja" ? "設定" : "Settings", exact: true })).toBeVisible();
     await page.mouse.move(0, 0);
     const selectedLanguageButton = page.locator('main section[aria-labelledby="settings-display-title"] button[aria-pressed="true"]');
@@ -87,6 +93,7 @@ async function expectSettingsContrast(page: import("@playwright/test").Page, lan
             backgroundOpacity: backgroundLayer ? Number(getComputedStyle(backgroundLayer).opacity) : 0,
             heading: color(pageHeading),
             pageDescription: color(pageDescription),
+            pageDescriptionBackground: pageDescription ? getComputedStyle(pageDescription).backgroundColor : "",
             cardDescription: color(cardDescription),
             cardBackground: card ? getComputedStyle(card).backgroundColor : "",
             buttonForeground: color(selectedButton),
@@ -95,13 +102,21 @@ async function expectSettingsContrast(page: import("@playwright/test").Page, lan
     });
 
     const pageBackground = channels(colors.pageBackground);
-    const compositedBackground = pageBackground.map((channel) =>
-        Math.round(channel * (1 - colors.backgroundOpacity) + 255 * colors.backgroundOpacity),
-    ).join(", ");
-    const pageSurface = `rgb(${compositedBackground})`;
+    const compositedBackground = pageBackground.map((channel, index) =>
+        Math.round(channel * (1 - colors.backgroundOpacity) + backgroundPixel[index] * colors.backgroundOpacity),
+    );
+    const pageSurface = `rgb(${compositedBackground.join(", ")})`;
+    const descriptionBackgroundValues = colors.pageDescriptionBackground.match(/[\d.]+/g);
+    const descriptionBackground = channels(colors.pageDescriptionBackground);
+    const descriptionBackgroundOpacity = descriptionBackgroundValues?.[3] === undefined
+        ? 1
+        : Number(descriptionBackgroundValues[3]);
+    const descriptionSurface = `rgb(${descriptionBackground.map((channel, index) =>
+        Math.round(channel * descriptionBackgroundOpacity + compositedBackground[index] * (1 - descriptionBackgroundOpacity)),
+    ).join(", ")})`;
 
     expect(contrastRatio(colors.heading, pageSurface), `${language} settings heading on page background`).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(colors.pageDescription, pageSurface), `${language} settings description with background ${colors.backgroundOpacity}`).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.pageDescription, descriptionSurface), `${language} settings description with background ${colors.backgroundOpacity}`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.cardDescription, colors.cardBackground), `${language} settings card description`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.buttonForeground, colors.buttonBackground), `${language} selected language button text`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.buttonBackground, colors.cardBackground), `${language} selected language button UI`).toBeGreaterThanOrEqual(3);
@@ -220,6 +235,15 @@ test.describe("Issue #53 accessibility regressions", () => {
         await expectSearchInputContrast(page, "ja");
     });
 
+    test("keeps settings descriptions readable over a dark background image in both languages", async ({ page }) => {
+        await page.addInitScript((background) => localStorage.setItem("vn-manager-bg", background), DARK_BACKGROUND);
+        await page.goto("/settings");
+
+        await expectSettingsContrast(page, "ja", [0, 0, 0]);
+        await page.getByRole("button", { name: "英語", exact: true }).click();
+        await expectSettingsContrast(page, "en", [0, 0, 0]);
+    });
+
     test("matches the desktop language switch's visible EN/JA label and accessible name", async ({ page }) => {
         await page.goto("/settings");
 
@@ -271,7 +295,66 @@ test.describe("Issue #53 accessibility regressions", () => {
         await page.goto("/vn/v1");
         await openAdditionalRecordFields(page);
 
-        await expect(page.getByRole("slider", { name: "スコア", exact: true })).toBeVisible();
+        const slider = page.getByRole("slider", { name: "スコア", exact: true });
+        await expect(slider).toBeVisible();
+        const thumbBox = await slider.boundingBox();
+        const sliderBox = await slider.locator("xpath=..").boundingBox();
+        expect(thumbBox).not.toBeNull();
+        expect(sliderBox).not.toBeNull();
+        expect(thumbBox!.width).toBeGreaterThanOrEqual(44);
+        expect(thumbBox!.height).toBeGreaterThanOrEqual(44);
+        expect(sliderBox!.height).toBeGreaterThanOrEqual(44);
+        const before = Number(await slider.getAttribute("aria-valuenow"));
+        await slider.focus();
+        await page.keyboard.press(before >= 100 ? "ArrowLeft" : "ArrowRight");
+        await expect(slider).toHaveAttribute("aria-valuenow", String(before >= 100 ? before - 1 : before + 1));
+    });
+
+    test("keeps desktop status tabs and mobile status select operable", async ({ page }) => {
+        await mockVNDB(page);
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto("/");
+        await seedLibraryItem(page, "v1");
+        await page.reload();
+
+        const tabs = page.locator('[data-slot="tabs-trigger"]');
+        await expect(tabs).toHaveCount(7);
+        for (const tab of await tabs.all()) {
+            const box = await tab.boundingBox();
+            expect(box).not.toBeNull();
+            expect(box!.height).toBeGreaterThanOrEqual(44);
+        }
+
+        const inactiveTab = page.locator('[data-slot="tabs-trigger"][data-state="inactive"]').first();
+        const tabCount = inactiveTab.locator("span");
+        const countColors = await tabCount.evaluate((element) => ({
+            foreground: getComputedStyle(element).color,
+            background: getComputedStyle(element.parentElement!).backgroundColor,
+            opacity: getComputedStyle(element).opacity,
+        }));
+        expect(countColors.opacity).toBe("1");
+        expect(contrastRatio(countColors.foreground, countColors.background), "inactive status tab count").toBeGreaterThanOrEqual(4.5);
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expect(page.locator('[data-slot="tabs-list"]')).toBeHidden();
+        const statusSelect = page.getByRole("combobox", { name: "ステータス", exact: true });
+        await expect(statusSelect).toBeVisible();
+        const statusSelectBox = await statusSelect.boundingBox();
+        expect(statusSelectBox).not.toBeNull();
+        expect(statusSelectBox!.height).toBeGreaterThanOrEqual(44);
+
+        await statusSelect.click();
+        const options = page.getByRole("option");
+        await expect(options.first()).toBeVisible();
+        await expect(options).toHaveCount(7);
+        await expect.poll(async () => (await options.first().boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+        for (const option of await options.all()) {
+            const box = await option.boundingBox();
+            expect(box).not.toBeNull();
+            expect(box!.height).toBeGreaterThanOrEqual(44);
+        }
+        await page.getByRole("option", { name: "プレイ中", exact: true }).click();
+        await expect(page).toHaveURL(/status=playing/);
     });
 
     test("shows keyboard focus on the Markdown textarea without removing its scroll margin", async ({ page }) => {
@@ -296,6 +379,13 @@ test.describe("Issue #53 accessibility regressions", () => {
         expect(focusStyle.outlineWidth).toBe("2px");
         const textareaBackground = (await renderedColors(textarea)).background;
         expect(contrastRatio(focusStyle.outlineColor, textareaBackground), "Markdown keyboard focus outline").toBeGreaterThanOrEqual(3);
+
+        const editor = textarea.locator("xpath=..");
+        const editorBoundary = await editor.evaluate((element) => ({
+            border: getComputedStyle(element).borderTopColor,
+            background: getComputedStyle(element).backgroundColor,
+        }));
+        expect(contrastRatio(editorBoundary.border, editorBoundary.background), "Markdown editor boundary").toBeGreaterThanOrEqual(3);
     });
 
     test("respects reduced motion for decorative roulette and CSS animation", async ({ page }) => {

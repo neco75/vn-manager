@@ -358,29 +358,47 @@ function HomeContent() {
                 </div>
 
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <Tabs
-                        value={filter}
-                        onValueChange={(value) => {
-                            const nextFilter = value as LibraryFilter;
-                            replaceLibraryUrl({ filter: nextFilter });
-                        }}
-                        className="min-w-0"
-                    >
-                        <TabsList className="w-full justify-start overflow-x-auto no-scrollbar bg-transparent p-0 h-auto gap-2">
-                            {statusFilters.map((status) => (
-                                <TabsTrigger
-                                    key={status.value}
-                                    value={status.value}
-                                    className="rounded-full px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-secondary data-[state=inactive]:text-muted-foreground transition-all"
-                                >
-                                    {status.label}
-                                    <span className="ml-2 text-xs opacity-70">({statusCounts[status.value] || 0})</span>
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:min-w-0 sm:flex-1 sm:items-center">
+                        <div className="md:hidden">
+                            <Select
+                                value={filter}
+                                onValueChange={(value) => replaceLibraryUrl({ filter: value as LibraryFilter })}
+                            >
+                                <SelectTrigger aria-label={t.common.status} className="min-h-11 w-full border-input bg-card">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {statusFilters.map((status) => (
+                                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <div className="hidden min-w-0 flex-1 md:block">
+                            <Tabs
+                                value={filter}
+                                onValueChange={(value) => {
+                                    const nextFilter = value as LibraryFilter;
+                                    replaceLibraryUrl({ filter: nextFilter });
+                                }}
+                                className="min-w-0"
+                            >
+                                <TabsList className="w-full justify-start overflow-x-auto no-scrollbar bg-transparent p-0 h-auto gap-2">
+                                    {statusFilters.map((status) => (
+                                        <TabsTrigger
+                                            key={status.value}
+                                            value={status.value}
+                                            className="min-h-11 rounded-full px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-secondary data-[state=inactive]:text-muted-foreground transition-all"
+                                        >
+                                            {status.label}
+                                            <span className="ml-2 text-xs">({statusCounts[status.value] || 0})</span>
+                                        </TabsTrigger>
+                                    ))}
+                                </TabsList>
+                            </Tabs>
+                        </div>
+
                         <Select
                             value={ownershipFilter}
                             onValueChange={(value) => {
@@ -397,7 +415,9 @@ function HomeContent() {
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
 
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                         <Select
                             value={sort}
                             onValueChange={(value) => {
