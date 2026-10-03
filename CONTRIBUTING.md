@@ -19,7 +19,7 @@ npm audit --audit-level=high
 
 `test:unit` は Vitest + React Testing Library、`test:e2e` は Playwright の Chromium 実行です。E2E は `next build` / `next start` を使い、ブラウザ側のVNDB APIは `e2e/fixtures/vndb.json` をroute interceptionで返します。詳細ページのServer Component側のmetadata取得も `e2e/fixture-server.mjs` でfixture化し、`e2e/guard-network.cjs` で実APIへの接続を失敗させるため、実VNDBへ接続しません。E2E間のIndexedDBはテスト用BrowserContextごとに分離されます。
 
-CIはPR作成・更新時とmainへのpush時に上記を実行します。
+CIはmain・develop-v2を統合先とするPR作成・更新時と、両ブランチへのpush時に上記を実行します。
 監査は開発依存も対象とし、high / criticalで失敗します。低・中レベルも出力を確認してください。
 Lintの既存警告を理由なく増やさないでください。
 
@@ -65,6 +65,12 @@ npm run check:review
 レビュアーは、可能な限り前回reviewed headから最新headまでのdeltaを優先して確認し、前回指摘が意図どおり解消されているかを先に再確認します。delta外でも、修正による新しい回帰や最新mainとの競合解消で影響が出る箇所は必要に応じて確認します。
 
 ## 作業手順
+
+### UI v2の作業先
+
+UI v2は [docs/design-v2/README.md](docs/design-v2/README.md)・SPEC.md・PLAN.md・HANDOFF.md・AGENTS.mdを先に読んでください。以下の「最新main」はv2では「最新develop-v2」に読み替え、Issue別ブランチのPRのbaseもdevelop-v2とします。実装者はmainへのマージ・本番公開を行いません。既存の非v2修正は従来通りmain向けです。資料とCIだけの準備PRはmain向けに作成できます。
+
+### 共通手順
 
 1. Issue本文・依存Issue・最新コード・AGENTS.md（存在する場合）・design.mdを読みます。
 2. 依存Issueのマージを確認し、最新mainからIssue専用ブランチを作成します。原則1 Issue / 1 PR、直列で進めます。
