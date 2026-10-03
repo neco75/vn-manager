@@ -8,7 +8,7 @@ import { getHiddenTags, getVisibleTags, parseSynopsis } from "@/lib/spoiler-safe
 import { VNTag } from "@/types/vndb";
 
 const SPOILER_REVEAL_BUTTON_CLASS =
-    "min-h-11 border-white/20 bg-secondary/60 text-gray-200 hover:bg-secondary hover:text-gray-100";
+    "min-h-11 border-input bg-card text-foreground hover:bg-accent hover:text-foreground";
 
 interface SpoilerSynopsisProps {
     description?: string | null;
@@ -25,7 +25,7 @@ export function SpoilerSynopsis({ description }: SpoilerSynopsisProps) {
     const segments = parseSynopsis(description);
 
     return (
-        <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+        <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
             {segments.length === 0 && t.common.noSynopsis}
             {segments.map((segment, index) => {
                 // 保存済みデータから最新情報へ差し替わっても、位置と本文が同じ区間だけを開いたままにする
@@ -52,7 +52,7 @@ export function SpoilerSynopsis({ description }: SpoilerSynopsisProps) {
                 }
 
                 return (
-                    <span key={revealKey} className="rounded bg-secondary/70 px-1 text-gray-200">
+                    <span key={revealKey} className="rounded bg-secondary px-1 text-foreground">
                         {segment.text}
                     </span>
                 );
@@ -101,7 +101,7 @@ export function SpoilerTagList({ tags }: SpoilerTagListProps) {
                                 <Badge
                                     key={`${tag.id ?? tag.name}-${index}`}
                                     variant="outline"
-                                    className="border-white/15 bg-secondary/40 text-gray-200"
+                                    className="border-border bg-secondary text-foreground"
                                 >
                                     <span className="rounded bg-background/60 px-1 text-[10px] font-normal text-muted-foreground">
                                         {t.common.spoilerTag}

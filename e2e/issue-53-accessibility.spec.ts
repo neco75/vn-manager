@@ -64,12 +64,11 @@ async function expectDiscernibleUI(locator: Locator, label: string) {
 async function expectSettingsContrast(page: import("@playwright/test").Page, language: "ja" | "en") {
     await expect(page.getByRole("heading", { name: language === "ja" ? "設定" : "Settings", exact: true })).toBeVisible();
     await page.mouse.move(0, 0);
-    await page.waitForFunction(() => {
-        const selectedButton = document.querySelector<HTMLElement>('main section[aria-labelledby="settings-display-title"] button[aria-pressed="true"]');
-        if (!selectedButton) return false;
-        const style = getComputedStyle(selectedButton);
-        return style.color === "rgb(25, 27, 30)" && style.backgroundColor.startsWith("rgb(");
-    });
+    const selectedLanguageButton = page.locator('main section[aria-labelledby="settings-display-title"] button[aria-pressed="true"]');
+    await expect.poll(() => selectedLanguageButton.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return [style.color, style.backgroundColor];
+    })).toEqual(["rgb(255, 255, 255)", "rgb(91, 80, 230)"]);
     const colors = await page.evaluate(() => {
         const main = document.querySelector("main > div");
         const pageHeading = main?.querySelector(":scope > header > h1");
@@ -106,6 +105,40 @@ async function expectSettingsContrast(page: import("@playwright/test").Page, lan
     expect(contrastRatio(colors.cardDescription, colors.cardBackground), `${language} settings card description`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.buttonForeground, colors.buttonBackground), `${language} selected language button text`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.buttonBackground, colors.cardBackground), `${language} selected language button UI`).toBeGreaterThanOrEqual(3);
+}
+
+async function expectSearchInputContrast(page: import("@playwright/test").Page, language: "ja" | "en") {
+    const label = language === "ja" ? "タイトルで検索" : "Search by title";
+    const input = page.getByRole("textbox", { name: label, exact: true });
+    await expect(input).toBeVisible();
+
+    const colors = await input.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+            foreground: style.color,
+            background: style.backgroundColor,
+            placeholder: getComputedStyle(element, "::placeholder").color,
+            border: style.borderTopColor,
+            fontSize: style.fontSize,
+            height: element.getBoundingClientRect().height,
+        };
+    });
+    expect(contrastRatio(colors.foreground, colors.background), `${language} search input text`).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.placeholder, colors.background), `${language} search input placeholder`).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.border, colors.background), `${language} search input boundary`).toBeGreaterThanOrEqual(3);
+    expect(colors.fontSize).toBe("16px");
+    expect(colors.height).toBeGreaterThanOrEqual(44);
+
+    await input.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect(input).toBeFocused();
+    const focus = await input.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { border: style.borderTopColor, background: style.backgroundColor, boxShadow: style.boxShadow };
+    });
+    expect(focus.boxShadow).not.toBe("none");
+    expect(contrastRatio(focus.border, focus.background), `${language} search input focus`).toBeGreaterThanOrEqual(3);
 }
 
 test.describe("Issue #53 accessibility regressions", () => {
@@ -148,16 +181,43 @@ test.describe("Issue #53 accessibility regressions", () => {
         await page.goto("/settings");
 
         await expectSettingsContrast(page, "ja");
+        const blurSwitch = page.locator("#settings-nsfw-blur");
+        const blurSwitchColors = await blurSwitch.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            const card = element.closest<HTMLElement>('[data-slot="card"]');
+            return {
+                width: rect.width,
+                height: rect.height,
+                rootBackground: getComputedStyle(element).backgroundColor,
+                track: getComputedStyle(element, "::before").backgroundColor,
+                surface: card ? getComputedStyle(card).backgroundColor : "",
+            };
+        });
+        expect(blurSwitchColors.width).toBeGreaterThanOrEqual(44);
+        expect(blurSwitchColors.height).toBeGreaterThanOrEqual(44);
+        expect(blurSwitchColors.rootBackground).toBe("rgba(0, 0, 0, 0)");
+        expect(contrastRatio(blurSwitchColors.track, blurSwitchColors.surface), "checked image-blur switch").toBeGreaterThanOrEqual(3);
+        await page.goto("/search");
+        await expectSearchInputContrast(page, "ja");
+        await page.goto("/settings");
         await page.getByRole("button", { name: "英語", exact: true }).click();
         await expectSettingsContrast(page, "en");
+        await page.goto("/search");
+        await expectSearchInputContrast(page, "en");
+        await page.goto("/settings");
 
         await page.getByRole("button", { name: "Remove background image", exact: true }).click();
         await expect(page.locator("[style*='background-image']")).toHaveCount(0);
         // Disabled controls are exempt from the contrast threshold and are deliberately not measured.
         await expect(page.getByRole("button", { name: "Remove background image", exact: true })).toBeDisabled();
         await expectSettingsContrast(page, "en");
+        await page.goto("/search");
+        await expectSearchInputContrast(page, "en");
+        await page.goto("/settings");
         await page.getByRole("button", { name: "Japanese", exact: true }).click();
         await expectSettingsContrast(page, "ja");
+        await page.goto("/search");
+        await expectSearchInputContrast(page, "ja");
     });
 
     test("matches the desktop language switch's visible EN/JA label and accessible name", async ({ page }) => {
@@ -220,6 +280,7 @@ test.describe("Issue #53 accessibility regressions", () => {
 
         const textarea = page.locator("#detail-notes");
         await expect(textarea).toBeVisible();
+        await expect.poll(() => textarea.evaluate((element) => getComputedStyle(element).fontFamily)).not.toMatch(/monospace|Geist Mono/i);
         await expect(textarea).toHaveClass(/scroll-mt-56/);
         await expect(textarea).toHaveClass(/sm:scroll-mt-36/);
         const lastToolbarButton = textarea.locator("xpath=preceding-sibling::div[1]").getByRole("button").last();
@@ -233,7 +294,8 @@ test.describe("Issue #53 accessibility regressions", () => {
         });
         expect(focusStyle.outlineStyle).toBe("solid");
         expect(focusStyle.outlineWidth).toBe("2px");
-        expect(contrastRatio(focusStyle.outlineColor, "rgb(37, 41, 45)"), "Markdown keyboard focus outline").toBeGreaterThanOrEqual(3);
+        const textareaBackground = (await renderedColors(textarea)).background;
+        expect(contrastRatio(focusStyle.outlineColor, textareaBackground), "Markdown keyboard focus outline").toBeGreaterThanOrEqual(3);
     });
 
     test("respects reduced motion for decorative roulette and CSS animation", async ({ page }) => {

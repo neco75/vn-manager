@@ -57,7 +57,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                         />
                         {shouldBlur && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                                <Badge variant="destructive" className="bg-red-600/80 text-white border-none shadow-lg">{t.settings.imageBlurred}</Badge>
+                                <Badge variant="destructive" className="bg-destructive/80 text-destructive-foreground border-none shadow-lg">{t.settings.imageBlurred}</Badge>
                             </div>
                         )}
                     </>
@@ -99,7 +99,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                             </span>
                             {isRated && (
                                 <span className="inline-flex items-center gap-1">
-                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" aria-hidden="true" />
+                                    <Star className="w-3 h-3 fill-primary text-primary" aria-hidden="true" />
                                     VNDB {(vn.rating / 10).toFixed(1)}/10
                                 </span>
                             )}
@@ -124,7 +124,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                     {!isSearch && libraryItem ? (
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-muted-foreground">{t.common.score}</span>
-                            <span className="text-sm font-bold text-yellow-500">
+                            <span className="text-sm font-bold text-primary">
                                 {libraryItem.score === null ? t.common.unrated : `${libraryItem.score}/100`}
                             </span>
                         </div>
@@ -151,7 +151,7 @@ export function VNCard({ vn, libraryItem, className, variant = "library", onAdd,
                     ) : null}
                     {isSearch && isAdded ? (
                         <div className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-border px-3 text-sm text-muted-foreground">
-                            <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
+                            <Check className="w-4 h-4 text-success" aria-hidden="true" />
                             {t.search.alreadyAdded}
                         </div>
                     ) : null}

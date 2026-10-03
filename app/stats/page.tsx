@@ -29,7 +29,7 @@ export default function StatsPage() {
             await new Promise((resolve) => setTimeout(resolve, 500));
 
             const dataUrl = await toPng(shareRef.current, {
-                backgroundColor: "#0a0a0a",
+                backgroundColor: getComputedStyle(shareRef.current).backgroundColor,
                 pixelRatio: 2,
                 cacheBust: true,
             });
@@ -73,7 +73,7 @@ export default function StatsPage() {
                         variant="ghost"
                         onClick={handleRefresh}
                         disabled={isRefreshing || items.length === 0 || isLoading || loadError}
-                        className="gap-2 rounded-full text-muted-foreground hover:text-white"
+                        className="gap-2 rounded-full text-muted-foreground hover:text-foreground"
                     >
                         <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
                         {t.stats.refreshNSFW}
@@ -90,7 +90,7 @@ export default function StatsPage() {
             </div>
 
             <Dialog open={isRefreshing}>
-                <DialogContent className="sm:max-w-md bg-card border-white/10 flex flex-col items-center py-10 gap-6">
+                <DialogContent className="flex flex-col items-center gap-6 border-border bg-card py-10 sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="text-center text-xl font-bold">
                             {t.common.loading}
@@ -104,7 +104,7 @@ export default function StatsPage() {
 
                     <div className="space-y-2 text-center">
                         <p className="text-muted-foreground text-sm">{t.stats.refreshDescription}</p>
-                        <div className="text-2xl font-mono font-bold text-white">
+                        <div className="font-mono text-2xl font-bold text-foreground">
                             {refreshProgress.current} <span className="text-muted-foreground text-lg">/ {refreshProgress.total}</span>
                         </div>
                     </div>
@@ -124,7 +124,7 @@ export default function StatsPage() {
                     <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
                 </div>
             ) : (
-                <div ref={shareRef} data-testid="stats-share-root" className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">
+                <div ref={shareRef} data-testid="stats-share-root" className="space-y-8 rounded-3xl border border-border bg-background p-8 text-foreground">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h2 data-testid="stats-share-heading" className="text-2xl font-bold text-foreground">
@@ -144,7 +144,7 @@ export default function StatsPage() {
                             value={stats.total}
                         />
                         <StatCard
-                            icon={<Trophy className="w-6 h-6 text-yellow-500" />}
+                            icon={<Trophy className="w-6 h-6 text-primary" />}
                             label={t.stats.completed}
                             value={stats.completed}
                         />
@@ -155,7 +155,7 @@ export default function StatsPage() {
                             detail={t.stats.ratedCount.replace("{count}", String(stats.ratedCount))}
                         />
                         <StatCard
-                            icon={<Clock className="w-6 h-6 text-green-500" />}
+                            icon={<Clock className="w-6 h-6 text-success" />}
                             label={t.stats.totalPlaytime}
                             value={formatHours(stats.actualPlaytimeMinutes, t.common.hours)}
                         />
@@ -164,7 +164,7 @@ export default function StatsPage() {
                     <p className="-mt-4 text-sm text-muted-foreground">{t.stats.recordedPlaytimeNote}</p>
 
                     {items.length === 0 ? (
-                        <div className="rounded-2xl border border-white/10 bg-card p-8 text-center text-muted-foreground space-y-4">
+                        <div className="space-y-4 rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
                             <p>{t.stats.noRecords}</p>
                             <Button asChild>
                                 <Link href="/search">{t.home.addButton}</Link>
@@ -172,7 +172,7 @@ export default function StatsPage() {
                         </div>
                     ) : (
                         <>
-                            <Card className="border-white/10">
+                            <Card className="border-border">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">{t.stats.estimatedPlaytime}</CardTitle>
                                 </CardHeader>
@@ -194,7 +194,7 @@ export default function StatsPage() {
                             </Card>
 
                             <div className="grid md:grid-cols-2 gap-8">
-                                <Card className="border-white/10">
+                                <Card className="border-border">
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
                                             <CalendarDays className="w-5 h-5 text-primary" />
@@ -223,7 +223,7 @@ export default function StatsPage() {
                                     </CardContent>
                                 </Card>
 
-                                <Card className="border-white/10">
+                                <Card className="border-border">
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
                                             <PieChart className="w-5 h-5 text-primary" />
@@ -232,16 +232,16 @@ export default function StatsPage() {
                                     </CardHeader>
                                     <CardContent className="space-y-5">
                                         <ProgressBar label={t.status.playing} value={stats.statusCounts.playing} total={stats.total} color="bg-primary" />
-                                        <ProgressBar label={t.status.completed} value={stats.statusCounts.completed} total={stats.total} color="bg-yellow-500" />
-                                        <ProgressBar label={t.status.watched} value={stats.statusCounts.watched} total={stats.total} color="bg-purple-500" />
-                                        <ProgressBar label={t.status.on_hold} value={stats.statusCounts.on_hold} total={stats.total} color="bg-orange-500" />
-                                        <ProgressBar label={t.status.dropped} value={stats.statusCounts.dropped} total={stats.total} color="bg-red-500" />
-                                        <ProgressBar label={t.status.plan_to_play} value={stats.statusCounts.plan_to_play} total={stats.total} color="bg-blue-500" />
+                                        <ProgressBar label={t.status.completed} value={stats.statusCounts.completed} total={stats.total} color="bg-primary" />
+                                        <ProgressBar label={t.status.watched} value={stats.statusCounts.watched} total={stats.total} color="bg-primary" />
+                                        <ProgressBar label={t.status.on_hold} value={stats.statusCounts.on_hold} total={stats.total} color="bg-pending" />
+                                        <ProgressBar label={t.status.dropped} value={stats.statusCounts.dropped} total={stats.total} color="bg-destructive" />
+                                        <ProgressBar label={t.status.plan_to_play} value={stats.statusCounts.plan_to_play} total={stats.total} color="bg-primary" />
                                     </CardContent>
                                 </Card>
                             </div>
 
-                            <Card className="border-white/10">
+                            <Card className="border-border">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <Hash className="w-5 h-5 text-primary" />
@@ -292,8 +292,8 @@ function StatCard({
     detail?: string;
 }) {
     return (
-        <Card className="flex flex-col items-center justify-center p-6 text-center border-white/10">
-            <div className="p-3 rounded-full bg-secondary/50 mb-2">{icon}</div>
+        <Card className="flex flex-col items-center justify-center border-border p-6 text-center">
+            <div className="mb-2 rounded-full bg-secondary p-3">{icon}</div>
             <div className="text-3xl font-bold">{value}</div>
             <div className="text-sm text-muted-foreground">{label}</div>
             {detail && <div className="mt-1 text-xs text-muted-foreground">{detail}</div>}

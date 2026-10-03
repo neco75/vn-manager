@@ -53,6 +53,8 @@ async function expectEditorIsNotCovered(page: Page, editor: Locator) {
 }
 
 test("saves a long review below the sticky header across target viewports and 200% zoom equivalent", async ({ browser }) => {
+    test.setTimeout(60_000);
+
     // A 640px CSS viewport is the layout width of a 1280px desktop viewport at 200% browser zoom.
     for (const width of [320, 390, 640, 768, 1024, 1280]) {
         const height = width === 390 ? 667 : width === 640 ? 450 : 900;

@@ -297,7 +297,7 @@ function HomeContent() {
     if (items.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6">
-                <div className="w-24 h-24 rounded-full bg-secondary/50 flex items-center justify-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-secondary">
                     <Plus className="w-10 h-10 text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
@@ -336,7 +336,7 @@ function HomeContent() {
                             aria-label={t.home.rouletteButton}
                         >
                             <Dices className="w-4 h-4" aria-hidden="true" />
-                            <span className="hidden sm:inline text-white">{t.home.rouletteButton}</span>
+                            <span className="hidden sm:inline text-foreground">{t.home.rouletteButton}</span>
                         </Button>
                     </div>
                 </div>
@@ -388,7 +388,7 @@ function HomeContent() {
                                 replaceLibraryUrl({ ownershipFilter: nextOwnership });
                             }}
                         >
-                            <SelectTrigger aria-label={t.common.ownership} className="w-full sm:w-[150px] min-h-11 bg-secondary/50 border-white/5">
+                            <SelectTrigger aria-label={t.common.ownership} className="min-h-11 w-full border-input bg-card sm:w-[150px]">
                                 <SelectValue placeholder={t.common.ownership} />
                             </SelectTrigger>
                             <SelectContent>
@@ -405,7 +405,7 @@ function HomeContent() {
                                 replaceLibraryUrl({ sort: nextSort });
                             }}
                         >
-                            <SelectTrigger aria-label={t.home.sort} className="w-full sm:w-[180px] min-h-11 bg-secondary/50 border-white/5">
+                            <SelectTrigger aria-label={t.home.sort} className="min-h-11 w-full border-input bg-card sm:w-[180px]">
                                 <SelectValue placeholder={t.sort.label} />
                             </SelectTrigger>
                             <SelectContent>
@@ -415,7 +415,7 @@ function HomeContent() {
                             </SelectContent>
                         </Select>
 
-                        <div role="group" aria-label={t.home.view} className="flex items-center gap-1 bg-secondary/50 p-1 rounded-lg border border-white/5 self-start">
+                        <div role="group" aria-label={t.home.view} className="flex self-start items-center gap-1 rounded-lg border border-border bg-secondary p-1">
                             <Button
                                 variant={viewMode === "grid" ? "default" : "ghost"}
                                 className="h-11 px-2 sm:px-3"
@@ -512,7 +512,7 @@ function HomeContent() {
                                     )}
                                     {shouldBlur && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                            <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
+                                            <Badge variant="destructive" className="bg-destructive/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
                                         </div>
                                     )}
                                 </div>
@@ -523,11 +523,11 @@ function HomeContent() {
                                     )}
                                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
                                         <div className="flex items-center gap-1">
-                                            <Star className="w-3 h-3 text-yellow-500" aria-hidden="true" />
-                                            <span className="text-yellow-500 font-bold">{item.score === null ? t.common.unrated : `${item.score}/100`}</span>
+                                            <Star className="w-3 h-3 text-primary" aria-hidden="true" />
+                                            <span className="font-bold text-primary">{item.score === null ? t.common.unrated : `${item.score}/100`}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-green-500" aria-hidden="true" />
+                                            <Clock className="w-3 h-3 text-success" aria-hidden="true" />
                                             <span>{item.playTime ? (item.playTime / 60).toFixed(1) : "0.0"}h</span>
                                         </div>
                                         <Badge variant="secondary" className="text-xs">

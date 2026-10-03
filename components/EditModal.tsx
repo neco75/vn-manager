@@ -122,7 +122,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
-            <DialogContent className="grid max-h-[calc(100dvh-1rem)] max-w-lg grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden border-white/10 bg-card p-0 sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl">
+            <DialogContent className="grid max-h-[calc(100dvh-1rem)] max-w-lg grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden border-border bg-card p-0 sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl">
                 <div className="relative h-32 w-full">
                     {vn.image ? (
                         <img
@@ -138,7 +138,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
                     <div className="absolute bottom-4 left-6 z-10">
-                        <DialogTitle className="text-2xl font-bold text-white shadow-black drop-shadow-md text-left">
+                        <DialogTitle className="text-left text-2xl font-bold text-foreground">
                             {displayTitle}
                         </DialogTitle>
                     </div>
@@ -160,7 +160,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     disabled={isSaving}
                                     className={cn(
                                         "min-h-11 w-full",
-                                        status === s.value ? "font-bold" : "border-white/10 text-muted-foreground hover:text-white hover:bg-white/5"
+                                        status === s.value ? "font-bold" : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                     )}
                                 >
                                     {s.label}
@@ -186,7 +186,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     }}
                                     disabled={isSaving}
                                     placeholder={t.common.unrated}
-                                    className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                    className="h-11 w-24 border-input bg-card text-right font-bold text-foreground"
                                 />
                                 <span className="text-sm text-muted-foreground">/ 100</span>
                             </div>
@@ -230,7 +230,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     setSaveError(null);
                                 }}
                                 disabled={isSaving}
-                                className="min-h-11 bg-secondary/50 border-white/10"
+                                className="min-h-11 border-input bg-card"
                                 placeholder="10.5"
                             />
                         </div>
@@ -247,7 +247,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                         </div>
                     </div>
 
-                    <details className="rounded-lg border border-white/10 p-4">
+                    <details className="rounded-lg border border-border p-4">
                         <summary className="cursor-pointer font-medium">{t.common.recordDetails}</summary>
                         <div className="mt-4 space-y-4">
                             <div className="space-y-2">
@@ -257,7 +257,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                     value={ownership}
                                     onChange={(e) => setOwnership(e.target.value as OwnershipStatus)}
                                     disabled={isSaving}
-                                    className="min-h-11 w-full rounded-md border border-white/10 bg-secondary/50 px-3 text-sm"
+                                    className="min-h-11 w-full rounded-lg border border-input bg-card px-3 text-sm"
                                 >
                                     <option value="unknown">{t.ownership.unknown}</option>
                                     <option value="owned">{t.ownership.owned}</option>
@@ -295,7 +295,7 @@ export function EditModal({ vn, libraryItem, isOpen, onClose, onSave, onDelete }
                                 setSaveError(null);
                             }}
                             disabled={isSaving}
-                            className="h-32 bg-secondary/50 border-white/10 resize-none"
+                            className="h-32 resize-none border-input bg-card"
                             placeholder={t.modal.placeholder}
                         />
                     </div>

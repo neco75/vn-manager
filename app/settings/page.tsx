@@ -34,7 +34,7 @@ export default function SettingsPage() {
                     <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
                     <h2 id="settings-display-title" className="text-xl font-semibold">{t.settings.displayAndLanguage}</h2>
                 </div>
-                <Card className="border-white/10">
+                <Card className="border-border">
                     <CardHeader>
                         <CardTitle>{t.settings.displayAndLanguage}</CardTitle>
                         <p className="text-sm text-muted-foreground">{t.settings.displayAndLanguageDescription}</p>
@@ -79,11 +79,10 @@ export default function SettingsPage() {
                                 checked={nsfwBlur}
                                 onCheckedChange={setNsfwBlur}
                                 aria-label={t.settings.nsfwBlur}
-                                className="data-[state=checked]:bg-red-500"
                             />
                         </div>
 
-                        <div className="space-y-3 border-t border-white/10 pt-5">
+                        <div className="space-y-3 border-t border-border pt-5">
                             <div className="flex items-center gap-2 text-sm font-medium">
                                 <ImageOff className="h-4 w-4" aria-hidden="true" />
                                 {t.settings.background}
@@ -114,7 +113,7 @@ export default function SettingsPage() {
                     <ShoppingBag className="h-5 w-5 text-primary" aria-hidden="true" />
                     <h2 id="settings-purchase-title" className="text-xl font-semibold">{t.settings.purchaseLocations}</h2>
                 </div>
-                <Card className="border-white/10">
+                <Card className="border-border">
                     <CardHeader>
                         <CardTitle>{t.settings.purchaseLocations}</CardTitle>
                         <p className="text-sm text-muted-foreground">{t.settings.purchaseLocationsDescription}</p>
@@ -134,7 +133,7 @@ export default function SettingsPage() {
                     <Info className="h-5 w-5 text-primary" aria-hidden="true" />
                     <h2 id="settings-about-title" className="text-xl font-semibold">{t.settings.aboutSection}</h2>
                 </div>
-                <Card className="border-white/10">
+                <Card className="border-border">
                     <CardContent className="space-y-4 pt-6">
                         <p className="text-sm leading-6 text-muted-foreground">{t.settings.aboutDescription}</p>
                         <p className="text-sm leading-6 text-muted-foreground">{t.about.privacy_desc}</p>

@@ -64,15 +64,15 @@ export function MarkdownEditor({
     };
 
     return (
-        <div className={cn("flex flex-col border border-white/10 rounded-md bg-secondary/30 overflow-hidden", className)}>
-            <div className="flex items-center border-b border-white/10 bg-secondary/20 px-2">
+        <div className={cn("flex flex-col overflow-hidden rounded-lg border border-border bg-card", className)}>
+            <div className="flex items-center border-b border-border bg-secondary px-2">
                 <button
                     type="button"
                     onClick={() => setActiveTab("write")}
                     aria-pressed={activeTab === "write"}
                     disabled={disabled}
                     className={cn(
-                        "px-4 py-2 text-sm font-medium transition-colors border-b-2",
+                        "min-h-11 px-4 py-2 text-sm font-medium transition-colors border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         activeTab === "write"
                             ? "border-primary text-primary"
                             : "border-transparent text-muted-foreground hover:text-foreground"
@@ -86,7 +86,7 @@ export function MarkdownEditor({
                     aria-pressed={activeTab === "preview"}
                     disabled={disabled}
                     className={cn(
-                        "px-4 py-2 text-sm font-medium transition-colors border-b-2",
+                        "min-h-11 px-4 py-2 text-sm font-medium transition-colors border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         activeTab === "preview"
                             ? "border-primary text-primary"
                             : "border-transparent text-muted-foreground hover:text-foreground"
@@ -98,49 +98,49 @@ export function MarkdownEditor({
 
             {activeTab === "write" ? (
                 <>
-                    <div className="flex flex-wrap gap-1 p-2 border-b border-white/10 bg-secondary/20">
-                        <button type="button" disabled={disabled} onClick={() => insertText("**", "**")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownBold} aria-label={t.common.markdownBold}>
+                    <div className="flex flex-wrap gap-1 border-b border-border bg-secondary p-2">
+                        <button type="button" disabled={disabled} onClick={() => insertText("**", "**")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownBold} aria-label={t.common.markdownBold}>
                             <Bold className="w-4 h-4" />
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => insertText("*", "*")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownItalic} aria-label={t.common.markdownItalic}>
+                        <button type="button" disabled={disabled} onClick={() => insertText("*", "*")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownItalic} aria-label={t.common.markdownItalic}>
                             <Italic className="w-4 h-4" />
                         </button>
-                        <div className="w-px h-6 bg-white/10 mx-1 self-center" />
-                        <button type="button" disabled={disabled} onClick={() => insertText("# ")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownHeading1} aria-label={t.common.markdownHeading1}>
+                        <div className="my-auto mx-1 h-6 w-px bg-border" />
+                        <button type="button" disabled={disabled} onClick={() => insertText("# ")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownHeading1} aria-label={t.common.markdownHeading1}>
                             <Heading1 className="w-4 h-4" />
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => insertText("## ")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownHeading2} aria-label={t.common.markdownHeading2}>
+                        <button type="button" disabled={disabled} onClick={() => insertText("## ")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownHeading2} aria-label={t.common.markdownHeading2}>
                             <Heading2 className="w-4 h-4" />
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => insertText("### ")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownHeading3} aria-label={t.common.markdownHeading3}>
+                        <button type="button" disabled={disabled} onClick={() => insertText("### ")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownHeading3} aria-label={t.common.markdownHeading3}>
                             <Heading3 className="w-4 h-4" />
                         </button>
-                        <div className="w-px h-6 bg-white/10 mx-1 self-center" />
-                        <button type="button" disabled={disabled} onClick={() => insertText("- ")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownBulletList} aria-label={t.common.markdownBulletList}>
+                        <div className="my-auto mx-1 h-6 w-px bg-border" />
+                        <button type="button" disabled={disabled} onClick={() => insertText("- ")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownBulletList} aria-label={t.common.markdownBulletList}>
                             <List className="w-4 h-4" />
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => insertText("1. ")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownOrderedList} aria-label={t.common.markdownOrderedList}>
+                        <button type="button" disabled={disabled} onClick={() => insertText("1. ")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownOrderedList} aria-label={t.common.markdownOrderedList}>
                             <ListOrdered className="w-4 h-4" />
                         </button>
-                        <div className="w-px h-6 bg-white/10 mx-1 self-center" />
-                        <button type="button" disabled={disabled} onClick={() => insertText("> ")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownBlockquote} aria-label={t.common.markdownBlockquote}>
+                        <div className="my-auto mx-1 h-6 w-px bg-border" />
+                        <button type="button" disabled={disabled} onClick={() => insertText("> ")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownBlockquote} aria-label={t.common.markdownBlockquote}>
                             <Quote className="w-4 h-4" />
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => insertText("```\n", "\n```")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownCodeBlock} aria-label={t.common.markdownCodeBlock}>
+                        <button type="button" disabled={disabled} onClick={() => insertText("```\n", "\n```")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownCodeBlock} aria-label={t.common.markdownCodeBlock}>
                             <Code className="w-4 h-4" />
                         </button>
-                        <div className="w-px h-6 bg-white/10 mx-1 self-center" />
-                        <button type="button" disabled={disabled} onClick={() => insertText("[", "](url)")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownLink} aria-label={t.common.markdownLink}>
+                        <div className="my-auto mx-1 h-6 w-px bg-border" />
+                        <button type="button" disabled={disabled} onClick={() => insertText("[", "](url)")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownLink} aria-label={t.common.markdownLink}>
                             <LinkIcon className="w-4 h-4" />
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => insertText("![alt](", ")")} className="p-2 rounded hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors" title={t.common.markdownImage} aria-label={t.common.markdownImage}>
+                        <button type="button" disabled={disabled} onClick={() => insertText("![alt](", ")")} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" title={t.common.markdownImage} aria-label={t.common.markdownImage}>
                             <ImageIcon className="w-4 h-4" />
                         </button>
                     </div>
                     <textarea
                         ref={textareaRef}
                         id={id}
-                        className={cn("w-full h-full scroll-mt-56 bg-transparent p-4 font-mono text-sm leading-relaxed focus:outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-3px] resize-none sm:scroll-mt-36", height)}
+                        className={cn("w-full h-full scroll-mt-56 bg-card p-4 font-sans text-base leading-relaxed text-foreground placeholder:text-muted-foreground selection:bg-selection selection:text-selection-foreground focus:outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-3px] resize-none sm:scroll-mt-36", height)}
                         value={value}
                         disabled={disabled}
                         onChange={(e) => onChange(e.target.value)}
@@ -149,7 +149,7 @@ export function MarkdownEditor({
                     />
                 </>
             ) : (
-                <div className={cn("w-full p-4 overflow-y-auto prose prose-invert max-w-none", height)}>
+                <div className={cn("w-full p-4 overflow-y-auto prose prose-slate max-w-none", height)}>
                     <ReactMarkdown>{value}</ReactMarkdown>
                 </div>
             )}
