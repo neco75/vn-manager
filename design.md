@@ -1,5 +1,7 @@
 # VN Manager — Design specification
 
+> UI v2の実装では [docs/design-v2/README.md](docs/design-v2/README.md) と [SPEC.md](docs/design-v2/SPEC.md) が正本です。白・ラベンダー、PCサイドバー、カード一覧から記録用詳細へ進む構成を採用しています。本書のダークのみ・常設サイドバーなし等はv2では置き換えます。v2の実装先・PRのbaseはdevelop-v2。既存mainの非v2修正については本書とCONTRIBUTING.mdを維持します。資料の追加だけで本番UIを変更するものではありません。
+
 更新日: 2026-09-20 / 初版  
 対象: [改善ロードマップ #17](https://github.com/neco75/vn-manager/issues/17)  
 この文書はこれから実装するUIの基準。現在の実装済み機能を説明するものではない。

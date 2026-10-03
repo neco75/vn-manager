@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VN Manager — ライブラリ</title><link rel="icon" href="data:,">
+<style>
+*{box-sizing:border-box}body{margin:0;color:#303450;background:#f4f5fa;font-family:"Yu Gothic",Meiryo,sans-serif}main{max-width:1600px;margin:auto;background:white}.screen{position:relative}.screen[hidden]{display:none}.screen img{width:100%;height:auto;display:block}.target{position:absolute;display:block;border-radius:12px;text-decoration:none;color:transparent}.target:hover{outline:2px solid #7370ed;outline-offset:2px;background:#655cff08}.target:focus-visible{outline:3px solid #4d43d4;outline-offset:3px;background:#655cff0c}.card{left:18.54%;top:20.87%;width:19.55%;height:34.07%}.back{left:19.42%;top:3.12%;width:14.25%;height:5.64%}.nav-back{left:1%;top:9.68%;width:15%;height:5.44%}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}footer{max-width:1600px;margin:auto;padding:16px 24px;font-size:13px;line-height:1.7}footer p{margin:0}footer a{color:#4742ab;text-underline-offset:3px}::selection{background:#e4dfff;color:#242242}@media(max-width:700px){footer{padding:14px 16px}}
+</style></head><body>
+<main>
+<section class="screen" id="library" aria-labelledby="library-heading">
+<h1 id="library-heading" class="sr-only" tabindex="-1">ライブラリ</h1>
+<img src="library.png" width="1586" height="992" alt="ライブラリのカード一覧。星の降る、あの夏の約束のカードを押すと記録用の詳細画面を開きます。">
+<a class="target card" href="#detail" aria-label="星の降る、あの夏の約束のライブラリ詳細を開く"></a>
+</section>
+<section class="screen" id="detail" aria-labelledby="detail-heading" hidden>
+<h1 id="detail-heading" class="sr-only" tabindex="-1">星の降る、あの夏の約束 — ライブラリ詳細</h1>
+<img src="detail.png" width="1586" height="992" alt="ライブラリ詳細。選んだ作品の表紙、ステータス、評価、プレイ時間、再開メモと感想の記録欄。">
+<a class="target back" href="#library" aria-label="ライブラリに戻る"></a>
+<a class="target nav-back" href="#library" aria-label="サイドメニューからライブラリに戻る"></a>
+</section></main>
+<footer><p id="guide" aria-live="polite">先頭の「星の降る、あの夏の約束」のカードを押して、詳細画面へ進めます。</p><p>画面遷移を確認する画像ベースの試作です。入力・保存はイメージ、作品と記録はサンプルです。 <a href="../README.md">設計資料</a> · <a href="PROVENANCE.md">制作プロンプト</a></p></footer>
+<script>
+const screens=[...document.querySelectorAll('.screen')];
+function route(moveFocus=false){const id=location.hash==='#detail'?'detail':'library';screens.forEach(s=>s.hidden=s.id!==id);document.title=id==='detail'?'VN Manager — ライブラリ詳細':'VN Manager — ライブラリ';document.getElementById('guide').textContent=id==='detail'?'「ライブラリに戻る」からカード一覧へ戻れます。':'先頭の「星の降る、あの夏の約束」のカードを押して、詳細画面へ進めます。';if(moveFocus){document.getElementById(id+'-heading').focus({preventScroll:true});window.scrollTo(0,0);}}
+window.addEventListener('hashchange',()=>route(true));route();
+</script></body></html>
