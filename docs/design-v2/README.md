@@ -52,5 +52,6 @@ PCの2画面の方向はユーザー確認済み。スマホ、各状態、他�
 ## GitHub
 
 [UI v2のIssue一覧](https://github.com/neco75/vn-manager/issues?q=is%3Aissue+%22%5Bv2%5D%22)。
+[親Issue #76](https://github.com/neco75/vn-manager/issues/76)に14件の依存関係と準備状況を集約。
+準備完了を確認した後の最初の作業は[V2-01 / #77](https://github.com/neco75/vn-manager/issues/77)。
 親Issueが実際のIssue番号、依存関係、進捗、段階確認の正本。PLAN.mdのV2-XXと各タイトルで対応する。
-

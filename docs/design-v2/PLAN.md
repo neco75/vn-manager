@@ -1,7 +1,7 @@
 # UI v2 — 実装計画
 
 準備作業は資料・CI・ブランチ・Issueまで。UI実装はこの準備では開始しない。
-V2番号がrepoのticketsとGitHub Issueを結ぶ識別子。GitHub親Issueのリンクから実番号を確認する。
+V2番号がrepoのticketsとGitHub Issueを結ぶ識別子。[親Issue #76](https://github.com/neco75/vn-manager/issues/76)で実番号（#77〜#90）と着手条件を確認する。
 
 ## 第1段階: 一覧と記録
 
@@ -36,4 +36,3 @@ V2-08後にユーザーがPreviewで一覧→詳細→保存→戻るを確認�
 V2-14は検証と公開前引き継ぎまで。develop-v2→mainは別PR・別のユーザー確認。
 #53/#54の旧デザイン作業との同時編集を避け、#55は見た目の刷新と別に解決を追跡。
 親Issueではmerged先/head、レビュー、CI、Preview、ユーザー確認を記録する。closedだけで統合済みと見なさない。
-
