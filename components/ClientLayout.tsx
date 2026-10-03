@@ -186,7 +186,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                     </DialogContent>
                 </Dialog>
 
-                <main className="mx-auto w-full max-w-[1200px] min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                <main className="mx-auto w-full max-w-[1200px] min-w-0 flex-1 bg-background bg-clip-content px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                     {children}
                 </main>
                 <Toaster theme="light" position="bottom-right" />

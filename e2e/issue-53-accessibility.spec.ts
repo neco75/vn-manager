@@ -57,6 +57,23 @@ async function expectReadableText(locator: Locator, label: string) {
     expect(contrastRatio(colors.foreground, colors.background), label).toBeGreaterThanOrEqual(4.5);
 }
 
+async function expectMainMutedTextContrast(page: import("@playwright/test").Page, label: string) {
+    const main = page.locator("main");
+    await expect(main).toHaveCSS("background-color", "rgb(252, 252, 255)");
+    await expect(main).toHaveCSS("background-clip", "content-box");
+
+    const paragraphs = main.locator("p.text-muted-foreground");
+    await expect(paragraphs.first()).toBeVisible();
+    for (const paragraph of await paragraphs.all()) {
+        const colors = await paragraph.evaluate((element) => ({
+            foreground: getComputedStyle(element).color,
+            background: getComputedStyle(element.closest("main")!).backgroundColor,
+            text: element.textContent?.trim() ?? "",
+        }));
+        expect(contrastRatio(colors.foreground, colors.background), `${label}: ${colors.text}`).toBeGreaterThanOrEqual(4.5);
+    }
+}
+
 async function expectDiscernibleUI(locator: Locator, label: string) {
     await expect(locator).toBeVisible();
     const colors = await renderedColors(locator);
@@ -157,6 +174,36 @@ async function expectSearchInputContrast(page: import("@playwright/test").Page, 
 }
 
 test.describe("Issue #53 accessibility regressions", () => {
+    for (const scenario of [
+        { name: "dark", background: DARK_BACKGROUND },
+        { name: "white", background: BRIGHT_BACKGROUND },
+        { name: "no image", background: null },
+    ] as const) {
+        for (const language of ["ja", "en"] as const) {
+            test(`keeps shared page descriptions readable with ${scenario.name} background in ${language}`, async ({ page }) => {
+                await page.addInitScript(({ background, savedLanguage }) => {
+                    if (background) localStorage.setItem("vn-manager-bg", background);
+                    else localStorage.removeItem("vn-manager-bg");
+                    localStorage.removeItem("vn-manager-bg-sexual");
+                    localStorage.setItem("vn-manager-lang", savedLanguage);
+                }, { background: scenario.background, savedLanguage: language });
+
+                for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+                    await page.setViewportSize(viewport);
+                    for (const path of ["/search", "/ranking", "/"]) {
+                        await page.goto(path);
+                        await expect.poll(() => page.locator("html").getAttribute("lang")).toBe(language);
+
+                        const backgroundLayer = page.locator('div[style*="background-image"]');
+                        await expect(backgroundLayer).toHaveCount(scenario.background ? 1 : 0);
+                        if (scenario.background) await expect(backgroundLayer).toHaveCSS("opacity", "0.15");
+                        await expectMainMutedTextContrast(page, `${path} at ${viewport.width}px`);
+                    }
+                }
+            });
+        }
+    }
+
     test("keeps detail, ranking, and image-less shelf labels legible in Japanese and English", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/");
