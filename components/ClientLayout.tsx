@@ -64,7 +64,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
         <>
             <BackgroundLayer />
             <div className="relative z-10 flex min-h-screen min-w-0 flex-col overflow-x-clip">
-                <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-background">
+                <header className="sticky top-0 z-30 w-full border-b border-border bg-background">
                     <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-8">
                         <Link href="/" className="flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight group">
                             <span className="text-primary group-hover:text-foreground transition-colors duration-300">VN</span>
@@ -82,11 +82,11 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                 ))}
                             </nav>
 
-                            <div className="flex items-center gap-2 rounded-lg border border-white/10 px-2 py-1.5">
+                            <div className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5">
                                 {nsfwBlur ? (
-                                    <EyeOff className="w-4 h-4 shrink-0 text-red-400" aria-hidden="true" />
+                                    <EyeOff className="w-4 h-4 shrink-0 text-destructive" aria-hidden="true" />
                                 ) : (
-                                    <Eye className="w-4 h-4 shrink-0 text-green-400" aria-hidden="true" />
+                                    <Eye className="w-4 h-4 shrink-0 text-success" aria-hidden="true" />
                                 )}
                                 <label htmlFor="desktop-nsfw-blur" className="text-xs whitespace-nowrap">
                                     {t.settings.nsfwBlur}
@@ -96,7 +96,6 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                     checked={nsfwBlur}
                                     onCheckedChange={setNsfwBlur}
                                     aria-label={t.settings.nsfwBlur}
-                                    className="data-[state=checked]:bg-red-500"
                                 />
                             </div>
 
@@ -104,7 +103,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
-                                className="min-h-11 items-center gap-2 px-3 text-muted-foreground hover:text-white"
+                                className="min-h-11 items-center gap-2 px-3 text-muted-foreground hover:text-foreground"
                                 aria-label={language === "ja" ? "EN" : "JA"}
                             >
                                 <Globe className="w-4 h-4" aria-hidden="true" />
@@ -129,7 +128,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
 
                 <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
                     <DialogContent
-                        className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-white/10"
+                        className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-border"
                         onCloseAutoFocus={(event) => {
                             event.preventDefault();
                             menuButtonRef.current?.focus();
@@ -151,13 +150,13 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                             ))}
                         </nav>
 
-                        <div className="border-t border-white/10 pt-4 space-y-4">
+                        <div className="space-y-4 border-t border-border pt-4">
                             <div className="flex min-h-11 items-center justify-between gap-4">
                                 <div className="flex min-w-0 items-center gap-2">
                                     {nsfwBlur ? (
-                                        <EyeOff className="w-5 h-5 shrink-0 text-red-400" aria-hidden="true" />
+                                        <EyeOff className="w-5 h-5 shrink-0 text-destructive" aria-hidden="true" />
                                     ) : (
-                                        <Eye className="w-5 h-5 shrink-0 text-green-400" aria-hidden="true" />
+                                        <Eye className="w-5 h-5 shrink-0 text-success" aria-hidden="true" />
                                     )}
                                     <label htmlFor="mobile-nsfw-blur" className="text-sm font-medium">
                                         {t.settings.nsfwBlur}
@@ -168,7 +167,6 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                                     checked={nsfwBlur}
                                     onCheckedChange={setNsfwBlur}
                                     aria-label={t.settings.nsfwBlur}
-                                    className="data-[state=checked]:bg-red-500"
                                 />
                             </div>
 
@@ -188,10 +186,10 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                     </DialogContent>
                 </Dialog>
 
-                <main className="mx-auto w-full max-w-[1200px] min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                <main className="mx-auto w-full max-w-[1200px] min-w-0 flex-1 bg-background bg-clip-content px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                     {children}
                 </main>
-                <Toaster theme="dark" position="bottom-right" />
+                <Toaster theme="light" position="bottom-right" />
             </div>
         </>
     );
@@ -224,8 +222,8 @@ function NavLink({
             aria-current={active ? "page" : undefined}
             className={
                 mobile
-                    ? `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-gray-300 hover:bg-white/5 hover:text-white"}`
-                    : `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-muted-foreground hover:bg-white/5 hover:text-white"}`
+                    ? `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-selection text-selection-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`
+                    : `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-selection text-selection-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`
             }
         >
             {icon}

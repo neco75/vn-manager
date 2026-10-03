@@ -544,7 +544,7 @@ export default function VNPage() {
         return (
             <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
                 <h1 className="text-xl font-semibold">{t.home.loadErrorTitle}</h1>
-                <p className="text-sm text-gray-400">{t.home.loadErrorDesc}</p>
+                <p className="text-sm text-muted-foreground">{t.home.loadErrorDesc}</p>
                 <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
             </div>
         );
@@ -558,7 +558,7 @@ export default function VNPage() {
         return (
             <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
                 <h1 className="text-xl font-semibold">{t.vn.notFoundTitle}</h1>
-                <p className="text-sm text-gray-400">{t.vn.notFoundDesc}</p>
+                <p className="text-sm text-muted-foreground">{t.vn.notFoundDesc}</p>
                 <Button variant="outline" onClick={() => setRetryVersion((value) => value + 1)}>
                     {t.vn.retryExternal}
                 </Button>
@@ -570,7 +570,7 @@ export default function VNPage() {
         return (
             <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
                 <h1 className="text-xl font-semibold">{t.vn.externalErrorTitle}</h1>
-                <p className="text-sm text-gray-400">{t.vn.externalErrorDesc}</p>
+                <p className="text-sm text-muted-foreground">{t.vn.externalErrorDesc}</p>
                 <Button variant="outline" onClick={() => setRetryVersion((value) => value + 1)}>
                     {t.vn.retryExternal}
                 </Button>
@@ -618,14 +618,14 @@ export default function VNPage() {
                             ? t.vn.recordSaved
                             : t.vn.notAddedYet;
     const draftStatusClass = draftStatus === "error"
-        ? "text-red-300"
+        ? "text-destructive"
         : draftStatus === "draft-saved"
-            ? "text-blue-300"
+            ? "text-primary"
             : isDirty
-                ? "text-amber-300"
+                ? "text-pending"
                 : libraryItem
-                    ? "text-emerald-300"
-                    : "text-gray-400";
+                    ? "text-success"
+                    : "text-muted-foreground";
 
     return (
         <div className="max-w-5xl mx-auto pb-20 relative">
@@ -643,21 +643,21 @@ export default function VNPage() {
                         )}
                         style={{ backgroundImage: `url(${vn.image.url})` }}
                     />
-                    <div className="absolute inset-0 bg-black/60" />
+                    <div className="absolute inset-0 bg-background/90" />
                 </div>
             )}
 
             <Link
                 href={returnTo}
-                className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group"
+                className="group mb-6 inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
             >    <ArrowLeft className="w-4 h-4" />
                 {t.common.back}
             </Link>
 
             {libraryItem && externalState !== "success" && (
-                <div className="mb-6 rounded-lg border border-white/10 bg-card/80 p-4 text-sm">
+                <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm">
                     {externalState === "loading" ? (
-                        <p className="text-gray-400">{t.vn.externalLoadingSaved}</p>
+                        <p className="text-muted-foreground">{t.vn.externalLoadingSaved}</p>
                     ) : (
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -666,7 +666,7 @@ export default function VNPage() {
                                         ? t.vn.externalNotFoundSaved
                                         : t.vn.externalErrorSaved}
                                 </p>
-                                <p className="mt-1 text-gray-400">{t.vn.localRecordAvailable}</p>
+                                <p className="mt-1 text-muted-foreground">{t.vn.localRecordAvailable}</p>
                             </div>
                             <Button
                                 type="button"
@@ -685,14 +685,14 @@ export default function VNPage() {
                 <div className="order-1 min-w-0 flex-1 sm:order-2">
                     <h1 className="text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">{displayTitle}</h1>
                     {vn.alttitle && vn.alttitle !== displayTitle && (
-                        <p className="mt-2 break-words text-sm text-gray-400">{vn.alttitle}</p>
+                        <p className="mt-2 break-words text-sm text-muted-foreground">{vn.alttitle}</p>
                     )}
                     <div className="mt-4 flex flex-wrap gap-2">
                         <Badge variant="secondary">{t.common.status}: {STATUSES.find((item) => item.value === status)?.label}</Badge>
                         <Badge variant="outline">{t.common.ownership}: {t.ownership[ownership]}</Badge>
                     </div>
                 </div>
-                <div className="relative order-2 h-32 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-secondary sm:order-1 sm:h-36 sm:w-24">
+                <div className="relative order-2 h-32 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary sm:order-1 sm:h-36 sm:w-24">
                     {vn.image ? (
                         <Image
                             src={vn.image.url}
@@ -714,10 +714,10 @@ export default function VNPage() {
             </div>
 
             {pendingDraft && (
-                <div role="alert" className="mb-6 rounded-lg border border-blue-400/30 bg-blue-950/30 p-4">
+                <div role="alert" className="mb-6 rounded-lg border border-pending/30 bg-pending-background p-4">
                     <p className="font-medium">{t.vn.draftAvailable}</p>
                     {draftHasConflict && (
-                        <p className="mt-2 text-sm text-amber-200">{t.vn.draftConflict}</p>
+                        <p className="mt-2 text-sm text-pending">{t.vn.draftConflict}</p>
                     )}
                     <div className="mt-3 flex flex-wrap gap-2">
                         <Button type="button" size="sm" onClick={restoreDraft}>
@@ -730,7 +730,7 @@ export default function VNPage() {
                 </div>
             )}
 
-            <div className="sticky top-16 z-20 mb-6 flex flex-col gap-3 rounded-xl border border-white/10 bg-card/95 p-3 shadow-xl backdrop-blur lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
+            <div className="sticky top-16 z-20 mb-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                     <div
                         role="status"
@@ -740,12 +740,12 @@ export default function VNPage() {
                         {draftStatusLabel}
                     </div>
                     {draftStorageError && (
-                        <p role="alert" className="mt-1 text-sm text-red-300">
+                        <p role="alert" className="mt-1 text-sm text-destructive">
                             {t.vn.draftStorageError}
                         </p>
                     )}
                     {saveConflict && (
-                        <p role="alert" className="mt-1 text-sm text-amber-200">
+                        <p role="alert" className="mt-1 text-sm text-pending">
                             {t.modal.saveConflict}
                         </p>
                     )}
@@ -771,7 +771,7 @@ export default function VNPage() {
                     animate={{ opacity: 1, x: 0 }}
                     className="space-y-6"
                 >
-                    <div className="bg-card border border-white/10 rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-6">
                         <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
 
                         <div className="space-y-2">
@@ -783,14 +783,14 @@ export default function VNPage() {
                                 maxLength={200}
                                 onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
                                 placeholder={t.common.resumeNotePlaceholder}
-                                className="min-h-11 bg-secondary/50 border-white/10"
+                                className="min-h-11 border-input bg-card"
                             />
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="detail-status">{t.common.status}</Label>
                             <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
-                                <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                                <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full border-input bg-card">
                                     <SelectValue placeholder={t.common.selectStatus} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -810,7 +810,7 @@ export default function VNPage() {
                                     markDirty();
                                 }}
                             >
-                                <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full bg-secondary/50 border-white/10">
+                                <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full border-input bg-card">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -851,7 +851,7 @@ export default function VNPage() {
                             </ErrorBoundary>
                         </div>
 
-                        <details ref={additionalFieldsRef} data-testid="detail-additional-fields" className="rounded-lg border border-white/10 p-4">
+                        <details ref={additionalFieldsRef} data-testid="detail-additional-fields" className="rounded-lg border border-border p-4">
                             <summary className="cursor-pointer">
                                 <span className="inline-flex min-h-11 items-center font-medium">{t.vn.additionalFields}</span>
                             </summary>
@@ -873,7 +873,7 @@ export default function VNPage() {
                                                     setScore(raw === "" ? null : Number(raw));
                                                     markDirty();
                                                 }}
-                                                className="h-11 w-24 text-right font-bold text-white bg-secondary/50 border-white/10"
+                                                className="h-11 w-24 border-input bg-card text-right font-bold text-foreground"
                                             />
                                             <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
                                         </div>
@@ -917,7 +917,7 @@ export default function VNPage() {
                                                 setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
                                                 markDirty();
                                             }}
-                                            className="min-h-11 bg-secondary/50 border-white/10"
+                                            className="min-h-11 border-input bg-card"
                                             placeholder="0.0"
                                         />
                                         <span className="text-sm text-muted-foreground">{t.common.hours}</span>
@@ -952,22 +952,22 @@ export default function VNPage() {
                 >
                     <div className="space-y-4">
                         <Accordion
-                            title={<div className="flex items-center gap-2"><ExternalLink className="w-5 h-5 text-blue-400" /> {t.vn.externalInfo}</div>}
+                            title={<div className="flex items-center gap-2"><ExternalLink className="w-5 h-5 text-primary" /> {t.vn.externalInfo}</div>}
                         >
                             <div className="space-y-4">
                                 <div className="flex flex-wrap gap-2 text-sm">
                                     <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
-                                        <Star className="h-4 w-4 text-yellow-500" />
+                                        <Star className="h-4 w-4 text-primary" />
                                         <span className="font-bold">{vn.rating ? (vn.rating / 10).toFixed(1) : t.common.unrated}</span>
                                         <span data-testid="detail-vndb-score-suffix" className="text-muted-foreground">/ 10 (VNDB)</span>
                                     </Badge>
                                     <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
-                                        <Calendar className="h-4 w-4 text-blue-400" />
+                                        <Calendar className="h-4 w-4 text-primary" />
                                         <span>{vn.released ? formatReleaseDate(vn.released, language) : t.common.tba}</span>
                                     </Badge>
                                     {vn.length_minutes && (
                                         <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
-                                            <Clock className="h-4 w-4 text-green-400" />
+                                            <Clock className="h-4 w-4 text-success" />
                                             <span>{Math.round(vn.length_minutes / 60)} {t.common.hoursEstimated}</span>
                                         </Badge>
                                     )}
@@ -976,7 +976,7 @@ export default function VNPage() {
                                     href={`https://vndb.org/${vn.id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                                    className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-selection-foreground"
                                 >
                                     <ExternalLink className="h-4 w-4" />
                                     {t.common.viewOnVNDB}
@@ -1009,30 +1009,30 @@ export default function VNPage() {
                         >
                             <div className="space-y-4">
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-400 mb-2">{t.common.developer}</h4>
+                                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">{t.common.developer}</h4>
                                     <div className="flex flex-wrap gap-2">
                                         {vn.developers?.map((dev) => (
-                                            <Badge key={dev.id} variant="outline" className="border-white/10">
+                                            <Badge key={dev.id} variant="outline" className="border-border">
                                                 {dev.name}
                                             </Badge>
                                         ))}
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-400 mb-2">{t.common.tags}</h4>
+                                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">{t.common.tags}</h4>
                                     <SpoilerTagList key={vn.id} tags={vn.tags} />
                                 </div>
                             </div>
                         </Accordion>
 
                         <Accordion
-                            title={<div className="flex items-center gap-2"><ImageIcon className="w-5 h-5 text-purple-400" /> {t.common.gallery} & {t.common.links}</div>}
+                            title={<div className="flex items-center gap-2"><ImageIcon className="w-5 h-5 text-primary" /> {t.common.gallery} & {t.common.links}</div>}
                         >
                             <div className="space-y-6">
                                 {/* External Links */}
                                 {vn.extlinks && vn.extlinks.length > 0 && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-400 mb-3">{t.common.relatedLinks}</h4>
+                                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">{t.common.relatedLinks}</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {vn.extlinks.map((link, i) => (
                                                 <a
@@ -1040,7 +1040,7 @@ export default function VNPage() {
                                                     href={link.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary text-sm transition-colors border border-white/5 hover:border-white/20"
+                                                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm transition-colors hover:border-input hover:bg-accent"
                                                 >
                                                     <ExternalLink className="w-3 h-3" />
                                                     {link.label || t.common.link}
@@ -1053,7 +1053,7 @@ export default function VNPage() {
                                 {/* Screenshots */}
                                 {vn.screenshots && vn.screenshots.length > 0 && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-400 mb-3">{t.common.screenshots}</h4>
+                                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">{t.common.screenshots}</h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                             {vn.screenshots.map((ss, i) => (
                                                 <button
@@ -1081,7 +1081,7 @@ export default function VNPage() {
                                                     />
                                                     {shouldBlurImage(ss.sexual, nsfwBlur) && (
                                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-                                                            <Badge variant="destructive" className="bg-red-600/80 text-[10px] h-5 px-1.5 py-0">{t.settings.imageBlurred}</Badge>
+                                                            <Badge variant="destructive" className="bg-destructive/80 text-[10px] h-5 px-1.5 py-0">{t.settings.imageBlurred}</Badge>
                                                         </div>
                                                     )}
                                                 </button>
@@ -1097,13 +1097,13 @@ export default function VNPage() {
                     </div>
 
                     {libraryItem && (
-                        <div data-testid="detail-delete-zone" className="space-y-2 rounded-xl border border-white/10 bg-card p-4">
+                        <div data-testid="detail-delete-zone" className="space-y-2 rounded-xl border border-border bg-card p-4">
                             <h3 className="text-sm font-bold">{t.vn.deleteZoneTitle}</h3>
                             <p className="text-xs text-muted-foreground">{t.vn.deleteZoneDescription}</p>
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="min-h-11 w-full gap-2 border-red-400/30 text-red-300 hover:bg-red-950/40 hover:text-red-200"
+                                className="min-h-11 w-full gap-2 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() => setIsDeleteDialogOpen(true)}
                                 disabled={formLocked || isDeleting || isSaving}
                             >
@@ -1121,11 +1121,11 @@ export default function VNPage() {
                     if (!isDeleting) setIsDeleteDialogOpen(open);
                 }}
             >
-                <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10">
+                <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-border">
                     <DialogHeader>
                         <DialogTitle>{t.vn.deleteDialogTitle}</DialogTitle>
                         <DialogDescription>
-                            {t.vn.deleteDialogWork}: <span className="font-medium text-white">{displayTitle}</span>
+                            {t.vn.deleteDialogWork}: <span className="font-medium text-foreground">{displayTitle}</span>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-2 text-sm">
@@ -1170,7 +1170,7 @@ export default function VNPage() {
                                 screenshotButtonRefs.current[openedIndex]?.focus();
                             }
                         }}
-                        className="block h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden border-white/10 bg-black/95 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[calc(100vw-2rem)]"
+                        className="block h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden border-white/10 bg-black/95 p-0 text-white sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[calc(100vw-2rem)]"
                     >
                         <DialogTitle className="sr-only">
                             {t.common.screenshots} {selectedImageIndex + 1}
@@ -1221,7 +1221,7 @@ export default function VNPage() {
                             />
                             {shouldBlurImage(vn.screenshots[selectedImageIndex].sexual, nsfwBlur) && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                                    <Badge variant="destructive" className="bg-red-600 text-white border-none shadow-xl px-6 py-3 text-2xl font-bold">{t.settings.imageBlurred}</Badge>
+                                    <Badge variant="destructive" className="bg-destructive text-destructive-foreground border-none shadow-xl px-6 py-3 text-2xl font-bold">{t.settings.imageBlurred}</Badge>
                                     <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
                                         {t.settings?.nsfwBlurDescription || "NSFW content is hidden"}
                                     </p>

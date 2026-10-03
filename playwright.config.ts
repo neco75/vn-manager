@@ -19,13 +19,19 @@ export default defineConfig({
     },
     webServer: [
         {
-            command: `FIXTURE_PORT=${fixturePort} node e2e/fixture-server.mjs`,
+            command: "node e2e/fixture-server.mjs",
+            env: { ...process.env, FIXTURE_PORT: String(fixturePort) } as Record<string, string>,
             url: `http://127.0.0.1:${fixturePort}/__fixture/status`,
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,
         },
         {
-            command: `VNDB_API_URL=http://127.0.0.1:${fixturePort}/kana/vn NODE_OPTIONS=--require=./e2e/guard-network.cjs npm run start -- --hostname 127.0.0.1 --port ${port}`,
+            command: `npm run start -- --hostname 127.0.0.1 --port ${port}`,
+            env: {
+                ...process.env,
+                VNDB_API_URL: `http://127.0.0.1:${fixturePort}/kana/vn`,
+                NODE_OPTIONS: "--require=./e2e/guard-network.cjs",
+            } as Record<string, string>,
             url: `http://127.0.0.1:${port}`,
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,

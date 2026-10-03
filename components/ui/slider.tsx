@@ -35,7 +35,7 @@ function Slider({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       className={cn(
-        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=horizontal]:min-h-11 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className
       )}
       {...props}
@@ -59,7 +59,7 @@ function Slider({
           key={index}
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledBy}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          className="relative flex size-11 shrink-0 items-center justify-center rounded-full border border-transparent bg-transparent shadow-none transition-shadow focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 after:size-4 after:rounded-full after:border after:border-primary after:bg-card after:shadow-sm after:content-[''] hover:after:ring-4 focus-visible:after:ring-4"
         />
       ))}
     </SliderPrimitive.Root>

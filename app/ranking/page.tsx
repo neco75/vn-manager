@@ -26,14 +26,14 @@ export default function RankingPage() {
         <div className="space-y-8">
             <div className="text-center space-y-2">
                 <h1 className="text-3xl font-bold">{t.ranking.title}</h1>
-                <p className="text-gray-400">{t.ranking.subtitle}</p>
+                <p className="text-muted-foreground">{t.ranking.subtitle}</p>
             </div>
 
             {rankedItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
-                    <Trophy className="w-16 h-16 text-gray-600" />
+                    <Trophy className="w-16 h-16 text-muted-foreground" />
                     <h2 className="text-2xl font-bold">{t.ranking.emptyTitle}</h2>
-                    <p className="text-gray-400">{t.ranking.emptyDesc}</p>
+                    <p className="text-muted-foreground">{t.ranking.emptyDesc}</p>
                 </div>
             ) : (
                 <div className="space-y-4 max-w-4xl mx-auto">
@@ -61,7 +61,7 @@ export default function RankingPage() {
                                         />
                                         {shouldBlurImage(item.vn.image?.sexual, nsfwBlur) && (
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                                <Badge variant="destructive" className="bg-red-600/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
+                                                <Badge variant="destructive" className="bg-destructive/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
                                             </div>
                                         )}
                                     </>
@@ -79,14 +79,14 @@ export default function RankingPage() {
                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                                     <p data-testid="ranking-status" className="shrink-0 text-xs text-muted-foreground">{t.status[item.status]}</p>
                                     {getVisibleTags(item.vn.tags).slice(0, 3).map(tag => (
-                                        <span key={tag.id} className="max-w-full break-words [overflow-wrap:anywhere] text-xs px-2 py-0.5 rounded-full bg-secondary text-gray-400">
+                                        <span key={tag.id} className="max-w-full break-words [overflow-wrap:anywhere] rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                                             {tag.name}
                                         </span>
                                     ))}
                                 </div>
 
                                 <div className="ml-auto flex-shrink-0 text-right lg:px-4">
-                                    <div data-testid="ranking-score" className="text-2xl font-bold text-yellow-500 lg:text-3xl">{item.score}</div>
+                                    <div data-testid="ranking-score" className="text-2xl font-bold text-primary lg:text-3xl">{item.score}</div>
                                     <div data-testid="ranking-score-label" className="text-xs text-muted-foreground">{t.common.score}</div>
                                 </div>
                             </div>

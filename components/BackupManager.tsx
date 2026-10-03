@@ -182,7 +182,7 @@ export function BackupManager({ id }: { id?: string }) {
 
     return (
         <>
-            <Card id={id} className="border-white/10">
+            <Card id={id} className="border-border">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Save className="w-5 h-5 text-primary" />
@@ -235,7 +235,7 @@ export function BackupManager({ id }: { id?: string }) {
                     {message && (
                         <p
                             role={message.kind === "error" ? "alert" : "status"}
-                            className={message.kind === "error" ? "text-sm text-red-300" : "text-sm text-green-300"}
+                            className={message.kind === "error" ? "text-sm text-destructive" : "text-sm text-success"}
                         >
                             {message.text}
                         </p>
@@ -249,7 +249,7 @@ export function BackupManager({ id }: { id?: string }) {
                     if (!open && !isRestoring) setImportState(null);
                 }}
             >
-                <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto bg-card border-white/10">
+                <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto border-border bg-card">
                     <DialogHeader>
                         <DialogTitle>{t.stats.restorePreviewTitle}</DialogTitle>
                     </DialogHeader>
@@ -259,7 +259,7 @@ export function BackupManager({ id }: { id?: string }) {
                             <p className="text-sm text-muted-foreground">{t.stats.restorePreviewDesc}</p>
 
                             <dl className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="rounded-lg bg-secondary/40 p-3">
+                                <div className="rounded-lg bg-secondary p-3">
                                     <dt className="text-muted-foreground">{t.stats.backupFormat}</dt>
                                     <dd className="font-semibold">
                                         {importState.backup.legacy
@@ -267,15 +267,15 @@ export function BackupManager({ id }: { id?: string }) {
                                             : t.stats.versionedBackup.replace("{version}", String(importState.backup.schemaVersion))}
                                     </dd>
                                 </div>
-                                <div className="rounded-lg bg-secondary/40 p-3">
+                                <div className="rounded-lg bg-secondary p-3">
                                     <dt className="text-muted-foreground">{t.stats.backupItems}</dt>
                                     <dd className="font-semibold">{importState.preview.total}</dd>
                                 </div>
-                                <div className="rounded-lg bg-secondary/40 p-3">
+                                <div className="rounded-lg bg-secondary p-3">
                                     <dt className="text-muted-foreground">{t.stats.additions}</dt>
                                     <dd className="font-semibold">{importState.preview.additions}</dd>
                                 </div>
-                                <div className="rounded-lg bg-secondary/40 p-3">
+                                <div className="rounded-lg bg-secondary p-3">
                                     <dt className="text-muted-foreground">{t.stats.conflicts}</dt>
                                     <dd className="font-semibold">{importState.preview.conflicts}</dd>
                                 </div>
@@ -284,7 +284,7 @@ export function BackupManager({ id }: { id?: string }) {
                             {importState.preview.conflicts > 0 && (
                                 <label
                                     htmlFor={overwriteId}
-                                    className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-white/10 p-3"
+                                    className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-border p-3"
                                 >
                                     <input
                                         id={overwriteId}
@@ -302,7 +302,7 @@ export function BackupManager({ id }: { id?: string }) {
                             )}
 
                             {importState.backup.legacy && (
-                                <p className="text-sm text-amber-300">{t.stats.legacyPreservesSettings}</p>
+                                <p className="text-sm text-pending">{t.stats.legacyPreservesSettings}</p>
                             )}
 
                             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

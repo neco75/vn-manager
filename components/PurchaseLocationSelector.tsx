@@ -101,7 +101,7 @@ export function PurchaseLocationSelector({
                 onChange={(e) => setNewSource(e.target.value)}
                 placeholder={t.common.newPurchaseLocation}
                 aria-label={t.common.newPurchaseLocation}
-                className="min-h-11 min-w-0 bg-secondary/50 border-white/10"
+                className="min-h-11 min-w-0 border-input bg-card"
                 autoFocus
                 onKeyDown={(e) => {
                     if (e.key === "Enter") void handleAddSource();
@@ -149,7 +149,7 @@ export function PurchaseLocationSelector({
                             id={controlId}
                             disabled={disabled}
                             aria-label={t.common.selectPurchaseLocation}
-                            className="min-h-11 w-full bg-secondary/50 border-white/10"
+                            className="min-h-11 w-full border-input bg-card"
                         >
                             <SelectValue placeholder={t.common.selectPurchaseLocation} />
                         </SelectTrigger>
@@ -160,14 +160,14 @@ export function PurchaseLocationSelector({
                                     {source}
                                 </SelectItem>
                             ))}
-                            <div className="h-px bg-white/10 my-1" />
+                            <div className="my-1 h-px bg-border" />
                             <SelectItem value="add_new" className="text-primary focus:text-primary font-medium">
                                 <div className="flex items-center gap-2">
                                     <Plus className="w-4 h-4" />
                                     {t.common.addPurchaseLocation}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="manage_locations" className="text-muted-foreground focus:text-white font-medium">
+                            <SelectItem value="manage_locations" className="text-muted-foreground focus:text-foreground font-medium">
                                 <div className="flex items-center gap-2">
                                     <Settings className="w-4 h-4" />
                                     {t.common.managePurchaseLocations}
@@ -208,7 +208,7 @@ export function PurchaseLocationSelector({
             )}
 
             <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-                <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto bg-card border-white/10">
+                <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto border-border bg-card">
                     <DialogHeader>
                         <DialogTitle>{t.common.managePurchaseLocations}</DialogTitle>
                     </DialogHeader>
@@ -219,14 +219,14 @@ export function PurchaseLocationSelector({
                             </div>
                         )}
                         {purchaseSources.map((source) => (
-                            <div key={source} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-white/5 bg-secondary/30 p-2">
+                            <div key={source} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border bg-secondary p-2">
                                 {editingSource === source ? (
                                     <div className="flex min-w-0 flex-1 items-center gap-2">
                                         <Input
                                             disabled={disabled}
                                             value={editValue}
                                             onChange={(e) => setEditValue(e.target.value)}
-                                            className="min-h-11 min-w-0 bg-black/20 border-white/10"
+                                            className="min-h-11 min-w-0 border-input bg-card"
                                             aria-label={`${t.common.edit}: ${source}`}
                                             autoFocus
                                             onKeyDown={(e) => {
@@ -265,25 +265,25 @@ export function PurchaseLocationSelector({
                                                 size="icon"
                                                 variant="ghost"
                                                 disabled={disabled}
-                                                className="h-11 w-11 hover:bg-white/10"
+                                                className="h-11 w-11 hover:bg-accent"
                                                 aria-label={`${t.common.edit}: ${source}`}
                                                 onClick={() => {
                                                     setEditingSource(source);
                                                     setEditValue(source);
                                                 }}
                                             >
-                                                <Edit2 className="w-4 h-4 text-blue-400" />
+                                                <Edit2 className="w-4 h-4 text-primary" />
                                             </Button>
                                             <Button
                                                 type="button"
                                                 size="icon"
                                                 variant="ghost"
                                                 disabled={disabled}
-                                                className="h-11 w-11 hover:bg-red-500/20"
+                                                className="h-11 w-11 hover:bg-destructive/10"
                                                 aria-label={`${t.common.delete}: ${source}`}
                                                 onClick={() => void handleDeleteSource(source)}
                                             >
-                                                <Trash2 className="w-4 h-4 text-red-400" />
+                                                <Trash2 className="w-4 h-4 text-destructive" />
                                             </Button>
                                         </div>
                                     </>

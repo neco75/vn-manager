@@ -86,7 +86,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-lg bg-[#0a0a0a] border-white/10">
+            <DialogContent className="border-border bg-card sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-center gap-2 text-2xl font-bold">
                         <Dices className="w-6 h-6 text-primary" />
@@ -98,7 +98,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                 </DialogHeader>
 
                 <div className="flex flex-col items-center space-y-8 py-4">
-                    <div className="relative w-48 h-64 sm:w-56 sm:h-80 rounded-xl overflow-hidden bg-secondary shadow-2xl border-2 border-white/10">
+                    <div className="relative h-64 w-48 overflow-hidden rounded-xl border-2 border-border bg-secondary shadow-2xl sm:h-80 sm:w-56">
                         {currentItem?.vn.image ? (
                             <Image
                                 src={currentItem.vn.image.url}

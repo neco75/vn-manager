@@ -2,63 +2,76 @@
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 :root {
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #FCFCFF;
+  --foreground: #1C2140;
+  --card: #FFFFFF;
+  --card-foreground: #1C2140;
+  --popover: #FFFFFF;
+  --popover-foreground: #1C2140;
+  --primary: #5B50E6;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F2FA;
+  --secondary-foreground: #1C2140;
+  --muted: #F3F2FA;
+  --muted-foreground: #626B87;
+  --accent: #F3F2FA;
+  --accent-foreground: #1C2140;
+  --destructive: #B4233E;
+  --destructive-foreground: #FFFFFF;
+  --success: #17634B;
+  --success-background: #E9F7F0;
+  --pending: #875012;
+  --pending-background: #FFF4E5;
+  --selection: #EEECFF;
+  --selection-foreground: #5147C9;
+  --border: #DCDDEB;
+  --input: #8588A1;
+  --ring: #5B50E6;
+  --radius: 0.5rem;
+  --chart-1: #5B50E6;
+  --chart-2: #17634B;
+  --chart-3: #875012;
+  --chart-4: #5147C9;
+  --chart-5: #B4233E;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1C2140;
+  --sidebar-primary: #5B50E6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F3F2FA;
+  --sidebar-accent-foreground: #1C2140;
+  --sidebar-border: #DCDDEB;
+  --sidebar-ring: #5B50E6;
 }
 
 body {
   /* 既定の紫／ピンクの背景グラデーションはdesign.mdにより廃止 */
   background-attachment: fixed;
+  font-family: var(--font-geist-sans), "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+::selection {
+  color: var(--selection-foreground);
+  background: var(--selection);
 }
 
 .glass {
-  background: rgba(30, 30, 36, 0.6);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
 }
 
 .glass-hover:hover {
-  background: rgba(30, 30, 36, 0.8);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(243, 242, 250, 0.95);
+  border-color: var(--input);
 }
 
 @theme inline {
@@ -81,6 +94,13 @@ body {
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-background: var(--success-background);
+  --color-pending: var(--pending);
+  --color-pending-background: var(--pending-background);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -97,42 +117,6 @@ body {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-}
-
-.dark {
-  /* design.md §3 の共通トークン（チャコール背景・暖かい白・真鍮の主要操作） */
-  --background: #141619;
-  --foreground: #ECE8DF;
-  --card: #1C1F22;
-  --card-foreground: #ECE8DF;
-  --popover: #1C1F22;
-  --popover-foreground: #ECE8DF;
-  --primary: #D7B77B;
-  --primary-foreground: #191B1E;
-  --secondary: #25292D;
-  --secondary-foreground: #ECE8DF;
-  --muted: #25292D;
-  --muted-foreground: #B3B5B1;
-  --accent: #25292D;
-  --accent-foreground: #ECE8DF;
-  --destructive: #EFA0A0;
-  --border: #3A3F43;
-  --input: #7D858C;
-  --ring: #D7B77B;
-  --radius: 10px;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #1C1F22;
-  --sidebar-foreground: #ECE8DF;
-  --sidebar-primary: #D7B77B;
-  --sidebar-primary-foreground: #191B1E;
-  --sidebar-accent: #25292D;
-  --sidebar-accent-foreground: #ECE8DF;
-  --sidebar-border: #3A3F43;
-  --sidebar-ring: #D7B77B;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -153,5 +137,11 @@ body {
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  input,
+  textarea,
+  select {
+    caret-color: var(--primary);
   }
 }

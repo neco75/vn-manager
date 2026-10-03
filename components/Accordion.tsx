@@ -20,14 +20,14 @@ export function Accordion({ title, children, defaultOpen = false, className }: A
     const contentId = `${id}-content`;
 
     return (
-        <div className={cn("border border-white/10 rounded-xl overflow-hidden bg-card", className)}>
+        <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
             <button
                 id={triggerId}
                 type="button"
                 aria-expanded={isOpen}
                 aria-controls={contentId}
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full min-h-11 flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
+                className="flex min-h-11 w-full items-center justify-between p-4 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
                 <div className="font-bold text-lg">{title}</div>
                 <ChevronDown
@@ -46,7 +46,7 @@ export function Accordion({ title, children, defaultOpen = false, className }: A
                         exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
                         transition={{ duration: reduceMotion ? 0 : 0.2 }}
                     >
-                        <div className="p-4 pt-0 border-t border-white/5">
+                        <div className="border-t border-border p-4 pt-0">
                             {children}
                         </div>
                     </motion.div>
