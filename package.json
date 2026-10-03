@@ -11,7 +11,7 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
-    "check:regression": "node scripts/check-settings-restoration.mjs && node scripts/check-library-validation.mjs && node scripts/check-backup.mjs && node scripts/check-image-safety.mjs && node scripts/check-spoiler-safety.mjs",
+    "check:regression": "node scripts/check-lint-root-glob.mjs && node scripts/check-settings-restoration.mjs && node scripts/check-library-validation.mjs && node scripts/check-backup.mjs && node scripts/check-image-safety.mjs && node scripts/check-spoiler-safety.mjs",
     "typecheck": "tsc --noEmit",
     "check:push": "npm run check:regression && npm run test:unit && npm run lint && npm run typecheck",
     "check:review": "npm run check:regression && npm run test:unit && npm run lint && npm run typecheck && npm run test:e2e && npm audit --audit-level=high"
@@ -59,6 +59,11 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5",
     "vitest": "^5.0.2"
+  },
+  "overrides": {
+    "@next/eslint-plugin-next": {
+      "fast-glob": "file:../../../tools/next-root-glob"
+    }
   },
   "allowScripts": {
     "lefthook@2.1.14": true
