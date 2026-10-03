@@ -1,0 +1,7 @@
+{
+  "name": "@vn-manager/next-root-glob",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.mjs",
+  "engines": { "node": ">=24" }
+}
