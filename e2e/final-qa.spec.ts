@@ -288,7 +288,7 @@ test.describe("final roadmap acceptance", () => {
         await seedLibraryItem(page, "v3", { status: "completed", score: 80 });
         await page.reload();
 
-        await expect(page.locator('img[alt="Fixture VN Three"]').first()).toHaveClass(/blur-xl/);
+        await expect(page.getByRole("link", { name: "Fixture VN Three" }).locator("img")).toHaveClass(/blur-xl/);
 
         await page.getByRole("button", { name: "リスト表示", exact: true }).click();
         await expect(page.locator('img[src*="/3/cover.jpg"]').first()).toHaveClass(/blur-md/);
@@ -317,7 +317,7 @@ test.describe("final roadmap acceptance", () => {
 
         await page.goto("/");
         await page.locator("#desktop-nsfw-blur").click();
-        await expect(page.locator('img[alt="Fixture VN Three"]').first()).not.toHaveClass(/blur-xl/);
+        await expect(page.getByRole("link", { name: "Fixture VN Three" }).locator("img")).not.toHaveClass(/blur-xl/);
         await page.locator("#desktop-nsfw-blur").click();
 
         await page.goto("/vn/v1");

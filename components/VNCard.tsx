@@ -1,19 +1,24 @@
-import { VN } from "@/types/vndb";
+"use client";
+
+import { useState } from "react";
+import { Calendar, Check, Loader2, Plus, Star } from "lucide-react";
 import Image from "next/image";
-import { LibraryItem } from "@/types/library";
-import { cn } from "@/lib/utils";
-import { Star, Calendar, Plus, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { shouldBlurImage } from "@/lib/image-safety";
+import { cn } from "@/lib/utils";
 import { getDisplayTitle } from "@/lib/vndb-title";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/context/LanguageContext";
+import { useSettings } from "@/context/SettingsContext";
+import { LibraryItem } from "@/types/library";
+import { VN } from "@/types/vndb";
 
 interface VNCardProps {
     vn: VN;
     libraryItem?: LibraryItem;
     className?: string;
-    /** 検索結果として表示（発売年・VNDB評価・ブランドと追加操作を含める） */
+    /** 検索結果として表示（発売年・VNDB評価と追加操作を含める） */
     variant?: "library" | "search";
     /** 追加操作。渡すと検索カードに独立した「追加」ボタンを出す */
     onAdd?: () => void;
@@ -25,138 +30,134 @@ interface VNCardProps {
     onDetailClick?: () => void;
 }
 
-import { useLanguage } from "@/context/LanguageContext";
-import { useSettings } from "@/context/SettingsContext";
-
-export function VNCard({ vn, libraryItem, className, variant = "library", onAdd, isAdding = false, detailHref, onDetailClick }: VNCardProps) {
+export function VNCard({
+    vn,
+    libraryItem,
+    className,
+    variant = "library",
+    onAdd,
+    isAdding = false,
+    detailHref,
+    onDetailClick,
+}: VNCardProps) {
     const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
+    const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
     const shouldBlur = shouldBlurImage(vn.image?.sexual, nsfwBlur);
     const isSearch = variant === "search";
     const isAdded = Boolean(libraryItem);
     const displayTitle = getDisplayTitle(vn, language);
     const developerName = vn.developers?.[0]?.name;
+    const imageUrl = vn.image?.url;
+    const showImage = Boolean(imageUrl) && failedImageUrl !== imageUrl;
     const href = detailHref ?? `/vn/${vn.id}`;
+    const isRated = vn.rating !== null && vn.rating !== undefined && vn.rating > 0;
 
-    // 表紙とタイトルは詳細へ移動する主リンク。追加などの操作はリンク外に置く（入れ子にしない）。
-    const Cover = (
-        <Link href={href} className="block" aria-label={displayTitle} onClick={onDetailClick}>
-            <div className="aspect-[2/3] relative overflow-hidden bg-card">
-                {vn.image ? (
-                    <>
-                        <Image
-                            src={vn.image.url}
-                            alt={displayTitle}
-                            fill
-                            className={cn(
-                                "object-contain transition-all duration-300",
-                                shouldBlur && "blur-xl scale-110"
-                            )}
-                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-                        />
-                        {shouldBlur && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                                <Badge variant="destructive" className="bg-destructive/80 text-destructive-foreground border-none shadow-lg">{t.settings.imageBlurred}</Badge>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="w-full h-full bg-secondary flex items-center justify-center text-muted-foreground text-sm px-2 text-center">
-                        {t.common.noImage}
-                    </div>
-                )}
-            </div>
+    const cover = (
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-card">
+            {showImage && imageUrl ? (
+                <>
+                    <Image
+                        src={imageUrl}
+                        alt=""
+                        fill
+                        onError={() => setFailedImageUrl(imageUrl)}
+                        className={cn("object-contain", shouldBlur && "blur-xl")}
+                        sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 20vw"
+                    />
+                    {shouldBlur && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                            <Badge variant="destructive" className="max-w-full whitespace-normal break-words border-none bg-destructive/80 px-1.5 text-center text-[13px] leading-[1.5] text-destructive-foreground shadow-lg">
+                                <span className="min-w-0 break-words text-center">{t.settings.imageBlurred}</span>
+                            </Badge>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div className="flex h-full w-full items-center justify-center bg-secondary px-2 text-center text-[13px] leading-[1.5] text-muted-foreground">
+                    {t.common.noImage}
+                </div>
+            )}
+        </div>
+    );
+
+    const cardText = (
+        <div className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-4">
+            <span className="line-clamp-2 min-h-[2.625rem] break-words text-sm font-semibold leading-[1.5] text-foreground hover:text-primary sm:text-base">
+                {displayTitle}
+            </span>
+            {developerName && (
+                <span className="truncate text-[13px] leading-[1.5] text-muted-foreground">
+                    {developerName}
+                </span>
+            )}
+
+            {isSearch ? (
+                <div className="mt-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-[13px] leading-[1.5] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 tabular-nums">
+                        <Calendar className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        {vn.released || "TBA"}
+                    </span>
+                    {isRated && (
+                        <span className="inline-flex items-center gap-1 tabular-nums">
+                            <Star className="h-3 w-3 shrink-0 fill-primary text-primary" aria-hidden="true" />
+                            VNDB {(vn.rating / 10).toFixed(1)}/10
+                        </span>
+                    )}
+                </div>
+            ) : libraryItem ? (
+                <div className="mt-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pt-1">
+                    <Badge variant="secondary" className="max-w-full whitespace-normal break-words text-[13px] leading-[1.5]">
+                        {t.status[libraryItem.status]}
+                    </Badge>
+                    <span className="ml-auto shrink-0 text-sm font-semibold tabular-nums text-primary">
+                        {libraryItem.score === null ? t.common.unrated : `${libraryItem.score}/100`}
+                    </span>
+                </div>
+            ) : null}
+        </div>
+    );
+
+    const mainLink = (
+        <Link
+            href={href}
+            aria-label={displayTitle}
+            onClick={onDetailClick}
+            className={cn(
+                "group flex min-w-0 flex-1 flex-col rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                !isSearch && cn("h-full overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_10px_rgba(28,33,64,0.04)] transition-colors duration-150 hover:border-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background", className),
+            )}
+        >
+            {cover}
+            {cardText}
         </Link>
     );
 
-    const isRated = vn.rating !== null && vn.rating !== undefined && vn.rating > 0;
+    if (!isSearch) return <>{mainLink}</>;
 
     return (
-        <Card
-            className={cn("h-full overflow-hidden border-border rounded-xl p-0 gap-0 flex flex-col", className)}
-        >
-            {Cover}
-
-            <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
-                <Link
-                    href={href}
-                    onClick={onDetailClick}
-                    className="min-h-[2.75rem] font-bold text-base leading-snug line-clamp-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                >
-                    {displayTitle}
-                </Link>
-
-                {developerName && <p className="truncate text-xs text-muted-foreground">{developerName}</p>}
-
-                {/* 検索カードでは出典を明示したVNDB情報だけを表示する */}
-                {isSearch ? (
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center gap-1">
-                                <Calendar className="w-3 h-3" aria-hidden="true" />
-                                {vn.released || "TBA"}
-                            </span>
-                            {isRated && (
-                                <span className="inline-flex items-center gap-1">
-                                    <Star className="w-3 h-3 fill-primary text-primary" aria-hidden="true" />
-                                    VNDB {(vn.rating / 10).toFixed(1)}/10
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                ) : null}
-
-                <div className="mt-auto pt-2 space-y-2">
-                    {libraryItem ? (
-                        <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
-                            <Badge variant="secondary" className="text-xs">
-                                {isSearch ? t.search.alreadyAdded : t.status[libraryItem.status]}
-                            </Badge>
-                            {!isSearch && (
-                                <Badge variant="outline" className="text-xs">
-                                    {t.ownership[libraryItem.ownership]}
-                                </Badge>
-                            )}
-                        </div>
-                    ) : null}
-
-                    {!isSearch && libraryItem ? (
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="text-muted-foreground">{t.common.score}</span>
-                            <span className="text-sm font-bold text-primary">
-                                {libraryItem.score === null ? t.common.unrated : `${libraryItem.score}/100`}
-                            </span>
-                        </div>
-                    ) : null}
-
-                    {!isSearch && isRated ? (
-                        <div className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
-                            <Star className="w-3 h-3" aria-hidden="true" />
-                            <span>VNDB {(vn.rating / 10).toFixed(1)}/10</span>
-                        </div>
-                    ) : null}
-
-                    {/* 追加操作: 未登録なら既定でプレイ予定として追加。登録済みは「登録済み」表示のみ */}
-                    {isSearch && !isAdded && onAdd ? (
-                        <button
-                            type="button"
-                            onClick={onAdd}
-                            disabled={isAdding}
-                            className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                        >
-                            {isAdding ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
-                            {t.common.addToLibrary}
-                        </button>
-                    ) : null}
-                    {isSearch && isAdded ? (
-                        <div className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-border px-3 text-sm text-muted-foreground">
-                            <Check className="w-4 h-4 text-success" aria-hidden="true" />
-                            {t.search.alreadyAdded}
-                        </div>
-                    ) : null}
+        <Card className={cn("h-full min-w-0 gap-0 overflow-hidden rounded-xl border-border bg-card p-0 shadow-[0_2px_10px_rgba(28,33,64,0.04)]", className)}>
+            {mainLink}
+            {isAdded ? (
+                <div className="flex min-h-11 items-center gap-1.5 px-2 pb-2 text-sm text-muted-foreground sm:px-4 sm:pb-4">
+                    <Check className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                    {t.search.alreadyAdded}
                 </div>
-            </CardContent>
+            ) : onAdd ? (
+                <div className="px-2 pb-2 sm:px-4 sm:pb-4">
+                    <button
+                        type="button"
+                        onClick={onAdd}
+                        disabled={isAdding}
+                        aria-busy={isAdding}
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:px-3"
+                    >
+                        {isAdding ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                        <span className="min-w-0 break-words text-center leading-tight">{t.common.addToLibrary}</span>
+                    </button>
+                </div>
+            ) : null}
         </Card>
     );
 }
