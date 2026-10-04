@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, openAdditionalRecordFields, seedLibraryItem } from "./helpers";
+import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, openAdditionalRecordFields, readLibraryItem, seedLibraryItem } from "./helpers";
 
 async function search(page: Parameters<typeof mockVNDB>[0], query: string) {
     const input = page.getByLabel("タイトルで検索");
@@ -33,7 +33,7 @@ test.describe("search flows", () => {
 
         await search(page, "normal");
         await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
-        await expect(page.locator('a[href^="/vn/v1?from="]')).toHaveCount(2);
+        await expect(page.locator('a[href^="/vn/v1?from="]')).toHaveCount(1);
         await page.getByRole("button", { name: "もっと見る", exact: true }).click();
         await expect(page.getByText("Fixture VN Three", { exact: true })).toBeVisible();
 
@@ -119,8 +119,8 @@ test.describe("search flows", () => {
         await search(page, "normal");
         await page.getByRole("button", { name: "もっと見る", exact: true }).click();
         await expect(page.getByText("Fixture VN Three", { exact: true })).toBeVisible();
-        // v2 is returned on both pages, but the UI keeps one card (two detail links).
-        await expect(page.locator('a[href^="/vn/v2?from="]')).toHaveCount(2);
+        // v2 is returned on both pages, but the UI keeps one card and one primary detail link.
+        await expect(page.locator('a[href^="/vn/v2?from="]')).toHaveCount(1);
 
         await search(page, "load-fail");
         await page.getByRole("button", { name: "もっと見る", exact: true }).click();
@@ -138,7 +138,7 @@ test.describe("search flows", () => {
         const englishTitle = "English Sequel Fan Disc Title";
         const titleLink = page.locator('a[href^="/vn/v4?from="]').filter({ hasText: japaneseTitle });
         await expect(titleLink).toBeVisible();
-        await expect(titleLink).toHaveClass(/line-clamp-2/);
+        await expect(titleLink.getByText(japaneseTitle, { exact: true })).toHaveClass(/line-clamp-2/);
 
         await page.evaluate(() => localStorage.setItem("vn-manager-lang", "en"));
         await page.reload();
@@ -202,7 +202,8 @@ test.describe("library flows", () => {
         const input = page.getByRole("searchbox", { name: "登録作品のタイトル・別名・ブランドを検索" });
         await input.pressSequentially("Title Works");
         await expect(page.getByText("日本語の長いタイトル 続編 ファンディスク", { exact: true })).toBeVisible();
-        await expect(page.getByText("VNDB 6.5/10", { exact: true })).toBeVisible();
+        await expect(page.getByText("75/100", { exact: true })).toBeVisible();
+        await expect(page.getByText("VNDB 6.5/10", { exact: true })).toHaveCount(0);
         await expect(page.getByText("Fixture VN One", { exact: true })).not.toBeVisible();
         await expect(page).toHaveURL(/q=Title\+Works/);
 
@@ -246,11 +247,101 @@ test.describe("library flows", () => {
         await page.goto("/search");
         await search(page, "normal");
 
-        await page.getByRole("button", { name: "ライブラリに追加", exact: true }).first().click();
+        const detailLink = page.locator('a[href^="/vn/v1?from="]');
+        await expect(detailLink).toHaveCount(1);
+        const addButton = page.getByRole("button", { name: "ライブラリに追加", exact: true }).first();
+        expect(await addButton.evaluate((button) => button.closest("a"))).toBeNull();
+        const searchUrl = page.url();
+        await addButton.click();
+        await expect(page).toHaveURL(searchUrl);
         await expect(page.getByText("登録済み", { exact: true }).first()).toBeVisible();
+        await expect.poll(() => readLibraryItem(page, "v1")).toMatchObject({
+            status: "plan_to_play",
+            ownership: "unknown",
+            score: null,
+        });
 
         await page.reload();
         await expect(page.getByText("登録済み", { exact: true }).first()).toBeVisible();
+    });
+
+    test("keeps long library cards readable and makes the whole card a detail link at 320px", async ({ page }) => {
+        await mockVNDB(page);
+        await page.route("**/_next/image**", async (route) => {
+            const source = new URL(route.request().url()).searchParams.get("url") ?? "";
+            if (source.includes("/4/cover.jpg")) {
+                await route.abort();
+                return;
+            }
+            await route.fallback();
+        });
+        await page.setViewportSize({ width: 320, height: 844 });
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { status: "playing", score: 0, addedAt: 1 });
+        await seedLibraryItem(page, "v2", { status: "completed", score: null, addedAt: 2 });
+        await seedLibraryItem(page, "v4", { status: "completed", score: 100, addedAt: 3 });
+        await page.reload();
+
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await expect(page.getByRole("link", { name: "日本語の長いタイトル 続編 ファンディスク" })).toBeVisible();
+        await page.screenshot({ path: "e2e/screenshots/v2-03-library-1440x1000.png" });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: "e2e/screenshots/v2-03-library-390x844.png" });
+        await page.setViewportSize({ width: 320, height: 844 });
+
+        const title = "日本語の長いタイトル 続編 ファンディスク";
+        const v1 = page.locator('a[href^="/vn/v1?from="]');
+        const v2 = page.locator('a[href^="/vn/v2?from="]');
+        const v4 = page.locator('a[href^="/vn/v4?from="]');
+        await expect(v1).toHaveCount(1);
+        await expect(v2).toHaveCount(1);
+        await expect(v4).toHaveCount(1);
+        await expect(v4).toHaveAttribute("aria-label", title);
+        await expect(page.getByText("0/100", { exact: true })).toBeVisible();
+        await expect(page.getByText("未評価", { exact: true })).toBeVisible();
+        await expect(v4.getByText("100/100", { exact: true })).toBeVisible();
+        await expect(page.getByText("VNDB 6.5/10", { exact: true })).toHaveCount(0);
+        await expect(v1.locator("img")).toHaveClass(/blur-xl/);
+        const blurLabel = v1.getByText("画像をぼかしています", { exact: true });
+        await expect(blurLabel).toBeVisible();
+        const [coverBox, blurLabelBox] = await Promise.all([
+            v1.locator("img").evaluate((img) => img.closest("div.relative")?.getBoundingClientRect().toJSON()),
+            blurLabel.boundingBox(),
+        ]);
+        expect(coverBox).not.toBeNull();
+        expect(blurLabelBox).not.toBeNull();
+        expect(blurLabelBox!.x).toBeGreaterThanOrEqual(coverBox!.x);
+        expect(blurLabelBox!.x + blurLabelBox!.width).toBeLessThanOrEqual(coverBox!.right + 1);
+        expect(blurLabelBox!.height).toBeGreaterThan(20);
+        await expect(v4.getByText("画像なし", { exact: true })).toBeVisible();
+        await expect(v4.locator("img")).toHaveCount(0);
+
+        const [statusBox, scoreBox] = await Promise.all([
+            v4.getByText("クリア済み", { exact: true }).boundingBox(),
+            v4.getByText("100/100", { exact: true }).boundingBox(),
+        ]);
+        expect(statusBox).not.toBeNull();
+        expect(scoreBox).not.toBeNull();
+        const overlap = statusBox!.x < scoreBox!.x + scoreBox!.width
+            && statusBox!.x + statusBox!.width > scoreBox!.x
+            && statusBox!.y < scoreBox!.y + scoreBox!.height
+            && statusBox!.y + statusBox!.height > scoreBox!.y;
+        expect(overlap).toBe(false);
+
+        const [v4Box, v2Box, v1Box] = await Promise.all([
+            v4.boundingBox(),
+            v2.boundingBox(),
+            v1.boundingBox(),
+        ]);
+        expect(v4Box).not.toBeNull();
+        expect(v2Box).not.toBeNull();
+        expect(v1Box).not.toBeNull();
+        expect(v2Box!.x).toBeGreaterThan(v4Box!.x);
+        expect(Math.abs(v2Box!.y - v4Box!.y)).toBeLessThan(2);
+        expect(v1Box!.y).toBeGreaterThan(v4Box!.y);
+
+        await v4.click({ position: { x: v4Box!.width / 2, y: v4Box!.height - 2 } });
+        await expect(page).toHaveURL(/\/vn\/v4\?from=%2F$/);
     });
 
     test("does not expose re-add for an existing record or overwrite its score", async ({ page }) => {
