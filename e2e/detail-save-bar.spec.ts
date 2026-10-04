@@ -18,7 +18,7 @@ async function saveBarLayout(page: Page) {
         const headerRect = header.getBoundingClientRect();
         const saveBarRect = saveBar.getBoundingClientRect();
         return {
-            headerBottom: headerRect.bottom,
+            headerBottom: header.getClientRects().length === 0 ? 0 : headerRect.bottom,
             saveBarTop: saveBarRect.top,
             saveBarLeft: saveBarRect.left,
             saveBarRight: saveBarRect.right,
@@ -41,13 +41,19 @@ async function expectSaveControlReceivesPointer(page: Page) {
 async function expectEditorIsNotCovered(page: Page, editor: Locator) {
     const saveButton = page.getByRole("button", { name: "変更を保存", exact: true });
     const saveBarBox = await page.locator(".sticky").filter({ has: saveButton }).boundingBox();
-    const headerBox = await page.locator("header").boundingBox();
+    const header = page.locator("header");
+    const headerVisible = await header.isVisible();
+    const headerBox = headerVisible ? await header.boundingBox() : null;
     const editorBox = await editor.boundingBox();
+    const expectedHeaderVisible = (page.viewportSize()?.width ?? 0) < 1024;
 
-    if (!saveBarBox || !headerBox || !editorBox) throw new Error("Header, save bar, or editor is not rendered");
+    expect(headerVisible).toBe(expectedHeaderVisible);
+    if (!saveBarBox || !editorBox || (headerVisible && !headerBox)) {
+        throw new Error("Save bar, expected header area, or editor is not rendered");
+    }
 
     expect(editorBox.y).toBeGreaterThanOrEqual(Math.max(
-        headerBox.y + headerBox.height,
+        headerBox ? headerBox.y + headerBox.height : 0,
         saveBarBox.y + saveBarBox.height,
     ));
 }

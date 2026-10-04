@@ -75,7 +75,7 @@ export const translations = {
         },
         nav: {
             library: "ライブラリ",
-            search: "検索",
+            search: "作品を探す",
             ranking: "ランキング",
             stats: "統計",
             about: "このアプリについて",
@@ -444,7 +444,7 @@ export const translations = {
         },
         nav: {
             library: "Library",
-            search: "Search",
+            search: "Find titles",
             ranking: "Ranking",
             stats: "Stats",
             about: "About",

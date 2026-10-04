@@ -5,7 +5,7 @@ import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Library, Search, Trophy, PieChart, Settings, Globe, Eye, EyeOff, Menu } from "lucide-react";
+import { BookOpen, Library, Search, Trophy, PieChart, Settings, Globe, Eye, EyeOff, Menu } from "lucide-react";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { shouldBlurImage } from "@/lib/image-safety";
@@ -53,150 +53,164 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
     const menuButtonRef = useRef<HTMLButtonElement>(null);
 
     const navItems = [
-        { href: "/", icon: <Library className="w-4 h-4" />, label: t.nav.library },
-        { href: "/search", icon: <Search className="w-4 h-4" />, label: t.nav.search },
-        { href: "/ranking", icon: <Trophy className="w-4 h-4" />, label: t.nav.ranking },
-        { href: "/stats", icon: <PieChart className="w-4 h-4" />, label: t.nav.stats },
-        { href: "/settings", icon: <Settings className="w-4 h-4" />, label: t.nav.settings },
+        { href: "/", icon: <Library className="h-5 w-5" />, label: t.nav.library },
+        { href: "/search", icon: <Search className="h-5 w-5" />, label: t.nav.search },
+        { href: "/ranking", icon: <Trophy className="h-5 w-5" />, label: t.nav.ranking },
+        { href: "/stats", icon: <PieChart className="h-5 w-5" />, label: t.nav.stats },
+        { href: "/settings", icon: <Settings className="h-5 w-5" />, label: t.nav.settings },
     ];
 
     return (
         <>
             <BackgroundLayer />
-            <div className="relative z-10 flex min-h-screen min-w-0 flex-col overflow-x-clip">
-                <header className="sticky top-0 z-30 w-full border-b border-border bg-background">
-                    <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-8">
-                        <Link href="/" className="flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight group">
-                            <span className="text-primary group-hover:text-foreground transition-colors duration-300">VN</span>
-                            <span className="truncate">Manager</span>
-                        </Link>
+            <div className="relative z-10 flex min-h-screen min-w-0 flex-col overflow-x-clip lg:flex-row">
+                <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-background lg:flex">
+                    <Link href="/" className="group flex h-16 shrink-0 items-center gap-2 rounded-lg border-b border-border px-6 text-xl font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                        <BookOpen className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                        <span className="text-primary transition-colors duration-300 group-hover:text-foreground">VN</span>
+                        <span>Manager</span>
+                    </Link>
 
-                        <div className="hidden lg:flex min-w-0 items-center gap-2">
-                            <nav className="flex min-w-0 items-center gap-1" aria-label={t.nav.primary}>
-                                {navItems.map((item) => (
-                                    <NavLink
-                                        key={item.href}
-                                        {...item}
-                                        active={isActivePath(pathname, item.href)}
-                                    />
-                                ))}
-                            </nav>
-
-                            <div className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5">
-                                {nsfwBlur ? (
-                                    <EyeOff className="w-4 h-4 shrink-0 text-destructive" aria-hidden="true" />
-                                ) : (
-                                    <Eye className="w-4 h-4 shrink-0 text-success" aria-hidden="true" />
-                                )}
-                                <label htmlFor="desktop-nsfw-blur" className="text-xs whitespace-nowrap">
-                                    {t.settings.nsfwBlur}
-                                </label>
-                                <Switch
-                                    id="desktop-nsfw-blur"
-                                    checked={nsfwBlur}
-                                    onCheckedChange={setNsfwBlur}
-                                    aria-label={t.settings.nsfwBlur}
-                                />
-                            </div>
-
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
-                                className="min-h-11 items-center gap-2 px-3 text-muted-foreground hover:text-foreground"
-                                aria-label={language === "ja" ? "EN" : "JA"}
-                            >
-                                <Globe className="w-4 h-4" aria-hidden="true" />
-                                {language === "ja" ? "EN" : "JA"}
-                            </Button>
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="min-h-11 shrink-0 gap-2 lg:hidden"
-                            onClick={() => setMenuOpen(true)}
-                            ref={menuButtonRef}
-                            aria-haspopup="dialog"
-                            aria-expanded={menuOpen}
-                        >
-                            <Menu className="h-5 w-5" aria-hidden="true" />
-                            {t.nav.menu}
-                        </Button>
-                    </div>
-                </header>
-
-                <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-                    <DialogContent
-                        className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-border"
-                        onCloseAutoFocus={(event) => {
-                            event.preventDefault();
-                            menuButtonRef.current?.focus();
-                        }}
-                    >
-                        <DialogHeader>
-                            <DialogTitle>{t.nav.menu}</DialogTitle>
-                        </DialogHeader>
-
-                        <nav className="grid gap-1" aria-label={t.nav.primary}>
+                    <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label={t.nav.primary}>
+                        <div className="grid gap-1">
                             {navItems.map((item) => (
                                 <NavLink
                                     key={item.href}
                                     {...item}
                                     active={isActivePath(pathname, item.href)}
-                                    onClick={() => setMenuOpen(false)}
-                                    mobile
                                 />
                             ))}
-                        </nav>
+                        </div>
+                    </nav>
 
-                        <div className="space-y-4 border-t border-border pt-4">
-                            <div className="flex min-h-11 items-center justify-between gap-4">
-                                <div className="flex min-w-0 items-center gap-2">
-                                    {nsfwBlur ? (
-                                        <EyeOff className="w-5 h-5 shrink-0 text-destructive" aria-hidden="true" />
-                                    ) : (
-                                        <Eye className="w-5 h-5 shrink-0 text-success" aria-hidden="true" />
-                                    )}
-                                    <label htmlFor="mobile-nsfw-blur" className="text-sm font-medium">
-                                        {t.settings.nsfwBlur}
-                                    </label>
-                                </div>
-                                <Switch
-                                    id="mobile-nsfw-blur"
-                                    checked={nsfwBlur}
-                                    onCheckedChange={setNsfwBlur}
-                                    aria-label={t.settings.nsfwBlur}
-                                />
+                    <div className="shrink-0 space-y-3 border-t border-border p-4">
+                        <div className="flex min-h-11 items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-2">
+                                {nsfwBlur ? (
+                                    <EyeOff className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
+                                ) : (
+                                    <Eye className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                                )}
+                                <label htmlFor="desktop-nsfw-blur" className="text-sm leading-tight">
+                                    {t.settings.nsfwBlur}
+                                </label>
                             </div>
+                            <Switch
+                                id="desktop-nsfw-blur"
+                                checked={nsfwBlur}
+                                onCheckedChange={setNsfwBlur}
+                                aria-label={t.settings.nsfwBlur}
+                            />
+                        </div>
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
+                            className="min-h-11 w-full justify-start gap-3 px-3 text-muted-foreground hover:text-foreground"
+                            aria-label={language === "ja" ? "EN" : "JA"}
+                        >
+                            <Globe className="h-4 w-4" aria-hidden="true" />
+                            <span className="ml-auto">{language === "ja" ? "EN" : "JA"}</span>
+                        </Button>
+                    </div>
+                </aside>
+
+                <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+                    <header className="sticky top-0 z-30 h-14 w-full border-b border-border bg-background lg:hidden">
+                        <div className="mx-auto flex h-full w-full items-center justify-between gap-3 px-4 sm:px-6">
+                            <Link href="/" className="group flex min-h-11 min-w-0 items-center gap-2 rounded-lg text-xl font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                                <BookOpen className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                                <span className="text-primary group-hover:text-foreground transition-colors duration-300">VN</span>
+                                <span className="truncate">Manager</span>
+                            </Link>
 
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="min-h-11 w-full justify-start gap-3"
-                                onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
+                                className="min-h-11 shrink-0 gap-2 lg:hidden"
+                                onClick={() => setMenuOpen(true)}
+                                ref={menuButtonRef}
+                                aria-haspopup="dialog"
+                                aria-expanded={menuOpen}
                             >
-                                <Globe className="w-5 h-5" aria-hidden="true" />
-                                <span>{t.nav.language}: {language === "ja" ? t.settings.languageJapanese : t.settings.languageEnglish}</span>
-                                <span className="ml-auto text-muted-foreground">
-                                    {language === "ja" ? "EN" : "JA"}
-                                </span>
+                                <Menu className="h-5 w-5" aria-hidden="true" />
+                                {t.nav.menu}
                             </Button>
                         </div>
-                    </DialogContent>
-                </Dialog>
+                    </header>
 
-                <main className="mx-auto w-full max-w-[1200px] min-w-0 flex-1 bg-background bg-clip-content px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-                    {children}
-                </main>
-                <Toaster theme="light" position="bottom-right" />
+                    <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
+                        <DialogContent
+                            className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto bg-card border-border"
+                            onCloseAutoFocus={(event) => {
+                                event.preventDefault();
+                                menuButtonRef.current?.focus();
+                            }}
+                        >
+                            <DialogHeader>
+                                <DialogTitle>{t.nav.menu}</DialogTitle>
+                            </DialogHeader>
+
+                            <nav className="grid gap-1" aria-label={t.nav.primary}>
+                                {navItems.map((item) => (
+                                    <NavLink
+                                        key={item.href}
+                                        {...item}
+                                        active={isActivePath(pathname, item.href)}
+                                        onClick={() => setMenuOpen(false)}
+                                    />
+                                ))}
+                            </nav>
+
+                            <div className="space-y-4 border-t border-border pt-4">
+                                <div className="flex min-h-11 items-center justify-between gap-4">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        {nsfwBlur ? (
+                                            <EyeOff className="w-5 h-5 shrink-0 text-destructive" aria-hidden="true" />
+                                        ) : (
+                                            <Eye className="w-5 h-5 shrink-0 text-success" aria-hidden="true" />
+                                        )}
+                                        <label htmlFor="mobile-nsfw-blur" className="text-sm font-medium">
+                                            {t.settings.nsfwBlur}
+                                        </label>
+                                    </div>
+                                    <Switch
+                                        id="mobile-nsfw-blur"
+                                        checked={nsfwBlur}
+                                        onCheckedChange={setNsfwBlur}
+                                        aria-label={t.settings.nsfwBlur}
+                                    />
+                                </div>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="min-h-11 w-full justify-start gap-3"
+                                    onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
+                                >
+                                    <Globe className="w-5 h-5" aria-hidden="true" />
+                                    <span>{t.nav.language}: {language === "ja" ? t.settings.languageJapanese : t.settings.languageEnglish}</span>
+                                    <span className="ml-auto text-muted-foreground">
+                                        {language === "ja" ? "EN" : "JA"}
+                                    </span>
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
+                    <main className="mx-auto w-full max-w-[1280px] min-w-0 flex-1 bg-background bg-clip-content px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                        {children}
+                    </main>
+                    <Toaster theme="light" position="bottom-right" />
+                </div>
             </div>
         </>
     );
 }
 
 function isActivePath(pathname: string, href: string) {
-    if (href === "/") return pathname === "/";
+    if (href === "/") return pathname === "/" || pathname.startsWith("/vn/");
     return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -205,14 +219,12 @@ function NavLink({
     icon,
     label,
     active,
-    mobile = false,
     onClick,
 }: {
     href: string;
     icon: React.ReactNode;
     label: string;
     active: boolean;
-    mobile?: boolean;
     onClick?: () => void;
 }) {
     return (
@@ -220,11 +232,7 @@ function NavLink({
             href={href}
             onClick={onClick}
             aria-current={active ? "page" : undefined}
-            className={
-                mobile
-                    ? `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-selection text-selection-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`
-                    : `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? "bg-selection text-selection-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`
-            }
+            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${active ? "bg-selection text-selection-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
         >
             {icon}
             <span>{label}</span>

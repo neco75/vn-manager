@@ -209,7 +209,8 @@ test.describe("ranking and shelf responsive titles", () => {
     });
 
     test("shows an image-independent shelf title at every roadmap width", async ({ browser }) => {
-        const minimumWidths = { 320: 100, 390: 120, 768: 115, 1280: 130 } as const;
+        // At 1280px the 240px sidebar leaves a 1040px main column; the title renders at about 120px, so retain a 115px floor with full-text wrapping and overflow checks.
+        const minimumWidths = { 320: 100, 390: 120, 768: 115, 1280: 115 } as const;
 
         for (const width of responsiveWidths) {
             const { context, page } = await createShelfPage(browser, width);
