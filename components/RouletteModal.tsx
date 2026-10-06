@@ -88,7 +88,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="border-border bg-card sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center justify-center gap-2 text-2xl font-bold">
+                    <DialogTitle className="flex items-center justify-center gap-2 text-xl font-semibold">
                         <Dices className="w-6 h-6 text-primary" />
                         {t.roulette.title}
                     </DialogTitle>
@@ -98,7 +98,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                 </DialogHeader>
 
                 <div className="flex flex-col items-center space-y-8 py-4">
-                    <div className="relative h-64 w-48 overflow-hidden rounded-xl border-2 border-border bg-secondary shadow-2xl sm:h-80 sm:w-56">
+                    <div className="relative h-64 w-48 overflow-hidden rounded-xl border border-border bg-secondary sm:h-80 sm:w-56">
                         {currentItem?.vn.image ? (
                             <Image
                                 src={currentItem.vn.image.url}
@@ -149,7 +149,7 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                                 onClick={handleSpin}
                                 disabled={spinning || pool.length === 0}
                                 size="lg"
-                                className="w-full sm:w-auto rounded-full font-bold shadow-lg shadow-primary/25"
+                                className="min-h-11 w-full font-semibold sm:w-auto"
                             >
                                 {spinning ? t.roulette.spinning : t.roulette.spin}
                             </Button>
@@ -158,13 +158,13 @@ export function RouletteModal({ isOpen, onClose, items }: RouletteModalProps) {
                                 <Button
                                     variant="secondary"
                                     onClick={handleSpin}
-                                    className="flex-1 rounded-full"
+                                    className="min-h-11 flex-1"
                                 >
                                     {t.roulette.retry}
                                 </Button>
                                 <Button
                                     asChild
-                                    className="flex-1 rounded-full font-bold"
+                                    className="min-h-11 flex-1 font-semibold"
                                 >
                                     <Link href={`/vn/${winner.vn.id}`}>
                                         {t.roulette.details}

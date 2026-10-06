@@ -299,7 +299,7 @@ test.describe("final roadmap acceptance", () => {
         await expect(page.locator('img[alt=""]').first()).toHaveClass(/blur-md/);
 
         await page.goto("/");
-        await page.getByRole("button", { name: "ルーレット", exact: true }).click();
+        await page.getByRole("button", { name: "次に遊ぶ作品を選ぶ", exact: true }).click();
         const roulette = page.getByRole("dialog");
         await roulette.getByRole("button", { name: "ルーレットを回す！", exact: true }).click();
         await expect(roulette.getByText("運命の一作！", { exact: true })).toBeVisible({ timeout: 5_000 });

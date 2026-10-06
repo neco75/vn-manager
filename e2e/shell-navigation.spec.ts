@@ -38,7 +38,7 @@ test.describe("共通画面枠", () => {
             await expect(sidebar).toBeVisible();
             await expect(sidebar).toHaveCSS("width", "240px");
             await expect(sidebar).toHaveCSS("height", "600px");
-            await expect(page.locator("header")).toBeHidden();
+            await expect(page.locator("header.sticky")).toBeHidden();
             await expect(main).toHaveCount(1);
             const navigation = sidebar.getByRole("navigation");
             const links = navigation.getByRole("link");
@@ -94,8 +94,8 @@ test.describe("共通画面枠", () => {
             await seedShellPreferences(page);
             await page.goto("/");
 
-            const header = page.locator("header");
-            const menuButton = page.locator('header button[aria-haspopup="dialog"]');
+            const header = page.locator("header.sticky");
+            const menuButton = page.locator('header.sticky button[aria-haspopup="dialog"]');
             await expect(menuButton).toHaveAccessibleName("メニュー");
             const brand = header.getByRole("link", { name: "VN Manager", exact: true });
             await expect(header).toBeVisible();

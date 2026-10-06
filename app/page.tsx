@@ -11,7 +11,7 @@ import {
 } from "@/types/library";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, LayoutGrid, List, Clock, Star, Dices, Library, Search } from "lucide-react";
+import { Plus, LayoutGrid, List, Dices, Library, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const RouletteModal = dynamic(() => import("@/components/RouletteModal").then(mod => mod.RouletteModal), {
@@ -68,6 +68,8 @@ const VALID_SORTS = new Set<SortOption>([
     "vote_asc",
 ]);
 const VALID_VIEWS = new Set<ViewMode>(["grid", "list", "shelf"]);
+const DESKTOP_STATUS_FILTERS = ["all", "playing", "plan_to_play", "completed"] as const;
+const OTHER_STATUSES = new Set<GameStatus>(["on_hold", "dropped", "watched"]);
 
 function parseLibraryUrl(params: URLSearchParams): LibraryUrlState {
     const filter = params.get("status");
@@ -171,12 +173,18 @@ function HomeContent() {
     const statusFilters = useMemo(() => [
         { value: "all" as const, label: t.status.all },
         { value: "playing" as const, label: t.status.playing },
-        { value: "completed" as const, label: t.status.completed },
-        { value: "watched" as const, label: t.status.watched },
         { value: "plan_to_play" as const, label: t.status.plan_to_play },
+        { value: "completed" as const, label: t.status.completed },
         { value: "on_hold" as const, label: t.status.on_hold },
         { value: "dropped" as const, label: t.status.dropped },
+        { value: "watched" as const, label: t.status.watched },
     ], [t]);
+    const desktopStatusFilters = statusFilters.filter((status) =>
+        DESKTOP_STATUS_FILTERS.some((value) => value === status.value),
+    );
+    const otherStatusFilters = statusFilters.filter((status) =>
+        status.value !== "all" && OTHER_STATUSES.has(status.value as GameStatus),
+    );
 
     const ownershipFilters = useMemo(() => [
         { value: "all" as const, label: t.ownership.all },
@@ -215,6 +223,7 @@ function HomeContent() {
         });
         return counts;
     }, [items]);
+    const otherStatusCount = statusCounts.on_hold + statusCounts.dropped + statusCounts.watched;
 
     const filteredItems = useMemo(() => {
         return items.filter((item) => {
@@ -281,224 +290,250 @@ function HomeContent() {
     };
 
     if (isLoading) {
-        return <div className="flex items-center justify-center h-64 text-muted-foreground">{t.common.loading}</div>;
+        return (
+            <div role="status" aria-live="polite" aria-busy="true" aria-label={t.common.loading} className="space-y-6">
+                <div className="h-9 w-48 animate-pulse rounded bg-secondary" aria-hidden="true" />
+                <div className="h-11 animate-pulse rounded-lg bg-secondary" aria-hidden="true" />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5" aria-hidden="true">
+                    {[0, 1, 2, 3].map((index) => <div key={index} className="aspect-[2/3] animate-pulse rounded-xl bg-secondary" />)}
+                </div>
+                <span className="sr-only">{t.common.loading}</span>
+            </div>
+        );
     }
 
     if (loadError) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-                <h2 className="text-2xl font-bold">{t.home.loadErrorTitle}</h2>
-                <p className="text-muted-foreground max-w-md">{t.home.loadErrorDesc}</p>
-                <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+            <div className="flex min-h-64 flex-col items-center justify-center space-y-4 text-center">
+                <h1 className="text-2xl font-bold">{t.home.loadErrorTitle}</h1>
+                <p className="max-w-md text-muted-foreground">{t.home.loadErrorDesc}</p>
+                <Button className="min-h-11" onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
             </div>
         );
     }
 
     if (items.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-secondary">
-                    <Plus className="w-10 h-10 text-muted-foreground" />
-                </div>
-                <div className="space-y-2">
-                    <h2 className="text-2xl font-bold">{t.home.emptyTitle}</h2>
-                    <p className="text-muted-foreground max-w-sm">{t.home.emptyDesc}</p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/25">
-                        <Link href="/search">{t.home.addButton}</Link>
+            <div className="space-y-8">
+                <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <h1 className="text-2xl font-bold leading-[1.35] sm:text-[28px] sm:leading-[1.3]">{t.home.title}</h1>
+                        <p aria-live="polite" className="text-sm text-muted-foreground">{resultCount}</p>
+                    </div>
+                    <Button asChild className="min-h-11 gap-2 sm:self-start">
+                        <Link href="/search">
+                            <Plus className="h-4 w-4" aria-hidden="true" />
+                            {t.home.addButton}
+                        </Link>
                     </Button>
-                    <Button asChild size="lg" variant="outline" className="rounded-full">
+                </header>
+
+                <section className="space-y-3 rounded-xl border border-border bg-card px-5 py-8 text-center sm:px-8">
+                    <h2 className="text-xl font-semibold">{t.home.emptyTitle}</h2>
+                    <p className="mx-auto max-w-md text-sm text-muted-foreground">{t.home.emptyDesc}</p>
+                    <Button asChild variant="outline" className="mt-2 min-h-11">
                         <Link href="/settings#backup">{t.home.restoreFromBackup}</Link>
                     </Button>
-                </div>
+                </section>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <h1 className="text-3xl font-bold">{t.home.title}</h1>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Button asChild className="gap-2 min-h-11">
-                            <Link href="/search">
-                                <Plus className="w-4 h-4" aria-hidden="true" />
-                                {t.home.addButton}
-                            </Link>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="gap-2 min-h-11 border-primary/40 text-primary hover:bg-accent/10 hover:text-primary"
-                            onClick={() => setIsRouletteOpen(true)}
-                            aria-label={t.home.rouletteButton}
-                        >
-                            <Dices className="w-4 h-4" aria-hidden="true" />
-                            <span className="hidden sm:inline text-foreground">{t.home.rouletteButton}</span>
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                        type="search"
-                        value={query}
-                        onChange={(event) => {
-                            const value = event.target.value;
-                            setQueryInput(value);
-                            replaceSearchUrl(value);
-                        }}
-                        placeholder={t.home.searchPlaceholder}
-                        aria-label={t.home.searchPlaceholder}
-                        className="min-h-11 pl-9"
-                    />
-                </div>
-
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="grid grid-cols-2 gap-2 sm:flex sm:min-w-0 sm:flex-1 sm:items-center">
-                        <div className="md:hidden">
-                            <Select
-                                value={filter}
-                                onValueChange={(value) => replaceLibraryUrl({ filter: value as LibraryFilter })}
-                            >
-                                <SelectTrigger aria-label={t.common.status} className="min-h-11 w-full border-input bg-card">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {statusFilters.map((status) => (
-                                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="hidden min-w-0 flex-1 md:block">
-                            <Tabs
-                                value={filter}
-                                onValueChange={(value) => {
-                                    const nextFilter = value as LibraryFilter;
-                                    replaceLibraryUrl({ filter: nextFilter });
-                                }}
-                                className="min-w-0"
-                            >
-                                <TabsList className="w-full justify-start overflow-x-auto no-scrollbar bg-transparent p-0 h-auto gap-2">
-                                    {statusFilters.map((status) => (
-                                        <TabsTrigger
-                                            key={status.value}
-                                            value={status.value}
-                                            className="min-h-11 rounded-full px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:bg-secondary data-[state=inactive]:text-muted-foreground transition-all"
-                                        >
-                                            {status.label}
-                                            <span className="ml-2 text-xs">({statusCounts[status.value] || 0})</span>
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                            </Tabs>
-                        </div>
-
-                        <Select
-                            value={ownershipFilter}
-                            onValueChange={(value) => {
-                                const nextOwnership = value as OwnershipStatus | "all";
-                                replaceLibraryUrl({ ownershipFilter: nextOwnership });
-                            }}
-                        >
-                            <SelectTrigger aria-label={t.common.ownership} className="min-h-11 w-full border-input bg-card sm:w-[150px]">
-                                <SelectValue placeholder={t.common.ownership} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {ownershipFilters.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                        <Select
-                            value={sort}
-                            onValueChange={(value) => {
-                                const nextSort = value as SortOption;
-                                replaceLibraryUrl({ sort: nextSort });
-                            }}
-                        >
-                            <SelectTrigger aria-label={t.home.sort} className="min-h-11 w-full border-input bg-card sm:w-[180px]">
-                                <SelectValue placeholder={t.sort.label} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {sortOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <div role="group" aria-label={t.home.view} className="flex self-start items-center gap-1 rounded-lg border border-border bg-secondary p-1">
-                            <Button
-                                variant={viewMode === "grid" ? "default" : "ghost"}
-                                className="h-11 px-2 sm:px-3"
-                                onClick={() => {
-                                    replaceLibraryUrl({ viewMode: "grid" });
-                                }}
-                                aria-label={t.home.gridView}
-                                aria-pressed={viewMode === "grid"}
-                                title={t.home.gridView}
-                            >
-                                <LayoutGrid className="w-4 h-4" aria-hidden="true" />
-                                <span className="hidden sm:inline text-xs">{t.home.gridView}</span>
-                            </Button>
-                            <Button
-                                variant={viewMode === "list" ? "default" : "ghost"}
-                                className="h-11 px-2 sm:px-3"
-                                onClick={() => {
-                                    replaceLibraryUrl({ viewMode: "list" });
-                                }}
-                                aria-label={t.home.listView}
-                                aria-pressed={viewMode === "list"}
-                                title={t.home.listView}
-                            >
-                                <List className="w-4 h-4" aria-hidden="true" />
-                                <span className="hidden sm:inline text-xs">{t.home.listView}</span>
-                            </Button>
-                            <Button
-                                variant={viewMode === "shelf" ? "default" : "ghost"}
-                                className="h-11 px-2 sm:px-3"
-                                onClick={() => {
-                                    replaceLibraryUrl({ viewMode: "shelf" });
-                                }}
-                                aria-label={t.home.shelfView}
-                                aria-pressed={viewMode === "shelf"}
-                                title={t.home.shelfView}
-                            >
-                                <Library className="w-4 h-4" aria-hidden="true" />
-                                <span className="hidden sm:inline text-xs">{t.home.shelfView}</span>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <p aria-live="polite">{resultCount}</p>
+            <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h1 className="text-2xl font-bold leading-[1.35] sm:text-[28px] sm:leading-[1.3]">{t.home.title}</h1>
+                    <p aria-live="polite" className="text-sm text-muted-foreground">{resultCount}</p>
                     {hasConditions && (
                         <Button type="button" variant="ghost" className="min-h-11 px-3" onClick={clearFilters}>
                             {t.home.clearFilters}
                         </Button>
                     )}
                 </div>
+
+                <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-none">
+                    <Button asChild className="min-h-11 flex-1 gap-2 sm:flex-none">
+                        <Link href="/search">
+                            <Plus className="h-4 w-4" aria-hidden="true" />
+                            {t.home.addButton}
+                        </Link>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11 min-w-11 gap-2 px-3"
+                        onClick={() => setIsRouletteOpen(true)}
+                        aria-label={t.home.rouletteButton}
+                        title={t.home.rouletteButton}
+                    >
+                        <Dices className="h-4 w-4" aria-hidden="true" />
+                        <span className="hidden sm:inline">{t.home.rouletteButton}</span>
+                    </Button>
+                </div>
+            </header>
+
+            <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                    type="search"
+                    value={query}
+                    onChange={(event) => {
+                        const value = event.target.value;
+                        setQueryInput(value);
+                        replaceSearchUrl(value);
+                    }}
+                    placeholder={t.home.searchPlaceholder}
+                    aria-label={t.home.searchPlaceholder}
+                    className="min-h-11 pl-9"
+                />
+            </div>
+
+            <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-2 md:hidden">
+                    <Select
+                        value={filter}
+                        onValueChange={(value) => replaceLibraryUrl({ filter: value as LibraryFilter })}
+                    >
+                        <SelectTrigger aria-label={t.common.status} className="min-h-11 w-full border-input bg-card">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {statusFilters.map((status) => (
+                                <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={ownershipFilter}
+                        onValueChange={(value) => replaceLibraryUrl({ ownershipFilter: value as OwnershipStatus | "all" })}
+                    >
+                        <SelectTrigger aria-label={t.common.ownership} className="min-h-11 w-full border-input bg-card">
+                            <SelectValue placeholder={t.common.ownership} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {ownershipFilters.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="hidden min-w-0 flex-wrap items-center gap-2 md:flex">
+                    <Tabs
+                        value={filter}
+                        onValueChange={(value) => replaceLibraryUrl({ filter: value as LibraryFilter })}
+                        className="min-w-0 flex-1"
+                    >
+                        <TabsList aria-label={t.common.status} className="w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
+                            {desktopStatusFilters.map((status) => (
+                                <TabsTrigger
+                                    key={status.value}
+                                    value={status.value}
+                                    className="min-h-11 shrink-0 rounded-lg px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-secondary data-[state=inactive]:text-foreground transition-colors duration-150"
+                                >
+                                    {status.label}
+                                    <span className="ml-2 text-[13px] tabular-nums">({statusCounts[status.value]})</span>
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+
+                    <Select
+                        value={OTHER_STATUSES.has(filter as GameStatus) ? filter : ""}
+                        onValueChange={(value) => replaceLibraryUrl({ filter: value as GameStatus })}
+                    >
+                        <SelectTrigger aria-label={t.home.otherStatuses} className="min-h-11 w-[142px] shrink-0 border-input bg-card">
+                            <SelectValue placeholder={`${t.home.otherStatuses} (${otherStatusCount})`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {otherStatusFilters.map((status) => (
+                                <SelectItem key={status.value} value={status.value}>
+                                    {status.label} ({statusCounts[status.value]})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={ownershipFilter}
+                        onValueChange={(value) => replaceLibraryUrl({ ownershipFilter: value as OwnershipStatus | "all" })}
+                    >
+                        <SelectTrigger aria-label={t.common.ownership} className="min-h-11 w-[150px] shrink-0 border-input bg-card">
+                            <SelectValue placeholder={t.common.ownership} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {ownershipFilters.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                    <Select
+                        value={sort}
+                        onValueChange={(value) => replaceLibraryUrl({ sort: value as SortOption })}
+                    >
+                        <SelectTrigger aria-label={t.home.sort} className="min-h-11 w-full border-input bg-card sm:w-[220px]">
+                            <SelectValue placeholder={t.sort.label} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {sortOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <div role="group" aria-label={t.home.view} className="flex w-full items-center justify-center gap-1 rounded-lg border border-border bg-secondary p-1 sm:w-auto">
+                        <Button
+                            type="button"
+                            variant={viewMode === "grid" ? "default" : "ghost"}
+                            className="h-11 min-w-11 px-2 sm:px-3"
+                            onClick={() => replaceLibraryUrl({ viewMode: "grid" })}
+                            aria-label={t.home.gridView}
+                            aria-pressed={viewMode === "grid"}
+                            title={t.home.gridView}
+                        >
+                            <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+                            <span className="hidden text-sm sm:inline">{t.home.gridView}</span>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={viewMode === "list" ? "default" : "ghost"}
+                            className="h-11 min-w-11 px-2 sm:px-3"
+                            onClick={() => replaceLibraryUrl({ viewMode: "list" })}
+                            aria-label={t.home.listView}
+                            aria-pressed={viewMode === "list"}
+                            title={t.home.listView}
+                        >
+                            <List className="h-4 w-4" aria-hidden="true" />
+                            <span className="hidden text-sm sm:inline">{t.home.listView}</span>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={viewMode === "shelf" ? "default" : "ghost"}
+                            className="h-11 min-w-11 px-2 sm:px-3"
+                            onClick={() => replaceLibraryUrl({ viewMode: "shelf" })}
+                            aria-label={t.home.shelfView}
+                            aria-pressed={viewMode === "shelf"}
+                            title={t.home.shelfView}
+                        >
+                            <Library className="h-4 w-4" aria-hidden="true" />
+                            <span className="hidden text-sm sm:inline">{t.home.shelfView}</span>
+                        </Button>
+                    </div>
+                </div>
             </div>
 
             {filteredAndSortedItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 py-16 text-center">
-                    <h2 className="text-xl font-bold">{t.home.filteredEmptyTitle}</h2>
-                    <p className="mt-2 max-w-md text-muted-foreground">{t.home.filteredEmptyDesc}</p>
-                    <Button type="button" variant="outline" className="mt-6 min-h-11" onClick={clearFilters}>
-                        {t.home.clearFilters}
-                    </Button>
+                <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
+                    <h2 className="text-xl font-semibold">{t.home.filteredEmptyTitle}</h2>
+                    <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{t.home.filteredEmptyDesc}</p>
                 </div>
             ) : viewMode === "grid" ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
                     {filteredAndSortedItems.map((item) => (
                         <VNCard
                             key={item.vn.id}
@@ -512,50 +547,44 @@ function HomeContent() {
                 <div className="space-y-2">
                     {filteredAndSortedItems.map((item) => {
                         const shouldBlur = shouldBlurImage(item.vn.image?.sexual, nsfwBlur);
+                        const displayTitle = getDisplayTitle(item.vn, language);
 
                         return (
                             <Link
                                 href={getDetailPath(item.vn.id, returnTo)}
                                 key={item.vn.id}
-                                className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors group"
+                                aria-label={displayTitle}
+                                className="group flex min-h-24 items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors duration-150 hover:bg-accent/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                             >
-                                <div className="flex-shrink-0 w-12 h-16 rounded overflow-hidden bg-secondary relative">
-                                    {item.vn.image && (
+                                <div className="relative h-[72px] w-12 shrink-0 overflow-hidden rounded-md border border-border bg-secondary">
+                                    {item.vn.image ? (
                                         <img
                                             src={item.vn.image.url}
                                             alt=""
-                                            className={cn(
-                                                "w-full h-full object-cover transition-all",
-                                                shouldBlur && "blur-md scale-110"
-                                            )}
+                                            className={cn("h-full w-full object-cover", shouldBlur && "scale-110 blur-md")}
                                         />
+                                    ) : (
+                                        <span className="flex h-full items-center justify-center px-1 text-center text-[11px] text-muted-foreground">
+                                            {t.common.noImage}
+                                        </span>
                                     )}
-                                    {shouldBlur && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                                            <Badge variant="destructive" className="bg-destructive/80 text-[8px] h-4 px-1 py-0 border-none">{t.settings.imageBlurred}</Badge>
+                                    {item.vn.image && shouldBlur && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-background/80 px-0.5">
+                                            <span className="text-center text-[10px] leading-3 text-foreground">{t.settings.imageBlurred}</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors">{getDisplayTitle(item.vn, language)}</h3>
-                                    {item.vn.developers?.[0]?.name && (
-                                        <p className="truncate text-xs text-muted-foreground">{item.vn.developers[0].name}</p>
-                                    )}
-                                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
-                                        <div className="flex items-center gap-1">
-                                            <Star className="w-3 h-3 text-primary" aria-hidden="true" />
-                                            <span className="font-bold text-primary">{item.score === null ? t.common.unrated : `${item.score}/100`}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-success" aria-hidden="true" />
-                                            <span>{item.playTime ? (item.playTime / 60).toFixed(1) : "0.0"}h</span>
-                                        </div>
-                                        <Badge variant="secondary" className="text-xs">
+                                <div className="min-w-0 flex-1">
+                                    <h2 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground group-hover:text-primary sm:text-base">
+                                        {displayTitle}
+                                    </h2>
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                        <Badge variant="secondary" className="text-[13px]">
                                             {statusFilters.find((status) => status.value === item.status)?.label}
                                         </Badge>
-                                        <Badge variant="outline" className="text-xs">
-                                            {t.ownership[item.ownership]}
-                                        </Badge>
+                                        <span className="text-sm font-semibold tabular-nums text-foreground">
+                                            {item.score === null ? t.common.unrated : `${item.score}/100`}
+                                        </span>
                                     </div>
                                 </div>
                             </Link>
