@@ -101,7 +101,8 @@ test.describe("final roadmap acceptance", () => {
 
         await openAdditionalRecordFields(page);
         await page.locator("#detail-score").fill("88");
-        await page.getByRole("textbox", { name: "メモ (非公開)" }).fill("first-use memo");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await page.getByRole("textbox", { name: "メモ（自分用）" }).fill("first-use memo");
         await page.locator("#detail-ownership").click();
         await page.getByRole("option", { name: "所有済み", exact: true }).click();
         await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
@@ -109,7 +110,8 @@ test.describe("final roadmap acceptance", () => {
 
         await page.reload();
         await expect(page.locator("#detail-score")).toHaveValue("88");
-        await expect(page.getByRole("textbox", { name: "メモ (非公開)" })).toHaveValue("first-use memo");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await expect(page.getByRole("textbox", { name: "メモ（自分用）" })).toHaveValue("first-use memo");
         await expect(page.locator("#detail-ownership")).toContainText("所有済み");
     });
 
@@ -138,7 +140,8 @@ test.describe("final roadmap acceptance", () => {
         await page.goto("/vn/v1");
         await expect(page.locator("#detail-score")).toHaveValue("75");
         await expect(page.locator("#detail-play-time")).toHaveValue("1.5");
-        await expect(page.getByRole("textbox", { name: "メモ (非公開)" })).toHaveValue("legacy memo");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await expect(page.getByRole("textbox", { name: "メモ（自分用）" })).toHaveValue("legacy memo");
         await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("legacy review");
     });
 
@@ -225,7 +228,8 @@ test.describe("final roadmap acceptance", () => {
 
             await emptyPage.goto("/vn/v1");
             await expect(emptyPage.locator("#detail-score")).toHaveValue("82");
-            await expect(emptyPage.getByRole("textbox", { name: "メモ (非公開)" })).toHaveValue("round-trip memo");
+            await emptyPage.getByTestId("detail-notes-section").locator("summary").click();
+            await expect(emptyPage.getByRole("textbox", { name: "メモ（自分用）" })).toHaveValue("round-trip memo");
         } finally {
             await emptyContext.close();
         }
@@ -273,13 +277,15 @@ test.describe("final roadmap acceptance", () => {
 
         await expect(page.getByText("VNDBから最新情報を取得できませんでした。", { exact: true })).toBeVisible();
         await expect(page.getByText("保存済みの作品情報と個人記録は引き続き閲覧・編集・保存できます。", { exact: true })).toBeVisible();
-        await page.getByRole("textbox", { name: "メモ (非公開)" }).fill("saved while VNDB is down");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await page.getByRole("textbox", { name: "メモ（自分用）" }).fill("saved while VNDB is down");
         await page.getByRole("button", { name: "変更を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
         await page.reload();
         await expect(page.getByText("VNDBから最新情報を取得できませんでした。", { exact: true })).toBeVisible();
-        await expect(page.getByRole("textbox", { name: "メモ (非公開)" })).toHaveValue("saved while VNDB is down");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await expect(page.getByRole("textbox", { name: "メモ（自分用）" })).toHaveValue("saved while VNDB is down");
     });
 
     test("applies image safety to cards, list, shelf, ranking, roulette, detail, gallery, and backgrounds", async ({ page }) => {
@@ -373,7 +379,8 @@ test.describe("final roadmap acceptance", () => {
                 await openAdditionalRecordFields(page);
                 await expectNoHorizontalOverflow(page);
                 await page.locator("#detail-score").fill("77");
-                await page.getByRole("textbox", { name: "メモ (非公開)" }).fill(`responsive memo ${width}`);
+                await page.getByTestId("detail-notes-section").locator("summary").click();
+                await page.getByRole("textbox", { name: "メモ（自分用）" }).fill(`responsive memo ${width}`);
                 await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
                 await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
                 await expectNoHorizontalOverflow(page);
@@ -413,18 +420,17 @@ test.describe("final roadmap acceptance", () => {
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/vn\/v1\?from=/);
 
-        const additionalSummary = page.getByTestId("detail-additional-fields").locator("summary");
-        await tabUntilFocused(page, additionalSummary);
-        await page.keyboard.press("Enter");
-
         const score = page.locator("#detail-score");
         await tabUntilFocused(page, score);
         await page.keyboard.type("91");
-        const memo = page.getByRole("textbox", { name: "メモ (非公開)" });
+        const notesSummary = page.getByTestId("detail-notes-section").locator("summary");
+        await tabUntilFocused(page, notesSummary);
+        await page.keyboard.press("Enter");
+        const memo = page.getByRole("textbox", { name: "メモ（自分用）" });
         await tabUntilFocused(page, memo);
         await page.keyboard.type("keyboard-only memo");
         const saveButton = page.getByRole("button", { name: "ライブラリに追加", exact: true });
-        await tabUntilFocused(page, saveButton, true);
+        await tabUntilFocused(page, saveButton);
         await page.keyboard.press("Enter");
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 

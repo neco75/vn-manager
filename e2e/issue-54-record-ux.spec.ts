@@ -55,23 +55,25 @@ test.describe("Issue #54 record order and removal path", () => {
         const resumeNote = page.locator("#detail-resume-note");
         await expect(resumeNote).toBeVisible();
         await expect(resumeNote).toHaveValue("3日目・地下通路の再開位置");
+        await expect(page.locator("#detail-review")).toBeVisible();
 
         const box = await resumeNote.boundingBox();
         expect(box).not.toBeNull();
         expect(box!.y).toBeGreaterThanOrEqual(0);
         expect(box!.y + box!.height).toBeLessThanOrEqual(667);
 
-        // The Markdown editors load lazily, so wait for them before comparing DOM order.
-        await expect(page.locator("#detail-notes")).toBeVisible();
+        await expect(page.getByTestId("detail-notes-section").locator("summary")).toBeVisible();
+        await expect(page.locator("#detail-notes")).toBeHidden();
         const order = await domOrder(page, [
-            "#detail-resume-note",
             "#detail-status",
-            "#detail-ownership",
-            "#detail-notes",
+            "#detail-score",
+            "#detail-play-time",
+            "#detail-resume-note",
             "#detail-review",
-            "[data-testid=\"detail-additional-fields\"]",
+            "[data-testid=\"detail-notes-section\"]",
+            "[data-testid=\"detail-record-details\"]",
         ]);
-        expect(order.every((index) => index >= 0)).toBe(true);
+        expect(order.every((index) => index >= 0), `missing record selector: ${JSON.stringify(order)}`).toBe(true);
         expect(order).toEqual([...order].sort((a, b) => a - b));
 
         await resumeNote.fill("3日目・地下通路から再開");
@@ -95,10 +97,12 @@ test.describe("Issue #54 record order and removal path", () => {
         await expect(page.getByText("Visible intro", { exact: false })).not.toBeAttached();
         await expect(page.getByText("hidden ending", { exact: true })).not.toBeAttached();
 
-        await expect(page.locator("#detail-notes")).toBeVisible();
+        await expect(page.getByTestId("detail-notes-section").locator("summary")).toBeVisible();
+        await expect(page.locator("#detail-notes")).toBeHidden();
         const order = await domOrder(page, [
             "#detail-resume-note",
-            "[data-testid=\"detail-additional-fields\"]",
+            "[data-testid=\"detail-notes-section\"]",
+            "[data-testid=\"detail-record-details\"]",
             "[data-testid=\"detail-title-information\"]",
         ]);
         expect(order.every((index) => index >= 0)).toBe(true);
@@ -153,72 +157,189 @@ test.describe("Issue #54 record order and removal path", () => {
         await expect.poll(async () => readLibraryItem(page, "v1")).toBeUndefined();
     });
 
-    test("saves every auxiliary field from the collapsed section", async ({ page }) => {
+    test("keeps primary and folded record fields separate through save and reload", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/");
-        await seedLibraryItem(page, "v1", { score: 0 });
+        await seedLibraryItem(page, "v1", { status: "playing", score: 0, playTime: 60 });
         await seedPurchaseSources(page, ["Steam"]);
         await page.reload();
         await page.goto("/vn/v1");
 
-        await expect(page.locator("#detail-score")).toBeHidden();
+        const details = page.getByTestId("detail-record-details");
+        const notesSection = page.getByTestId("detail-notes-section");
+        const status = page.getByRole("combobox", { name: "ステータス", exact: true });
+        const score = page.getByRole("spinbutton", { name: "スコア", exact: true });
+        const playTime = page.getByRole("spinbutton", { name: "プレイ時間", exact: true });
+        const resumeNote = page.getByRole("textbox", { name: "再開メモ", exact: true });
+        const review = page.getByRole("textbox", { name: "感想・レビュー", exact: true });
+        await expect(details).not.toHaveAttribute("open", "");
+        await expect(notesSection).not.toHaveAttribute("open", "");
+        await expect(score).toBeVisible();
+        await expect(score).toHaveValue("0");
+        await expect(playTime).toHaveValue("1");
+        await expect(page.locator("#detail-ownership")).toBeHidden();
         await openAdditionalRecordFields(page);
-
         await expect(page.getByTestId("detail-legacy-score-note")).toBeVisible();
-        await page.locator("#detail-score").fill("85");
+        await expect(page.getByRole("option")).toHaveCount(0);
+        await status.click();
+        await expect(page.getByRole("option")).toHaveCount(6);
+        await page.getByRole("option", { name: "クリア済み", exact: true }).click();
+
+        await score.fill("100");
         await expect(page.getByTestId("detail-legacy-score-note")).not.toBeAttached();
-        await page.locator("#detail-play-time").fill("12.5");
+        await playTime.fill("12.5");
+        await resumeNote.fill("3日目・地下通路から再開");
+        const longReview = "review without an added length cap ".repeat(40);
+        expect(longReview.length).toBeGreaterThan(1000);
+        await review.fill(longReview);
+
+        await notesSection.locator("summary").click();
+        const notes = page.getByRole("textbox", { name: "メモ（自分用）", exact: true });
+        await notes.fill("自分用のメモ。感想や再開位置とは別に保存。");
+        await notesSection.locator("summary").click();
+        await expect(notes).toBeHidden();
+        await notesSection.locator("summary").click();
+        await expect(notes).toHaveValue("自分用のメモ。感想や再開位置とは別に保存。");
+        await notesSection.locator("summary").click();
+
+        const ownership = page.getByRole("combobox", { name: "所有状況", exact: true });
+        await ownership.click();
+        await expect(page.getByRole("option")).toHaveCount(3);
+        await page.getByRole("option", { name: "所有済み", exact: true }).click();
         await page.locator("#detail-started-on").fill("2026-01-05");
         await page.locator("#detail-completed-on").fill("2026-02-06");
         await page.locator("#detail-last-played-on").fill("2026-03-07");
         await page.getByRole("combobox", { name: "購入先を選択" }).click();
         await page.getByRole("option", { name: "Steam", exact: true }).click();
-
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
-        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
-
-        await page.reload();
-        await openAdditionalRecordFields(page);
-        await expect(page.locator("#detail-score")).toHaveValue("85");
-        await expect(page.locator("#detail-play-time")).toHaveValue("12.5");
+        await details.locator("summary").click();
+        await expect(ownership).toBeHidden();
+        await details.locator("summary").click();
+        await expect(ownership).toContainText("所有済み");
         await expect(page.locator("#detail-started-on")).toHaveValue("2026-01-05");
         await expect(page.locator("#detail-completed-on")).toHaveValue("2026-02-06");
         await expect(page.locator("#detail-last-played-on")).toHaveValue("2026-03-07");
         await expect(page.getByRole("combobox", { name: "購入先を選択" })).toContainText("Steam");
-        await expect.poll(async () => {
-            const item = await readLibraryItem(page, "v1");
-            return { playTime: item?.playTime, purchaseLocation: item?.purchaseLocation };
-        }).toEqual({ playTime: 750, purchaseLocation: "Steam" });
+
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+        await expect.poll(async () => await readLibraryItem(page, "v1")).toMatchObject({
+            status: "completed",
+            ownership: "owned",
+            score: 100,
+            playTime: 750,
+            notes: "自分用のメモ。感想や再開位置とは別に保存。",
+            review: longReview,
+            resumeNote: "3日目・地下通路から再開",
+            startedOn: "2026-01-05",
+            completedOn: "2026-02-06",
+            lastPlayedOn: "2026-03-07",
+            purchaseLocation: "Steam",
+        });
+
+        await page.reload();
+        await openAdditionalRecordFields(page);
+        await expect(score).toHaveValue("100");
+        await expect(playTime).toHaveValue("12.5");
+        await expect(resumeNote).toHaveValue("3日目・地下通路から再開");
+        await expect(review).toHaveValue(longReview);
+        await expect(page.locator("#detail-started-on")).toHaveValue("2026-01-05");
+        await expect(page.locator("#detail-completed-on")).toHaveValue("2026-02-06");
+        await expect(page.locator("#detail-last-played-on")).toHaveValue("2026-03-07");
+        await expect(ownership).toContainText("所有済み");
+        await expect(page.getByRole("combobox", { name: "購入先を選択" })).toContainText("Steam");
+        await expect(notesSection).not.toHaveAttribute("open", "");
+        await notesSection.locator("summary").click();
+        await expect(notes).toHaveValue("自分用のメモ。感想や再開位置とは別に保存。");
+
+        await page.locator("#detail-score").fill("0");
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect.poll(async () => (await readLibraryItem(page, "v1"))?.score).toBe(0);
+        await page.reload();
+        await expect(score).toHaveValue("0");
+        await page.getByRole("button", { name: "未評価に戻す", exact: true }).click();
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect.poll(async () => (await readLibraryItem(page, "v1"))?.score).toBeNull();
+        await page.reload();
+        await expect(score).toHaveValue("");
     });
 
-    test("reveals the auxiliary section when a save fails on one of its fields", async ({ page }) => {
+    test("keeps primary validation visible and reveals record details for a date-order error", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/");
         await seedLibraryItem(page, "v1", { playTime: 150 });
         await page.reload();
         await page.goto("/vn/v1");
 
-        await openAdditionalRecordFields(page);
         await page.locator("#detail-play-time").fill("-1");
-        await page.getByTestId("detail-additional-fields").locator("summary").click();
-        await expect(page.locator("#detail-play-time")).toBeHidden();
-
         await page.getByRole("button", { name: "変更を保存", exact: true }).click();
         await expect(page.getByText("プレイ時間は0以上の有限な値で入力してください。", { exact: true })).toBeVisible();
         await expect(page.locator("#detail-play-time")).toBeVisible();
         await expect(page.locator("#detail-play-time")).toHaveValue("-1");
         await expect(page.getByText("未保存の変更", { exact: true })).toBeVisible();
+
+        await page.locator("#detail-play-time").fill("1");
+        await openAdditionalRecordFields(page);
+        await page.locator("#detail-started-on").fill("2026-03-07");
+        await page.locator("#detail-completed-on").fill("2026-02-06");
+        await page.getByTestId("detail-record-details").locator("summary").click();
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("クリア日は開始日より前にできません。", { exact: true })).toBeVisible();
+        await expect(page.locator("#detail-started-on")).toBeVisible();
+        await expect(page.locator("#detail-started-on")).toHaveValue("2026-03-07");
+        await expect(page.locator("#detail-completed-on")).toHaveValue("2026-02-06");
+    });
+
+    test("rejects a restored resume note longer than 200 characters without replacing saved data", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { resumeNote: "saved resume note" });
+        await page.reload();
+
+        const invalidResumeNote = "r".repeat(201);
+        await page.evaluate((resumeNote) => {
+            localStorage.setItem("vn-manager-detail-draft-v1:v1", JSON.stringify({
+                version: 1,
+                vnId: "v1",
+                baseUpdatedAt: 1,
+                updatedAt: 2,
+                values: {
+                    status: "playing",
+                    ownership: "unknown",
+                    score: null,
+                    notes: "draft memo",
+                    review: "draft review",
+                    playTime: 0,
+                    purchaseLocation: "",
+                    startedOn: "",
+                    completedOn: "",
+                    lastPlayedOn: "",
+                    resumeNote,
+                },
+            }));
+        }, invalidResumeNote);
+        await page.goto("/vn/v1");
+
+        const resumeNote = page.getByRole("textbox", { name: "再開メモ", exact: true });
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await expect(resumeNote).toBeDisabled();
+        await page.getByRole("button", { name: "下書きを復元" }).click();
+        await expect(resumeNote).toHaveAttribute("maxLength", "200");
+        await expect(resumeNote).toHaveValue(invalidResumeNote);
+
+        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await expect(page.getByText("再開メモは200文字以内で入力してください。", { exact: true })).toBeVisible();
+        await expect.poll(async () => (await readLibraryItem(page, "v1"))?.resumeNote).toBe("saved resume note");
     });
 
     test("places the cover and record as a readable desktop/mobile detail layout", async ({ browser }) => {
         for (const [width, height, name] of [
-            [390, 844, "v2-06-detail-390x844.png"],
-            [390, 667, "v2-06-detail-390x667.png"],
+            [390, 844, "v2-07-record-390x844.png"],
+            [390, 667, "v2-07-record-390x667.png"],
             [768, 900, null],
             [1023, 900, null],
-            [1024, 900, "v2-06-detail-1024x900.png"],
+            [1024, 900, "v2-07-record-1024x900.png"],
             [1280, 900, null],
-            [1440, 1000, "v2-06-detail-1440x1000.png"],
+            [1440, 1000, "v2-07-record-1440x1000.png"],
         ] as const) {
             const context = await browser.newContext({ viewport: { width, height } });
             try {
@@ -240,7 +361,8 @@ test.describe("Issue #54 record order and removal path", () => {
                 await page.goto("/vn/v1");
                 await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
                 await expect(page.locator("#detail-resume-note")).toBeVisible();
-                await expect(page.locator("#detail-notes")).toBeVisible();
+                await expect(page.getByTestId("detail-notes-section").locator("summary")).toBeVisible();
+                await expect(page.locator("#detail-notes")).toBeHidden();
                 await expect(page.getByTestId("detail-title-information").getByRole("button"))
                     .toHaveAttribute("aria-expanded", "false");
                 await expect(page.getByText("Fixture Works", { exact: true })).toBeVisible();
@@ -282,8 +404,13 @@ test.describe("Issue #54 record order and removal path", () => {
                 }
 
                 const order = await domOrder(page, [
+                    "#detail-status",
+                    "#detail-score",
+                    "#detail-play-time",
                     "#detail-resume-note",
-                    "[data-testid=\"detail-additional-fields\"]",
+                    "#detail-review",
+                    "[data-testid=\"detail-notes-section\"]",
+                    "[data-testid=\"detail-record-details\"]",
                     "[data-testid=\"detail-title-information\"]",
                     "[data-testid=\"detail-delete-zone\"]",
                 ]);

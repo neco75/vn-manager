@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, openAdditionalRecordFields, readLibraryItem, seedLibraryItem } from "./helpers";
+import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, readLibraryItem, seedLibraryItem } from "./helpers";
 import fixture from "./fixtures/vndb.json";
 import type { VN } from "@/types/vndb";
 
@@ -492,6 +492,17 @@ test.describe("library flows", () => {
         await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
         await expect(review).toBeDisabled();
         await expect(page.getByRole("button", { name: "変更を保存", exact: true })).toBeDisabled();
+        await expect(page.getByRole("combobox", { name: "ステータス", exact: true })).toBeDisabled();
+        await expect(page.locator("#detail-score")).toBeDisabled();
+        await expect(page.locator("#detail-play-time")).toBeDisabled();
+        await expect(page.locator("#detail-resume-note")).toBeDisabled();
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        const notes = page.getByRole("textbox", { name: "メモ（自分用）", exact: true });
+        await expect(notes).toBeDisabled();
+        await page.getByTestId("detail-record-details").locator("summary").click();
+        await expect(page.locator("#detail-ownership")).toBeDisabled();
+        await expect(page.locator("#detail-started-on")).toBeDisabled();
+        await expect(page.getByRole("combobox", { name: "購入先を選択" })).toBeDisabled();
         await page.getByRole("button", { name: "下書きを破棄" }).click();
         await expect(page.getByRole("button", { name: "下書きを復元" })).not.toBeVisible();
         await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveValue("");
@@ -540,13 +551,13 @@ test.describe("library flows", () => {
         await page.reload();
         await page.goto("/vn/v1");
 
-        const notes = page.getByRole("textbox", { name: "メモ (非公開)" });
+        const notes = page.getByRole("textbox", { name: "メモ（自分用）" });
         const review = page.getByRole("textbox", { name: "感想・レビュー" });
-        await openAdditionalRecordFields(page);
         const score = page.getByRole("spinbutton", { name: "スコア" });
         const playTime = page.getByRole("spinbutton", { name: "プレイ時間", exact: true });
 
         await playTime.fill("-1");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
         await notes.fill("draft memo survives invalid values");
         await review.fill("draft review survives invalid values");
 
@@ -556,8 +567,8 @@ test.describe("library flows", () => {
 
             await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
             await page.goto("/vn/v1");
-            await openAdditionalRecordFields(page);
             await page.getByRole("button", { name: "下書きを復元" }).click();
+            await page.getByTestId("detail-notes-section").locator("summary").click();
 
             await expect(notes).toHaveValue("draft memo survives invalid values");
             await expect(review).toHaveValue("draft review survives invalid values");
@@ -589,7 +600,8 @@ test.describe("library flows", () => {
         await expect(page.getByRole("alert").filter({ hasText: "下書きを読み書きできません" })).toBeVisible();
         await expect(page.evaluate(() => localStorage.getItem("vn-manager-detail-draft-v1:v1")))
             .resolves.toBe("{broken-json");
-        await expect(page.getByRole("textbox", { name: "メモ (非公開)" })).toHaveValue("saved memo");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await expect(page.getByRole("textbox", { name: "メモ（自分用）" })).toHaveValue("saved memo");
     });
 
     test("keeps detail actions keyboard reachable on a narrow screen", async ({ page }) => {

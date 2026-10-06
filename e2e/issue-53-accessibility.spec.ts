@@ -337,24 +337,27 @@ test.describe("Issue #53 accessibility regressions", () => {
         expect(fillBox!.width / trackBox!.width, "reduced motion completes the progress width immediately").toBeGreaterThan(0.95);
     });
 
-    test("names the actual Radix slider thumb", async ({ page }) => {
+    test("keeps the numeric score and unrated action keyboard accessible", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/vn/v1");
-        await openAdditionalRecordFields(page);
 
-        const slider = page.getByRole("slider", { name: "スコア", exact: true });
-        await expect(slider).toBeVisible();
-        const thumbBox = await slider.boundingBox();
-        const sliderBox = await slider.locator("xpath=..").boundingBox();
-        expect(thumbBox).not.toBeNull();
-        expect(sliderBox).not.toBeNull();
-        expect(thumbBox!.width).toBeGreaterThanOrEqual(44);
-        expect(thumbBox!.height).toBeGreaterThanOrEqual(44);
-        expect(sliderBox!.height).toBeGreaterThanOrEqual(44);
-        const before = Number(await slider.getAttribute("aria-valuenow"));
-        await slider.focus();
-        await page.keyboard.press(before >= 100 ? "ArrowLeft" : "ArrowRight");
-        await expect(slider).toHaveAttribute("aria-valuenow", String(before >= 100 ? before - 1 : before + 1));
+        const score = page.getByRole("spinbutton", { name: "スコア", exact: true });
+        await expect(score).toBeVisible();
+        const scoreBox = await score.boundingBox();
+        expect(scoreBox).not.toBeNull();
+        expect(scoreBox!.height).toBeGreaterThanOrEqual(44);
+        await score.fill("79");
+        await score.focus();
+        await page.keyboard.press("ArrowUp");
+        await expect(score).toHaveValue("80");
+
+        const markUnrated = page.getByRole("button", { name: "未評価に戻す", exact: true });
+        const markUnratedBox = await markUnrated.boundingBox();
+        expect(markUnratedBox).not.toBeNull();
+        expect(markUnratedBox!.height).toBeGreaterThanOrEqual(44);
+        await markUnrated.focus();
+        await page.keyboard.press("Enter");
+        await expect(score).toHaveValue("");
     });
 
     test("keeps desktop status tabs and mobile status select operable", async ({ page }) => {
@@ -407,6 +410,7 @@ test.describe("Issue #53 accessibility regressions", () => {
     test("shows keyboard focus on the Markdown textarea without removing its scroll margin", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/vn/v1");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
 
         const textarea = page.locator("#detail-notes");
         await expect(textarea).toBeVisible();
