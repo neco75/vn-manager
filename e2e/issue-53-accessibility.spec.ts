@@ -365,7 +365,7 @@ test.describe("Issue #53 accessibility regressions", () => {
         await page.reload();
 
         const tabs = page.locator('[data-slot="tabs-trigger"]');
-        await expect(tabs).toHaveCount(7);
+        await expect(tabs).toHaveCount(4);
         for (const tab of await tabs.all()) {
             const box = await tab.boundingBox();
             expect(box).not.toBeNull();
@@ -442,7 +442,7 @@ test.describe("Issue #53 accessibility regressions", () => {
         await seedLibraryItem(page, "v1");
         await page.reload();
 
-        await page.getByRole("button", { name: "ルーレット", exact: true }).click();
+        await page.getByRole("button", { name: "次に遊ぶ作品を選ぶ", exact: true }).click();
         await page.getByRole("button", { name: "ルーレットを回す！", exact: true }).click();
         await expect(page.getByTestId("roulette-winner")).toBeVisible();
 

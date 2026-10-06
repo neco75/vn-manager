@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { failDetailDraftWrites, failLibraryWrites, FIXTURE_STATUS_URL, mockVNDB, openAdditionalRecordFields, readLibraryItem, seedLibraryItem } from "./helpers";
+import fixture from "./fixtures/vndb.json";
+import type { VN } from "@/types/vndb";
 
 async function search(page: Parameters<typeof mockVNDB>[0], query: string) {
     const input = page.getByLabel("タイトルで検索");
@@ -242,6 +244,74 @@ test.describe("library flows", () => {
         await expect(page.getByText("ライブラリが空です", { exact: true })).not.toBeVisible();
     });
 
+    test("keeps desktop other-status selection in sync when switching filters and returning from detail", async ({ page }) => {
+        await mockVNDB(page);
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { status: "on_hold" });
+        await seedLibraryItem(page, "v2", { status: "dropped" });
+        await seedLibraryItem(page, "v4", { status: "playing" });
+        await page.reload();
+
+        const otherStatuses = page.getByRole("combobox", { name: "その他" });
+        await otherStatuses.click();
+        await page.getByRole("option", { name: "一時中断 (1)", exact: true }).click();
+        await expect(page).toHaveURL(/\?status=on_hold$/);
+        await expect(otherStatuses).toHaveText("一時中断 (1)");
+
+        await page.reload();
+        await expect(page).toHaveURL(/\?status=on_hold$/);
+        await expect(otherStatuses).toHaveText("一時中断 (1)");
+        await page.getByText("Fixture VN One", { exact: true }).click();
+        await expect(page).toHaveURL(/\/vn\/v1\?from=%2F%3Fstatus%3Don_hold$/);
+        await page.getByRole("link", { name: "戻る", exact: true }).click();
+        await expect(page).toHaveURL(/\?status=on_hold$/);
+        await expect(otherStatuses).toHaveText("一時中断 (1)");
+
+        await page.getByRole("tab", { name: /プレイ中/ }).click();
+        await expect(page).toHaveURL(/\?status=playing$/);
+        await expect(otherStatuses).toHaveText("その他 (2)");
+        await page.getByRole("tab", { name: /すべて/ }).click();
+        await expect(page).toHaveURL(/\/$/);
+        await expect(otherStatuses).toHaveText("その他 (2)");
+    });
+
+    test("keeps empty, filtered-empty, and load-error states distinct without record fields", async ({ page }) => {
+        await mockVNDB(page);
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto("/");
+
+        await expect(page.getByRole("heading", { name: "ライブラリが空です" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveCount(0);
+        await page.screenshot({ path: "e2e/screenshots/v2-04-empty-1440x1000.png", animations: "disabled" });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: "e2e/screenshots/v2-04-empty-390x844.png", animations: "disabled" });
+
+        await seedLibraryItem(page, "v1");
+        await page.goto("/?q=missing");
+        await expect(page.getByRole("heading", { name: "条件に一致する作品がありません" })).toBeVisible();
+        await expect(page.getByText("ライブラリが空です", { exact: true })).toHaveCount(0);
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveCount(0);
+        await page.screenshot({ path: "e2e/screenshots/v2-04-filtered-empty-390x844.png", animations: "disabled" });
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.screenshot({ path: "e2e/screenshots/v2-04-filtered-empty-1440x1000.png", animations: "disabled" });
+        await page.getByRole("button", { name: "条件を解除", exact: true }).click();
+        await expect(page.getByText("Fixture VN One", { exact: true })).toBeVisible();
+
+        await page.addInitScript(() => {
+            IDBDatabase.prototype.transaction = (() => {
+                throw new DOMException("Fixture read error", "InvalidStateError");
+            }) as typeof IDBDatabase.prototype.transaction;
+        });
+        await page.goto("/");
+        await expect(page.getByRole("heading", { name: "ライブラリを読み込めませんでした" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "再読み込み", exact: true })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "感想・レビュー" })).toHaveCount(0);
+        await page.screenshot({ path: "e2e/screenshots/v2-04-load-error-1440x1000.png", animations: "disabled" });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: "e2e/screenshots/v2-04-load-error-390x844.png", animations: "disabled" });
+    });
+
     test("adds a search result with the default status and persists registered state", async ({ page }) => {
         await mockVNDB(page);
         await page.goto("/search");
@@ -267,26 +337,32 @@ test.describe("library flows", () => {
 
     test("keeps long library cards readable and makes the whole card a detail link at 320px", async ({ page }) => {
         await mockVNDB(page);
-        await page.route("**/_next/image**", async (route) => {
-            const source = new URL(route.request().url()).searchParams.get("url") ?? "";
-            if (source.includes("/4/cover.jpg")) {
-                await route.abort();
-                return;
-            }
-            await route.fallback();
-        });
         await page.setViewportSize({ width: 320, height: 844 });
         await page.goto("/");
         await seedLibraryItem(page, "v1", { status: "playing", score: 0, addedAt: 1 });
         await seedLibraryItem(page, "v2", { status: "completed", score: null, addedAt: 2 });
-        await seedLibraryItem(page, "v4", { status: "completed", score: 100, addedAt: 3 });
+        const imageLessVN = structuredClone(fixture.vns.v4) as unknown as VN;
+        imageLessVN.image = null;
+        await seedLibraryItem(page, "v4", { status: "completed", score: 100, addedAt: 3, vn: imageLessVN });
         await page.reload();
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await expect(page.getByRole("link", { name: "日本語の長いタイトル 続編 ファンディスク" })).toBeVisible();
-        await page.screenshot({ path: "e2e/screenshots/v2-03-library-1440x1000.png" });
+        await page.screenshot({ path: "e2e/screenshots/v2-04-library-1440x1000.png", animations: "disabled" });
         await page.setViewportSize({ width: 390, height: 844 });
-        await page.screenshot({ path: "e2e/screenshots/v2-03-library-390x844.png" });
+        await page.screenshot({ path: "e2e/screenshots/v2-04-library-390x844.png", animations: "disabled" });
+        await page.setViewportSize({ width: 390, height: 667 });
+        await page.screenshot({ path: "e2e/screenshots/v2-04-library-390x667.png", animations: "disabled" });
+
+        const grid = page.locator("div.grid.grid-cols-2.gap-3");
+        for (const [width, columns, gap] of [[320, 2, 12], [390, 2, 12], [768, 3, 16], [1024, 4, 20], [1440, 4, 20]] as const) {
+            await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
+            const layout = await grid.evaluate((element) => {
+                const style = getComputedStyle(element);
+                return { columns: style.gridTemplateColumns.split(" ").length, gap: Number.parseFloat(style.columnGap) };
+            });
+            expect(layout).toEqual({ columns, gap });
+        }
         await page.setViewportSize({ width: 320, height: 844 });
 
         const title = "日本語の長いタイトル 続編 ファンディスク";
