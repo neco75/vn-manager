@@ -37,7 +37,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -84,9 +83,9 @@ const ENGLISH_MONTHS = [
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-// Score, play time, purchase location, and dates live in a collapsed section,
-// so a validation error for one of them has to reveal the section.
-const ADDITIONAL_FIELDS = new Set(["score", "playTime", "date", "dateOrder"]);
+// Ownership and dates live in collapsed record details and must be revealed
+// when validation needs the user to correct them.
+const RECORD_DETAIL_FIELDS = new Set(["ownership", "startedOn", "completedOn", "lastPlayedOn", "dateOrder"]);
 
 // VNDB dates arrive as YYYY-MM-DD. Format them per language without Intl so the
 // server and the browser always render the same text.
@@ -147,7 +146,7 @@ export default function VNPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const screenshotButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-    const additionalFieldsRef = useRef<HTMLDetailsElement | null>(null);
+    const recordDetailsRef = useRef<HTMLDetailsElement | null>(null);
     const openedScreenshotIndexRef = useRef<number | null>(null);
     const initializedRouteRef = useRef<string | null>(null);
     const requestSequenceRef = useRef(0);
@@ -451,8 +450,8 @@ export default function VNPage() {
             invalidField === "resumeNote" ? t.modal.invalidResumeNote :
             invalidField ? t.modal.invalidDate : null;
         if (validationMessage) {
-            if (invalidField && ADDITIONAL_FIELDS.has(invalidField)) {
-                additionalFieldsRef.current?.setAttribute("open", "");
+            if (invalidField && RECORD_DETAIL_FIELDS.has(invalidField)) {
+                recordDetailsRef.current?.setAttribute("open", "");
             }
             toast.error(validationMessage);
             return;
@@ -731,7 +730,178 @@ export default function VNPage() {
                         </div>
                     )}
 
-                    <div className="order-4 col-span-2 sticky top-16 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:order-none lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
+                    {/* Personal record */}
+                    <div data-testid="detail-record" className="order-4 col-span-2 space-y-6 lg:order-none">
+                        <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-6">
+                            <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
+
+                            <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-status">{t.common.status}</Label>
+                                    <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
+                                        <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full border-input bg-card">
+                                            <SelectValue placeholder={t.common.selectStatus} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {STATUSES.map((s) => (
+                                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-score">{t.common.score}</Label>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="detail-score"
+                                                disabled={formLocked}
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={score ?? ""}
+                                                placeholder={t.common.unrated}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    setScore(raw === "" ? null : Number(raw));
+                                                    markDirty();
+                                                }}
+                                                className="min-h-11 w-20 border-input bg-card text-right font-bold text-foreground"
+                                            />
+                                            <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="min-h-11"
+                                            disabled={formLocked || score === null}
+                                            onClick={() => { setScore(null); markDirty(); }}
+                                        >
+                                            {t.common.markUnrated}
+                                        </Button>
+                                    </div>
+                                    {score === 0 && (
+                                        <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-play-time">{t.common.playTime}</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="detail-play-time"
+                                            disabled={formLocked}
+                                            type="number"
+                                            min="0"
+                                            step="0.5"
+                                            value={playTime ? playTime / 60 : ""}
+                                            onChange={(e) => {
+                                                const rawValue = e.target.value.trim();
+                                                setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
+                                                markDirty();
+                                            }}
+                                            className="min-h-11 min-w-0 flex-1 border-input bg-card"
+                                            placeholder="0.0"
+                                        />
+                                        <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">{t.common.hours}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
+                                <Input
+                                    id="detail-resume-note"
+                                    disabled={formLocked}
+                                    value={resumeNote}
+                                    maxLength={200}
+                                    onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
+                                    placeholder={t.common.resumeNotePlaceholder}
+                                    className="min-h-11 border-input bg-card"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="detail-review">{t.vn.review}</Label>
+                                <ErrorBoundary errorTitle={t.common.errorTitle}>
+                                    <MarkdownEditor
+                                        id="detail-review"
+                                        ariaLabel={t.vn.review}
+                                        disabled={formLocked}
+                                        value={review}
+                                        onChange={(val) => { setReview(val); markDirty(); }}
+                                        height="h-36 sm:h-40"
+                                        placeholder={t.vn.reviewPlaceholder}
+                                    />
+                                </ErrorBoundary>
+                            </div>
+
+                            <details data-testid="detail-notes-section" className="rounded-lg border border-border p-4">
+                                <summary className="cursor-pointer">
+                                    <span className="inline-flex min-h-11 items-center font-medium">{t.vn.memoPrivate}</span>
+                                </summary>
+                                <div className="mt-4 space-y-2">
+                                    <Label htmlFor="detail-notes">{t.vn.memoPrivate}</Label>
+                                    <ErrorBoundary errorTitle={t.common.errorTitle}>
+                                        <MarkdownEditor
+                                            id="detail-notes"
+                                            ariaLabel={t.vn.memoPrivate}
+                                            disabled={formLocked}
+                                            value={notes}
+                                            onChange={(val) => { setNotes(val); markDirty(); }}
+                                            height="h-64"
+                                            placeholder={t.vn.memoPlaceholder}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
+                            </details>
+
+                            <details ref={recordDetailsRef} data-testid="detail-record-details" className="rounded-lg border border-border p-4">
+                                <summary className="cursor-pointer">
+                                    <span className="inline-flex min-h-11 items-center font-medium">{t.common.recordDetails}</span>
+                                </summary>
+                                <div className="mt-4 space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
+                                        <Select
+                                            value={ownership}
+                                            onValueChange={(value) => {
+                                                setOwnership(value as OwnershipStatus);
+                                                markDirty();
+                                            }}
+                                        >
+                                            <SelectTrigger disabled={formLocked} id="detail-ownership" className="min-h-11 w-full border-input bg-card">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
+                                                <SelectItem value="owned">{t.ownership.owned}</SelectItem>
+                                                <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
+                                    <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
+                                    <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
+                                        <PurchaseLocationSelector
+                                            id="detail-purchase-location"
+                                            disabled={formLocked}
+                                            value={purchaseLocation}
+                                            onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
+                                        />
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+
+                    <div className="order-5 col-span-2 sticky top-16 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:order-none lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                             <div
                                 role="status"
@@ -763,180 +933,6 @@ export default function VNPage() {
                             </Button>
                         </div>
                     </div>
-
-                    {/* Personal record */}
-                        <div data-testid="detail-record" className="order-5 col-span-2 space-y-6 lg:order-none">
-                            <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-6">
-                                <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
-                                    <Input
-                                        id="detail-resume-note"
-                                        disabled={Boolean(pendingDraft)}
-                                        value={resumeNote}
-                                        maxLength={200}
-                                        onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
-                                        placeholder={t.common.resumeNotePlaceholder}
-                                        className="min-h-11 border-input bg-card"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-status">{t.common.status}</Label>
-                                    <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
-                                        <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full border-input bg-card">
-                                            <SelectValue placeholder={t.common.selectStatus} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {STATUSES.map((s) => (
-                                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
-                                    <Select
-                                        value={ownership}
-                                        onValueChange={(value) => {
-                                            setOwnership(value as OwnershipStatus);
-                                            markDirty();
-                                        }}
-                                    >
-                                        <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full border-input bg-card">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
-                                            <SelectItem value="owned">{t.ownership.owned}</SelectItem>
-                                            <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-notes">{t.vn.memoPrivate}</Label>
-                                    <ErrorBoundary errorTitle={t.common.errorTitle}>
-                                        <MarkdownEditor
-                                            id="detail-notes"
-                                            ariaLabel={t.vn.memoPrivate}
-                                            disabled={Boolean(pendingDraft)}
-                                            value={notes}
-                                            onChange={(val) => { setNotes(val); markDirty(); }}
-                                            height="h-64"
-                                            placeholder={t.vn.memoPlaceholder}
-                                        />
-                                    </ErrorBoundary>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-review">{t.vn.review}</Label>
-                                    <ErrorBoundary errorTitle={t.common.errorTitle}>
-                                        <MarkdownEditor
-                                            id="detail-review"
-                                            ariaLabel={t.vn.review}
-                                            disabled={Boolean(pendingDraft)}
-                                            value={review}
-                                            onChange={(val) => { setReview(val); markDirty(); }}
-                                            height="h-64"
-                                            placeholder={t.vn.reviewPlaceholder}
-                                        />
-                                    </ErrorBoundary>
-                                </div>
-
-                                <details ref={additionalFieldsRef} data-testid="detail-additional-fields" className="rounded-lg border border-border p-4">
-                                    <summary className="cursor-pointer">
-                                        <span className="inline-flex min-h-11 items-center font-medium">{t.vn.additionalFields}</span>
-                                    </summary>
-                                    <div className="mt-4 space-y-4">
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <Label htmlFor="detail-score">{t.common.score}</Label>
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        id="detail-score"
-                                                        disabled={Boolean(pendingDraft)}
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        value={score ?? ""}
-                                                        placeholder={t.common.unrated}
-                                                        onChange={(e) => {
-                                                            const raw = e.target.value;
-                                                            setScore(raw === "" ? null : Number(raw));
-                                                            markDirty();
-                                                        }}
-                                                        className="h-11 w-24 border-input bg-card text-right font-bold text-foreground"
-                                                    />
-                                                    <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
-                                                </div>
-                                            </div>
-                                            <Slider
-                                                disabled={Boolean(pendingDraft)}
-                                                min={0}
-                                                max={100}
-                                                step={1}
-                                                value={[score ?? 0]}
-                                                onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
-                                                aria-label={t.common.score}
-                                                className="cursor-pointer"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                disabled={Boolean(pendingDraft) || score === null}
-                                                onClick={() => { setScore(null); markDirty(); }}
-                                            >
-                                                {t.common.markUnrated}
-                                            </Button>
-                                            {score === 0 && (
-                                                <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="detail-play-time">{t.common.playTime}</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    id="detail-play-time"
-                                                    disabled={Boolean(pendingDraft)}
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.5"
-                                                    value={playTime ? playTime / 60 : ""}
-                                                    onChange={(e) => {
-                                                        const rawValue = e.target.value.trim();
-                                                        setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
-                                                        markDirty();
-                                                    }}
-                                                    className="min-h-11 border-input bg-card"
-                                                    placeholder="0.0"
-                                                />
-                                                <span className="text-sm text-muted-foreground">{t.common.hours}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
-                                            <PurchaseLocationSelector
-                                                id="detail-purchase-location"
-                                                disabled={Boolean(pendingDraft)}
-                                                value={purchaseLocation}
-                                                onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
-                                            />
-                                        </div>
-
-                                        <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
-                                        <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
-                                        <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
-                                    </div>
-                                </details>
-
-                            </div>
-                        </div>
                 </div>
                 {/* External information */}
                 <div className="order-6 col-span-2 space-y-8 lg:order-none lg:col-span-1 lg:col-start-1 lg:row-start-2">

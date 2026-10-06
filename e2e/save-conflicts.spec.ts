@@ -28,7 +28,8 @@ test.describe("concurrent library saves", () => {
         const editorPage = await context.newPage();
         await mockVNDB(editorPage);
         await editorPage.goto("/vn/v1");
-        const notes = editorPage.getByRole("textbox", { name: "メモ (非公開)" });
+        await editorPage.getByTestId("detail-notes-section").locator("summary").click();
+        const notes = editorPage.getByRole("textbox", { name: "メモ（自分用）" });
         await openAdditionalRecordFields(editorPage);
         const score = editorPage.getByRole("spinbutton", { name: "スコア" });
         const playTime = editorPage.getByRole("spinbutton", { name: "プレイ時間", exact: true });
@@ -87,7 +88,8 @@ test.describe("concurrent library saves", () => {
         await expect(dialog).toContainText("Renamed store");
 
         await page.goto("/vn/v1");
-        await page.getByRole("textbox", { name: "メモ (非公開)" }).fill("after rename");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await page.getByRole("textbox", { name: "メモ（自分用）" }).fill("after rename");
         await page.getByRole("button", { name: "変更を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
         await expect.poll(async () => readLibraryItem(page, "v1")).toMatchObject({
@@ -131,9 +133,11 @@ test.describe("concurrent library saves", () => {
         const editorPage = await context.newPage();
         await mockVNDB(editorPage);
         await editorPage.goto("/vn/v1");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await editorPage.getByTestId("detail-notes-section").locator("summary").click();
 
-        const staleNotes = page.getByRole("textbox", { name: "メモ (非公開)" });
-        const newerNotes = editorPage.getByRole("textbox", { name: "メモ (非公開)" });
+        const staleNotes = page.getByRole("textbox", { name: "メモ（自分用）" });
+        const newerNotes = editorPage.getByRole("textbox", { name: "メモ（自分用）" });
         await staleNotes.fill("stale tab input");
         await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
         await newerNotes.fill("newer tab record");
@@ -142,6 +146,10 @@ test.describe("concurrent library saves", () => {
 
         await page.getByRole("button", { name: "変更を保存", exact: true }).click();
         await expect(page.getByText(saveConflictMessage, { exact: true }).last()).toBeVisible();
+        const notesSection = page.getByTestId("detail-notes-section");
+        if (!(await notesSection.evaluate((element) => (element as HTMLDetailsElement).open))) {
+            await notesSection.locator("summary").click();
+        }
         await expect(staleNotes).toHaveValue("stale tab input");
         await expect.poll(async () => (await readLibraryItem(page, "v1"))?.notes)
             .toBe("newer tab record");
@@ -154,9 +162,11 @@ test.describe("concurrent library saves", () => {
         const secondPage = await context.newPage();
         await mockVNDB(secondPage);
         await secondPage.goto("/vn/v1");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await secondPage.getByTestId("detail-notes-section").locator("summary").click();
 
-        const firstNotes = page.getByRole("textbox", { name: "メモ (非公開)" });
-        const secondNotes = secondPage.getByRole("textbox", { name: "メモ (非公開)" });
+        const firstNotes = page.getByRole("textbox", { name: "メモ（自分用）" });
+        const secondNotes = secondPage.getByRole("textbox", { name: "メモ（自分用）" });
         await firstNotes.fill("first tab record");
         await secondNotes.fill("second tab record");
 
@@ -172,6 +182,14 @@ test.describe("concurrent library saves", () => {
         await expect.poll(async () => (await firstConflict.count()) + (await secondConflict.count()))
             .toBeGreaterThan(0);
         expect((await firstConflict.count()) > 0 || (await secondConflict.count()) > 0).toBe(true);
+        const firstNotesSection = page.getByTestId("detail-notes-section");
+        const secondNotesSection = secondPage.getByTestId("detail-notes-section");
+        if (!(await firstNotesSection.evaluate((element) => (element as HTMLDetailsElement).open))) {
+            await firstNotesSection.locator("summary").click();
+        }
+        if (!(await secondNotesSection.evaluate((element) => (element as HTMLDetailsElement).open))) {
+            await secondNotesSection.locator("summary").click();
+        }
         await expect(firstNotes).toHaveValue(/tab record/);
         await expect(secondNotes).toHaveValue(/tab record/);
         await secondPage.close();

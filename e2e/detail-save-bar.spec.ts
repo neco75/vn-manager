@@ -52,10 +52,14 @@ async function expectEditorIsNotCovered(page: Page, editor: Locator) {
         throw new Error("Save bar, expected header area, or editor is not rendered");
     }
 
-    expect(editorBox.y).toBeGreaterThanOrEqual(Math.max(
-        headerBox ? headerBox.y + headerBox.height : 0,
-        saveBarBox.y + saveBarBox.height,
-    ));
+    const editorBottom = editorBox.y + editorBox.height;
+    const overlapsHeader = Boolean(headerBox)
+        && editorBox.y < headerBox!.y + headerBox!.height
+        && editorBottom > headerBox!.y;
+    const overlapsSaveBar = editorBox.y < saveBarBox.y + saveBarBox.height
+        && editorBottom > saveBarBox.y;
+    expect(overlapsHeader).toBe(false);
+    expect(overlapsSaveBar).toBe(false);
 }
 
 test("saves a long review below the sticky header across target viewports and 200% zoom equivalent", async ({ browser }) => {
@@ -81,6 +85,8 @@ test("saves a long review below the sticky header across target viewports and 20
             const updatedReview = `${longReview}\n\nEdited and saved at ${width}px.`;
             await review.fill(updatedReview);
 
+            const saveButton = page.getByRole("button", { name: "変更を保存", exact: true });
+            await saveButton.scrollIntoViewIfNeeded();
             const layout = await saveBarLayout(page);
             expect(layout.saveBarTop).toBeGreaterThanOrEqual(layout.headerBottom);
             expect(layout.saveBarLeft).toBeGreaterThanOrEqual(0);
@@ -91,7 +97,7 @@ test("saves a long review below the sticky header across target viewports and 20
                 await page.screenshot({ path: `test-results/detail-save-bar-${width}.png` });
             }
 
-            await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+            await saveButton.click();
             await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
             await expect.poll(() => readLibraryItem(page, "v1")).toMatchObject({
                 notes: longNotes,
@@ -133,7 +139,7 @@ test("keyboard focus can reach and activate save while editing a long review", a
         const saveButton = page.getByRole("button", { name: "変更を保存", exact: true });
         for (let attempt = 0; attempt < 80; attempt += 1) {
             if (await saveButton.evaluate((button) => button === document.activeElement)) break;
-            await page.keyboard.press("Shift+Tab");
+            await page.keyboard.press("Tab");
         }
         await expect(saveButton).toBeFocused();
         await expectSaveControlReceivesPointer(page);
