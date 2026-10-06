@@ -462,6 +462,7 @@ test.describe("library flows", () => {
         await expectServerMetadataFixture(request, "v1");
         await expect(page.getByText("VNDBから最新情報を取得できませんでした。", { exact: true })).toBeVisible();
         await expect(page.getByText("Visible intro", { exact: false })).not.toBeAttached();
+        await page.getByRole("button", { name: "作品情報を見る", exact: true }).click();
         await page.getByRole("button", { name: "あらすじ", exact: true }).click();
         await expect(page.getByText("Visible intro", { exact: false })).toBeVisible();
         await expect(page.getByText("hidden ending", { exact: true })).not.toBeAttached();
