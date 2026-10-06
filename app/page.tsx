@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { compareLibraryScores } from "@/lib/library-score";
 import { matchesLibrarySearch } from "@/lib/library-filter";
 import { getDisplayTitle } from "@/lib/vndb-title";
+import { getSafeLibraryReturnScroll, LIBRARY_RETURN_STORAGE_KEY } from "@/lib/detail-return";
 
 type SortOption = "score_desc" | "score_asc" | "added_desc" | "added_asc" | "released_desc" | "released_asc" | "rating_desc" | "rating_asc" | "title_asc" | "title_desc" | "vote_desc" | "vote_asc";
 type ViewMode = "grid" | "list" | "shelf";
@@ -129,6 +130,8 @@ function HomeContent() {
     const previousSearchParamsStringRef = useRef(searchParamsString);
     const [queryInput, setQueryInput] = useState(urlState.query);
     const [isRouletteOpen, setIsRouletteOpen] = useState(false);
+    const pendingReturnScrollRef = useRef<{ path: string; scrollY: number } | null>(null);
+    const didReadReturnScrollRef = useRef(false);
     const { nsfwBlur } = useSettings();
 
     const { filter, ownershipFilter, viewMode, sort } = urlState;
@@ -283,6 +286,66 @@ function HomeContent() {
     const resultCount = t.home.resultCount
         .replace("{matched}", String(filteredItems.length))
         .replace("{total}", String(items.length));
+
+    useEffect(() => {
+        if (!didReadReturnScrollRef.current) {
+            didReadReturnScrollRef.current = true;
+
+            let raw: string | null;
+            try {
+                raw = window.sessionStorage.getItem(LIBRARY_RETURN_STORAGE_KEY);
+            } catch {
+                return;
+            }
+            if (raw) {
+                const scrollY = getSafeLibraryReturnScroll(raw, returnTo);
+                try {
+                    window.sessionStorage.removeItem(LIBRARY_RETURN_STORAGE_KEY);
+                } catch {
+                    // A failed cleanup must not block the library or its controls.
+                }
+                if (scrollY !== null) pendingReturnScrollRef.current = { path: returnTo, scrollY };
+            }
+        }
+
+        const pending = pendingReturnScrollRef.current;
+        if (!pending) return;
+        if (pending.path !== returnTo || loadError) {
+            pendingReturnScrollRef.current = null;
+            return;
+        }
+        if (isLoading) return;
+
+        let secondFrame = 0;
+        const firstFrame = window.requestAnimationFrame(() => {
+            secondFrame = window.requestAnimationFrame(() => {
+                if (pendingReturnScrollRef.current !== pending) return;
+                try {
+                    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+                    window.scrollTo(0, Math.min(pending.scrollY, maxScroll));
+                } catch {
+                    // Return to the normal top-of-page position if restoration is unavailable.
+                }
+                pendingReturnScrollRef.current = null;
+            });
+        });
+
+        return () => {
+            window.cancelAnimationFrame(firstFrame);
+            window.cancelAnimationFrame(secondFrame);
+        };
+    }, [isLoading, loadError, returnTo]);
+
+    const saveLibraryReturnPosition = () => {
+        try {
+            window.sessionStorage.setItem(
+                LIBRARY_RETURN_STORAGE_KEY,
+                JSON.stringify({ path: returnTo, scrollY: window.scrollY }),
+            );
+        } catch {
+            // Library navigation remains usable when session storage is unavailable.
+        }
+    };
 
     const clearFilters = () => {
         setQueryInput("");
@@ -540,6 +603,7 @@ function HomeContent() {
                             vn={item.vn}
                             libraryItem={item}
                             detailHref={getDetailPath(item.vn.id, returnTo)}
+                            onDetailClick={saveLibraryReturnPosition}
                         />
                     ))}
                 </div>
@@ -554,6 +618,7 @@ function HomeContent() {
                                 href={getDetailPath(item.vn.id, returnTo)}
                                 key={item.vn.id}
                                 aria-label={displayTitle}
+                                onClick={saveLibraryReturnPosition}
                                 className="group flex min-h-24 items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors duration-150 hover:bg-accent/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                             >
                                 <div className="relative h-[72px] w-12 shrink-0 overflow-hidden rounded-md border border-border bg-secondary">
@@ -592,7 +657,7 @@ function HomeContent() {
                     })}
                 </div>
             ) : (
-                <ShelfView items={filteredAndSortedItems} returnTo={returnTo} />
+                <ShelfView items={filteredAndSortedItems} returnTo={returnTo} onDetailClick={saveLibraryReturnPosition} />
             )}
 
             <RouletteModal

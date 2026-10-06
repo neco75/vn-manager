@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSafeDetailReturnPath } from "@/lib/detail-return";
+import { getSafeDetailReturnPath, getSafeLibraryReturnScroll } from "@/lib/detail-return";
 
 describe("detail return paths", () => {
     it("allows the library root, filtered library URLs, and search queries", () => {
@@ -33,5 +33,26 @@ describe("detail return paths", () => {
     it("rejects missing or ambiguous from parameters", () => {
         expect(getSafeDetailReturnPath([])).toBe("/");
         expect(getSafeDetailReturnPath(["/search?q=ok", "/?status=playing"])).toBe("/");
+    });
+});
+
+describe("library return scroll snapshots", () => {
+    const path = "/?status=playing&sort=title_asc&view=list";
+
+    it("accepts a matching path and finite non-negative scroll position", () => {
+        expect(getSafeLibraryReturnScroll(JSON.stringify({ path, scrollY: 1240 }), path)).toBe(1240);
+        expect(getSafeLibraryReturnScroll(JSON.stringify({ path, scrollY: 0 }), path)).toBe(0);
+    });
+
+    it.each([
+        null,
+        "not-json",
+        JSON.stringify({ path: "/?status=completed", scrollY: 1240 }),
+        JSON.stringify({ path, scrollY: -1 }),
+        '{"path":"/?status=playing&sort=title_asc&view=list","scrollY":1e400}',
+        JSON.stringify({ path, scrollY: 1240, extra: true }),
+        JSON.stringify({ path: "//example.com", scrollY: 1240 }),
+    ])("rejects invalid, stale, or non-library snapshots: %s", (raw) => {
+        expect(getSafeLibraryReturnScroll(raw, path)).toBeNull();
     });
 });
