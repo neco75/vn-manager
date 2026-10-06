@@ -25,6 +25,35 @@ const LIBRARY_SORTS = new Set([
 const LIBRARY_VIEWS = new Set(["grid", "list", "shelf"]);
 const LIBRARY_QUERY_KEYS = ["q", "status", "ownership", "sort", "view"] as const;
 
+export const LIBRARY_RETURN_STORAGE_KEY = "vn-manager-library-return-v1";
+
+export function getSafeLibraryReturnScroll(raw: string | null, expectedPath: string): number | null {
+    if (!raw) return null;
+
+    try {
+        const value: unknown = JSON.parse(raw);
+        if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+        const snapshot = value as Record<string, unknown>;
+        if (
+            Object.keys(snapshot).length !== 2 ||
+            typeof snapshot.path !== "string" ||
+            (snapshot.path !== "/" && !snapshot.path.startsWith("/?")) ||
+            snapshot.path !== expectedPath ||
+            getSafeDetailReturnPath([snapshot.path]) !== snapshot.path ||
+            typeof snapshot.scrollY !== "number" ||
+            !Number.isFinite(snapshot.scrollY) ||
+            snapshot.scrollY < 0
+        ) {
+            return null;
+        }
+
+        return snapshot.scrollY;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Resolve a detail page's `from` parameter to one of the app's supported local
  * return paths. Never infer the destination from browser history.

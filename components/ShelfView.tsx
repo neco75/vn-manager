@@ -11,9 +11,10 @@ import { getDisplayTitle } from "@/lib/vndb-title";
 interface ShelfViewProps {
     items: LibraryItem[];
     returnTo?: string;
+    onDetailClick?: () => void;
 }
 
-export function ShelfView({ items, returnTo }: ShelfViewProps) {
+export function ShelfView({ items, returnTo, onDetailClick }: ShelfViewProps) {
     const { nsfwBlur } = useSettings();
     const { language, t } = useLanguage();
 
@@ -32,6 +33,7 @@ export function ShelfView({ items, returnTo }: ShelfViewProps) {
                             <Link
                                 href={detailHref}
                                 aria-label={displayTitle}
+                                onClick={onDetailClick}
                                 className="relative block aspect-[2/3] w-full overflow-hidden rounded-md border border-border bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                             >
                                 {item.vn.image ? (
@@ -56,6 +58,7 @@ export function ShelfView({ items, returnTo }: ShelfViewProps) {
                             <Link
                                 href={detailHref}
                                 data-testid="shelf-title-link"
+                                onClick={onDetailClick}
                                 className="mt-2 block min-h-11 w-full break-words rounded-sm px-1 py-1 text-center text-sm font-medium leading-5 text-foreground hover:text-primary [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                             >
                                 {displayTitle}
