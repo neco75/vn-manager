@@ -310,6 +310,7 @@ test.describe("final roadmap acceptance", () => {
         const detailBackground = page.locator('div[style*="/3/cover.jpg"]').first();
         await expect(detailBackground).toHaveClass(/blur-3xl/);
 
+        await page.getByRole("button", { name: "作品情報を見る", exact: true }).click();
         await page.getByRole("button", { name: /ギャラリー/ }).click();
         await page.getByRole("button", { name: "スクリーンショット 1", exact: true }).click();
         await expect(page.getByRole("dialog").locator('img[alt="スクリーンショット 1"]')).toHaveClass(/blur-3xl/);
@@ -335,6 +336,7 @@ test.describe("final roadmap acceptance", () => {
         await page.goto("/vn/v1");
 
         await expect(page.getByText("hidden ending", { exact: true })).not.toBeAttached();
+        await page.getByRole("button", { name: "作品情報を見る", exact: true }).click();
         await page.getByRole("button", { name: /タグ/ }).click();
         await expect(page.getByText("Hidden route", { exact: true })).not.toBeAttached();
 

@@ -8,7 +8,6 @@ import type { LibraryItemEdits } from "@/lib/library-state";
 import { LibraryConflictError } from "@/lib/db";
 import { VN } from "@/types/vndb";
 import { useLibrary } from "@/context/LibraryContext";
-import { motion } from "framer-motion";
 import { ArrowLeft, Star, Clock, Calendar, Tag, Image as ImageIcon, Trash2, Save, BookOpen, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { shouldBlurImage } from "@/lib/image-safety";
@@ -628,7 +627,7 @@ export default function VNPage() {
                     : "text-muted-foreground";
 
     return (
-        <div className="max-w-5xl mx-auto pb-20 relative">
+        <div className="relative mx-auto max-w-[1280px] pb-20">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -649,8 +648,9 @@ export default function VNPage() {
 
             <Link
                 href={returnTo}
-                className="group mb-6 inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
-            >    <ArrowLeft className="w-4 h-4" />
+                className="group mb-6 inline-flex min-h-11 items-center gap-2 rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+                <ArrowLeft className="h-4 w-4" />
                 {t.common.back}
             </Link>
 
@@ -681,280 +681,276 @@ export default function VNPage() {
                 </div>
             )}
 
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row">
-                <div className="order-1 min-w-0 flex-1 sm:order-2">
-                    <h1 className="text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">{displayTitle}</h1>
-                    {vn.alttitle && vn.alttitle !== displayTitle && (
-                        <p className="mt-2 break-words text-sm text-muted-foreground">{vn.alttitle}</p>
-                    )}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge variant="secondary">{t.common.status}: {STATUSES.find((item) => item.value === status)?.label}</Badge>
-                        <Badge variant="outline">{t.common.ownership}: {t.ownership[ownership]}</Badge>
-                    </div>
-                </div>
-                <div className="relative order-2 h-32 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary sm:order-1 sm:h-36 sm:w-24">
+            <div className="grid grid-cols-[80px_minmax(0,1fr)] items-start gap-x-4 gap-y-6 lg:grid-cols-[minmax(220px,min(32%,360px))_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-8">
+                <div data-testid="detail-cover" className="order-1 col-start-1 relative h-[120px] w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary lg:order-none lg:col-start-1 lg:row-start-1 lg:aspect-[3/4] lg:h-auto lg:max-h-[560px] lg:w-full lg:max-w-[360px]">
                     {vn.image ? (
                         <Image
                             src={vn.image.url}
                             alt={displayTitle}
                             fill
                             className={cn(
-                                "object-cover",
+                                "object-contain",
                                 shouldBlurImage(vn.image.sexual, nsfwBlur) && "blur-2xl scale-110"
                             )}
-                            sizes="96px"
+                            sizes="(min-width: 1024px) 32vw, 80px"
                             priority
                         />
                     ) : (
-                        <div className="flex h-full items-center justify-center p-2 text-center text-xs text-muted-foreground">
+                        <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted-foreground">
                             {t.common.noImage}
                         </div>
                     )}
                 </div>
-            </div>
-
-            {pendingDraft && (
-                <div role="alert" className="mb-6 rounded-lg border border-pending/30 bg-pending-background p-4">
-                    <p className="font-medium">{t.vn.draftAvailable}</p>
-                    {draftHasConflict && (
-                        <p className="mt-2 text-sm text-pending">{t.vn.draftConflict}</p>
-                    )}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        <Button type="button" size="sm" onClick={restoreDraft}>
-                            {t.vn.restoreDraft}
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" onClick={discardDraft}>
-                            {t.vn.discardDraft}
-                        </Button>
+                <div className="contents lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:block lg:space-y-6">
+                    <div className="order-2 col-start-2 min-w-0 lg:order-none">
+                        <h1
+                            className="break-words text-2xl font-bold leading-[1.4] lg:text-4xl lg:leading-[1.35]"
+                            style={{ fontFamily: '"Yu Mincho", "Hiragino Mincho ProN", serif' }}
+                        >
+                            {displayTitle}
+                        </h1>
+                        {vn.developers?.[0] && (
+                            <p className="mt-2 break-words text-sm text-muted-foreground">{vn.developers[0].name}</p>
+                        )}
                     </div>
-                </div>
-            )}
 
-            <div className="sticky top-16 z-20 mb-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                    <div
-                        role="status"
-                        aria-live="polite"
-                        className={cn("text-sm font-medium", draftStatusClass)}
-                    >
-                        {draftStatusLabel}
-                    </div>
-                    {draftStorageError && (
-                        <p role="alert" className="mt-1 text-sm text-destructive">
-                            {t.vn.draftStorageError}
-                        </p>
-                    )}
-                    {saveConflict && (
-                        <p role="alert" className="mt-1 text-sm text-pending">
-                            {t.modal.saveConflict}
-                        </p>
-                    )}
-                </div>
-                <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
-                    <Button
-                        type="button"
-                        className="min-h-11 gap-2 font-bold shadow-lg shadow-primary/25"
-                        onClick={handleSave}
-                        disabled={formLocked || isSaving || isDeleting || (!!libraryItem && !isDirty)}
-                    >
-                        <Save className="h-5 w-5" />
-                        {isSaving ? t.modal.saving : (libraryItem ? t.common.saveChanges : t.common.addToLibrary)}
-                    </Button>
-                </div>
-            </div>
-
-
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-                {/* Personal record */}
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                >
-                    <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-6">
-                        <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
-                            <Input
-                                id="detail-resume-note"
-                                disabled={Boolean(pendingDraft)}
-                                value={resumeNote}
-                                maxLength={200}
-                                onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
-                                placeholder={t.common.resumeNotePlaceholder}
-                                className="min-h-11 border-input bg-card"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="detail-status">{t.common.status}</Label>
-                            <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
-                                <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full border-input bg-card">
-                                    <SelectValue placeholder={t.common.selectStatus} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {STATUSES.map((s) => (
-                                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
-                            <Select
-                                value={ownership}
-                                onValueChange={(value) => {
-                                    setOwnership(value as OwnershipStatus);
-                                    markDirty();
-                                }}
-                            >
-                                <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full border-input bg-card">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
-                                    <SelectItem value="owned">{t.ownership.owned}</SelectItem>
-                                    <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="detail-notes">{t.vn.memoPrivate}</Label>
-                            <ErrorBoundary errorTitle={t.common.errorTitle}>
-                                <MarkdownEditor
-                                    id="detail-notes"
-                                    ariaLabel={t.vn.memoPrivate}
-                                    disabled={Boolean(pendingDraft)}
-                                    value={notes}
-                                    onChange={(val) => { setNotes(val); markDirty(); }}
-                                    height="h-64"
-                                    placeholder={t.vn.memoPlaceholder}
-                                />
-                            </ErrorBoundary>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="detail-review">{t.vn.review}</Label>
-                            <ErrorBoundary errorTitle={t.common.errorTitle}>
-                                <MarkdownEditor
-                                    id="detail-review"
-                                    ariaLabel={t.vn.review}
-                                    disabled={Boolean(pendingDraft)}
-                                    value={review}
-                                    onChange={(val) => { setReview(val); markDirty(); }}
-                                    height="h-64"
-                                    placeholder={t.vn.reviewPlaceholder}
-                                />
-                            </ErrorBoundary>
-                        </div>
-
-                        <details ref={additionalFieldsRef} data-testid="detail-additional-fields" className="rounded-lg border border-border p-4">
-                            <summary className="cursor-pointer">
-                                <span className="inline-flex min-h-11 items-center font-medium">{t.vn.additionalFields}</span>
-                            </summary>
-                            <div className="mt-4 space-y-4">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <Label htmlFor="detail-score">{t.common.score}</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                id="detail-score"
-                                                disabled={Boolean(pendingDraft)}
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                value={score ?? ""}
-                                                placeholder={t.common.unrated}
-                                                onChange={(e) => {
-                                                    const raw = e.target.value;
-                                                    setScore(raw === "" ? null : Number(raw));
-                                                    markDirty();
-                                                }}
-                                                className="h-11 w-24 border-input bg-card text-right font-bold text-foreground"
-                                            />
-                                            <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
-                                        </div>
-                                    </div>
-                                    <Slider
-                                        disabled={Boolean(pendingDraft)}
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={[score ?? 0]}
-                                        onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
-                                        aria-label={t.common.score}
-                                        className="cursor-pointer"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={Boolean(pendingDraft) || score === null}
-                                        onClick={() => { setScore(null); markDirty(); }}
-                                    >
-                                        {t.common.markUnrated}
-                                    </Button>
-                                    {score === 0 && (
-                                        <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-play-time">{t.common.playTime}</Label>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            id="detail-play-time"
-                                            disabled={Boolean(pendingDraft)}
-                                            type="number"
-                                            min="0"
-                                            step="0.5"
-                                            value={playTime ? playTime / 60 : ""}
-                                            onChange={(e) => {
-                                                const rawValue = e.target.value.trim();
-                                                setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
-                                                markDirty();
-                                            }}
-                                            className="min-h-11 border-input bg-card"
-                                            placeholder="0.0"
-                                        />
-                                        <span className="text-sm text-muted-foreground">{t.common.hours}</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
-                                    <PurchaseLocationSelector
-                                        id="detail-purchase-location"
-                                        disabled={Boolean(pendingDraft)}
-                                        value={purchaseLocation}
-                                        onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
-                                    />
-                                </div>
-
-                                <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
-                                <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
-                                <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
+                    {pendingDraft && (
+                        <div role="alert" className="order-3 col-span-2 rounded-lg border border-pending/30 bg-pending-background p-4 lg:order-none">
+                            <p className="font-medium">{t.vn.draftAvailable}</p>
+                            {draftHasConflict && (
+                                <p className="mt-2 text-sm text-pending">{t.vn.draftConflict}</p>
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <Button type="button" size="sm" onClick={restoreDraft}>
+                                    {t.vn.restoreDraft}
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={discardDraft}>
+                                    {t.vn.discardDraft}
+                                </Button>
                             </div>
-                        </details>
+                        </div>
+                    )}
 
+                    <div className="order-4 col-span-2 sticky top-16 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:order-none lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                            <div
+                                role="status"
+                                aria-live="polite"
+                                className={cn("text-sm font-medium", draftStatusClass)}
+                            >
+                                {draftStatusLabel}
+                            </div>
+                            {draftStorageError && (
+                                <p role="alert" className="mt-1 text-sm text-destructive">
+                                    {t.vn.draftStorageError}
+                                </p>
+                            )}
+                            {saveConflict && (
+                                <p role="alert" className="mt-1 text-sm text-pending">
+                                    {t.modal.saveConflict}
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
+                            <Button
+                                type="button"
+                                className="min-h-11 gap-2 font-bold shadow-lg shadow-primary/25"
+                                onClick={handleSave}
+                                disabled={formLocked || isSaving || isDeleting || (!!libraryItem && !isDirty)}
+                            >
+                                <Save className="h-5 w-5" />
+                                {isSaving ? t.modal.saving : (libraryItem ? t.common.saveChanges : t.common.addToLibrary)}
+                            </Button>
+                        </div>
                     </div>
-                </motion.div>
 
+                    {/* Personal record */}
+                        <div data-testid="detail-record" className="order-5 col-span-2 space-y-6 lg:order-none">
+                            <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-6">
+                                <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-resume-note">{t.common.resumeNote}</Label>
+                                    <Input
+                                        id="detail-resume-note"
+                                        disabled={Boolean(pendingDraft)}
+                                        value={resumeNote}
+                                        maxLength={200}
+                                        onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
+                                        placeholder={t.common.resumeNotePlaceholder}
+                                        className="min-h-11 border-input bg-card"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-status">{t.common.status}</Label>
+                                    <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
+                                        <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full border-input bg-card">
+                                            <SelectValue placeholder={t.common.selectStatus} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {STATUSES.map((s) => (
+                                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-ownership">{t.common.ownership}</Label>
+                                    <Select
+                                        value={ownership}
+                                        onValueChange={(value) => {
+                                            setOwnership(value as OwnershipStatus);
+                                            markDirty();
+                                        }}
+                                    >
+                                        <SelectTrigger disabled={Boolean(pendingDraft)} id="detail-ownership" className="min-h-11 w-full border-input bg-card">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="unknown">{t.ownership.unknown}</SelectItem>
+                                            <SelectItem value="owned">{t.ownership.owned}</SelectItem>
+                                            <SelectItem value="wishlist">{t.ownership.wishlist}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-notes">{t.vn.memoPrivate}</Label>
+                                    <ErrorBoundary errorTitle={t.common.errorTitle}>
+                                        <MarkdownEditor
+                                            id="detail-notes"
+                                            ariaLabel={t.vn.memoPrivate}
+                                            disabled={Boolean(pendingDraft)}
+                                            value={notes}
+                                            onChange={(val) => { setNotes(val); markDirty(); }}
+                                            height="h-64"
+                                            placeholder={t.vn.memoPlaceholder}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="detail-review">{t.vn.review}</Label>
+                                    <ErrorBoundary errorTitle={t.common.errorTitle}>
+                                        <MarkdownEditor
+                                            id="detail-review"
+                                            ariaLabel={t.vn.review}
+                                            disabled={Boolean(pendingDraft)}
+                                            value={review}
+                                            onChange={(val) => { setReview(val); markDirty(); }}
+                                            height="h-64"
+                                            placeholder={t.vn.reviewPlaceholder}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
+
+                                <details ref={additionalFieldsRef} data-testid="detail-additional-fields" className="rounded-lg border border-border p-4">
+                                    <summary className="cursor-pointer">
+                                        <span className="inline-flex min-h-11 items-center font-medium">{t.vn.additionalFields}</span>
+                                    </summary>
+                                    <div className="mt-4 space-y-4">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <Label htmlFor="detail-score">{t.common.score}</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        id="detail-score"
+                                                        disabled={Boolean(pendingDraft)}
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={score ?? ""}
+                                                        placeholder={t.common.unrated}
+                                                        onChange={(e) => {
+                                                            const raw = e.target.value;
+                                                            setScore(raw === "" ? null : Number(raw));
+                                                            markDirty();
+                                                        }}
+                                                        className="h-11 w-24 border-input bg-card text-right font-bold text-foreground"
+                                                    />
+                                                    <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
+                                                </div>
+                                            </div>
+                                            <Slider
+                                                disabled={Boolean(pendingDraft)}
+                                                min={0}
+                                                max={100}
+                                                step={1}
+                                                value={[score ?? 0]}
+                                                onValueChange={(vals) => { setScore(vals[0]); markDirty(); }}
+                                                aria-label={t.common.score}
+                                                className="cursor-pointer"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={Boolean(pendingDraft) || score === null}
+                                                onClick={() => { setScore(null); markDirty(); }}
+                                            >
+                                                {t.common.markUnrated}
+                                            </Button>
+                                            {score === 0 && (
+                                                <p data-testid="detail-legacy-score-note" className="text-xs text-muted-foreground">{t.common.legacyZeroScoreNote}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="detail-play-time">{t.common.playTime}</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    id="detail-play-time"
+                                                    disabled={Boolean(pendingDraft)}
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.5"
+                                                    value={playTime ? playTime / 60 : ""}
+                                                    onChange={(e) => {
+                                                        const rawValue = e.target.value.trim();
+                                                        setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
+                                                        markDirty();
+                                                    }}
+                                                    className="min-h-11 border-input bg-card"
+                                                    placeholder="0.0"
+                                                />
+                                                <span className="text-sm text-muted-foreground">{t.common.hours}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="detail-purchase-location">{t.common.purchaseLocation}</Label>
+                                            <PurchaseLocationSelector
+                                                id="detail-purchase-location"
+                                                disabled={Boolean(pendingDraft)}
+                                                value={purchaseLocation}
+                                                onChange={(v) => { setPurchaseLocation(v); markDirty(); }}
+                                            />
+                                        </div>
+
+                                        <RecordDateInput disabled={formLocked} id="detail-started-on" label={t.common.startedOn} value={startedOn} onChange={(value) => { setStartedOn(value); markDirty(); }} />
+                                        <RecordDateInput disabled={formLocked} id="detail-completed-on" label={t.common.completedOn} value={completedOn} onChange={(value) => { setCompletedOn(value); markDirty(); }} todayLabel={t.common.today} />
+                                        <RecordDateInput disabled={formLocked} id="detail-last-played-on" label={t.common.lastPlayedOn} value={lastPlayedOn} onChange={(value) => { setLastPlayedOn(value); markDirty(); }} />
+                                    </div>
+                                </details>
+
+                            </div>
+                        </div>
+                </div>
                 {/* External information */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="space-y-8"
-                >
-                    <div className="space-y-4">
+                <div className="order-6 col-span-2 space-y-8 lg:order-none lg:col-span-1 lg:col-start-1 lg:row-start-2">
+                    <div data-testid="detail-title-information" className="space-y-4">
                         <Accordion
-                            title={<div className="flex items-center gap-2"><ExternalLink className="w-5 h-5 text-primary" /> {t.vn.externalInfo}</div>}
+                            title={<div className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> {t.vn.externalInfo}</div>}
                         >
                             <div className="space-y-4">
+                                <div className="space-y-4">
+                                {vn.alttitle && vn.alttitle !== displayTitle && (
+                                    <p className="break-words text-sm">
+                                        <span className="font-medium">{t.common.originalTitle}:</span> {vn.alttitle}
+                                    </p>
+                                )}
                                 <div className="flex flex-wrap gap-2 text-sm">
                                     <Badge variant="secondary" className="gap-2 px-3 py-1.5 text-sm font-normal">
                                         <Star className="h-4 w-4 text-primary" />
@@ -996,7 +992,6 @@ export default function VNPage() {
                                     </Button>
                                 )}
                             </div>
-                        </Accordion>
 
                         <Accordion
                             title={<div className="flex items-center gap-2"><BookOpen data-testid="detail-synopsis-icon" className="w-5 h-5 text-primary" /> {t.common.synopsis}</div>}
@@ -1095,6 +1090,8 @@ export default function VNPage() {
 
 
                     </div>
+                        </Accordion>
+                    </div>
 
                     {libraryItem && (
                         <div data-testid="detail-delete-zone" className="space-y-2 rounded-xl border border-border bg-card p-4">
@@ -1112,7 +1109,7 @@ export default function VNPage() {
                             </Button>
                         </div>
                     )}
-                </motion.div>
+                </div>
             </div>
 
             <Dialog

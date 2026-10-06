@@ -219,7 +219,7 @@ test.describe("Issue #53 accessibility regressions", () => {
             if (language === "en") await page.getByRole("button", { name: "EN", exact: true }).click();
 
             await page.goto("/vn/v1");
-            await page.getByRole("button", { name: language === "ja" ? "作品情報" : "Title information", exact: true }).click();
+            await page.getByRole("button", { name: language === "ja" ? "作品情報を見る" : "View title information", exact: true }).click();
             await openAdditionalRecordFields(page);
             await expectReadableText(page.getByTestId("detail-score-suffix"), `${language} detail /100 label`);
             await expectReadableText(page.getByTestId("detail-legacy-score-note"), `${language} legacy zero-score note`);
