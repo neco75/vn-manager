@@ -187,7 +187,7 @@ test.describe("Issue #54 record order and removal path", () => {
         await dialog.getByRole("button", { name: "キャンセル", exact: true }).click();
         await expect(dialog).not.toBeVisible();
         await expect(notes).toHaveValue("未保存値は削除確認のキャンセル後も残る");
-        await expect(page.getByText("未保存の変更", { exact: true })).toBeVisible();
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
         expect((await readLibraryItem(page, "v1"))?.notes).toBe("saved memo");
 
         await removeButton.click();
