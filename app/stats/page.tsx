@@ -121,7 +121,7 @@ export default function StatsPage() {
                 <div className="rounded-2xl border border-destructive/40 bg-card p-8 text-center space-y-4" role="alert">
                     <h2 className="text-xl font-semibold">{t.home.loadErrorTitle}</h2>
                     <p className="text-sm text-muted-foreground">{t.home.loadErrorDesc}</p>
-                    <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+                    <Button onClick={() => void reloadLibrary().catch(() => undefined)}>{t.home.retryLoad}</Button>
                 </div>
             ) : (
                 <div ref={shareRef} data-testid="stats-share-root" className="space-y-8 p-8 bg-[#0a0a0a] rounded-3xl border border-white/5">

@@ -281,15 +281,15 @@ function HomeContent() {
     };
 
     if (isLoading) {
-        return <div className="flex items-center justify-center h-64 text-muted-foreground">{t.common.loading}</div>;
+        return <div className="flex items-center justify-center h-64 text-muted-foreground" role="status">{t.common.loading}</div>;
     }
 
     if (loadError) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4" role="alert">
                 <h2 className="text-2xl font-bold">{t.home.loadErrorTitle}</h2>
                 <p className="text-muted-foreground max-w-md">{t.home.loadErrorDesc}</p>
-                <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+                <Button onClick={() => void reloadLibrary().catch(() => undefined)}>{t.home.retryLoad}</Button>
             </div>
         );
     }

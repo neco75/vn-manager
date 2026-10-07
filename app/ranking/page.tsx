@@ -12,9 +12,10 @@ import { shouldBlurImage } from "@/lib/image-safety";
 import { getVisibleTags } from "@/lib/spoiler-safety";
 import { getDisplayTitle } from "@/lib/vndb-title";
 import { rankLibraryItems } from "@/lib/ranking";
+import { Button } from "@/components/ui/button";
 
 export default function RankingPage() {
-    const { items } = useLibrary();
+    const { items, isLoading, loadError, reloadLibrary } = useLibrary();
     const { language, t } = useLanguage();
     const { nsfwBlur } = useSettings();
 
@@ -29,7 +30,17 @@ export default function RankingPage() {
                 <p className="text-gray-400">{t.ranking.subtitle}</p>
             </div>
 
-            {rankedItems.length === 0 ? (
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-[50vh] text-center text-muted-foreground" role="status">
+                    {t.common.loading}
+                </div>
+            ) : loadError ? (
+                <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4" role="alert">
+                    <h2 className="text-2xl font-bold">{t.home.loadErrorTitle}</h2>
+                    <p className="text-gray-400">{t.home.loadErrorDesc}</p>
+                    <Button onClick={() => void reloadLibrary().catch(() => undefined)}>{t.home.retryLoad}</Button>
+                </div>
+            ) : rankedItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
                     <Trophy className="w-16 h-16 text-gray-600" />
                     <h2 className="text-2xl font-bold">{t.ranking.emptyTitle}</h2>
