@@ -72,7 +72,7 @@ PC 1440×1000の一覧と記録フォーム、詳細390×667、スマホ390×844
 | 通常6-worker `npm run check:review` | exit 1、E2E 108/109。baseで再現しない `final-qa` 初回導線が30秒timeout。同test単体とCI設定全件ではpass。上の基準branch比較を参照。 |
 | 基準 `origin/develop-v2` 6-worker `npm run test:e2e` | exit 1、107/109。変更前からあるIssue #54文言assertionとsettings duplicate-toast locatorの2件。`final-qa` 初回導線はpass。 |
 | post-merge Quality checks | success、run `37647946353`、head `408fd3f7161be94bbed0a8e7b140bcb67a3705bb`。 |
-| PR Quality checks / Preview | このIssue PR作成後に追記する。 |
+| PR Quality checks / Preview | [Quality checks run `37650852700`](https://github.com/neco75/vn-manager/actions/runs/37650852700) はsuccess（head `8de005b977992cf9734274b8593b523207fc9842`）。Vercel deployment [6914978744](https://github.com/neco75/vn-manager/deployments/6914978744) はenvironment `Preview` / status `success`。Preview URL: https://vn-manager-bchn17rwj-neco75s-projects.vercel.app |
 
 ## 未確認
 
