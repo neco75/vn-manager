@@ -110,6 +110,9 @@
       "1": { "ids": ["v1", "v2"], "more": true },
       "2": { "ids": ["v2", "v3"], "more": false }
     },
+    "responsive": {
+      "1": { "ids": ["v1", "v2", "v3", "v4"], "more": false }
+    },
     "empty": {
       "1": { "ids": [], "more": false }
     },

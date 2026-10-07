@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { searchVNs } from "@/lib/vndb";
 import { VN } from "@/types/vndb";
 import { SearchBar } from "@/components/SearchBar";
@@ -83,7 +83,6 @@ export default function SearchPage() {
 }
 
 function SearchPageInner() {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const { addItem, getItem } = useLibrary();
     const { language, t } = useLanguage();
@@ -92,6 +91,7 @@ function SearchPageInner() {
     const [inputValue, setInputValue] = useState(() => searchParams.get("q") ?? "");
     const [activeQuery, setActiveQuery] = useState(() => searchParams.get("q")?.trim() ?? "");
     const [results, setResults] = useState<VN[]>([]);
+    const [resultsQuery, setResultsQuery] = useState("");
     const [page, setPage] = useState(1);
     const [more, setMore] = useState(false);
     const [searchState, setSearchState] = useState<SearchState>(
@@ -132,9 +132,9 @@ function SearchPageInner() {
 
     const handleDetailClick = useCallback(() => {
         const snapshot = searchSnapshotRef.current;
-        if (!snapshot || snapshot.query !== activeQuery) return;
+        if (!snapshot || snapshot.query !== resultsQuery) return;
         saveSearchSnapshot({ ...snapshot, scrollY: window.scrollY });
-    }, [activeQuery, saveSearchSnapshot]);
+    }, [resultsQuery, saveSearchSnapshot]);
 
     const runSearch = useCallback(
         async (query: string) => {
@@ -143,16 +143,7 @@ function SearchPageInner() {
 
             const sequence = ++searchSequenceRef.current;
             setSearchState("searching");
-            setResults([]);
-            setPage(1);
-            setMore(false);
             setLoadMoreError(false);
-            searchSnapshotRef.current = null;
-            try {
-                window.sessionStorage.removeItem(SEARCH_RETURN_STORAGE_KEY);
-            } catch {
-                // A fresh search must still run if session storage is unavailable.
-            }
             // R1: 前検索の「もっと見る」処理を中断し、残留したloading状態を必ずリセットする
             loadMoreAbortRef.current?.abort();
             loadMoreAbortRef.current = null;
@@ -164,6 +155,7 @@ function SearchPageInner() {
 
                 const firstResults = applyPage([], firstPage.results);
                 setResults(firstResults);
+                setResultsQuery(trimmed);
                 setMore(firstPage.more);
                 setPage(1);
                 setSearchState(firstPage.results.length === 0 ? "empty" : "success");
@@ -178,8 +170,6 @@ function SearchPageInner() {
             } catch (error) {
                 if (searchSequenceRef.current !== sequence) return;
                 console.error("Search failed:", error);
-                setResults([]);
-                setMore(false);
                 setSearchState("error");
             }
         },
@@ -198,6 +188,7 @@ function SearchPageInner() {
                 restoreScrollYRef.current = snapshot.scrollY;
                 setInputValue(activeQuery);
                 setResults(snapshot.results);
+                setResultsQuery(activeQuery);
                 setPage(snapshot.page);
                 setMore(snapshot.more);
                 setSearchState(snapshot.results.length === 0 ? "empty" : "success");
@@ -223,13 +214,13 @@ function SearchPageInner() {
         if (!trimmed) return; // 空白検索は送らない
 
         setActiveQuery(trimmed);
-        // 検索語をURLへ保持（履歴を過剰追加しないよう replace）。詳細から戻った時に復元できる
-        router.replace(`/search?q=${encodeURIComponent(trimmed)}`, { scroll: false });
+        // Keep the submitted query in the URL without navigating away from the current result state.
+        window.history.replaceState(null, "", `/search?q=${encodeURIComponent(trimmed)}`);
         void runSearch(trimmed);
     };
 
     const handleLoadMore = async () => {
-        if (isLoadingMore || !more || !activeQuery) return;
+        if (isLoadingMore || !more || !resultsQuery) return;
         setIsLoadingMore(true);
         setLoadMoreError(false);
         const sequence = searchSequenceRef.current;
@@ -238,18 +229,18 @@ function SearchPageInner() {
         loadMoreAbortRef.current = controller;
 
         try {
-            const next = await searchVNs(activeQuery, { page: nextPage, signal: controller.signal });
+            const next = await searchVNs(resultsQuery, { page: nextPage, signal: controller.signal });
             if (searchSequenceRef.current !== sequence) return;
             const updatedResults = applyPage(results, next.results);
             setResults(updatedResults);
             const currentSnapshot = searchSnapshotRef.current;
             saveSearchSnapshot({
                 version: 1,
-                query: activeQuery,
+                query: resultsQuery,
                 results: updatedResults,
                 page: nextPage,
                 more: next.more,
-                scrollY: currentSnapshot?.query === activeQuery ? currentSnapshot.scrollY : window.scrollY,
+                scrollY: currentSnapshot?.query === resultsQuery ? currentSnapshot.scrollY : window.scrollY,
             });
             setMore(next.more);
             setPage(nextPage);
@@ -304,7 +295,7 @@ function SearchPageInner() {
 
     const statusOptions = GAME_STATUSES.map((value) => ({ value, label: t.status[value] }));
     const isCurrentSearchRunning = searchState === "searching" && inputValue.trim() === activeQuery;
-    const searchReturnPath = `/search?q=${encodeURIComponent(activeQuery)}`;
+    const searchReturnPath = `/search?q=${encodeURIComponent(resultsQuery)}`;
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto">
@@ -312,7 +303,7 @@ function SearchPageInner() {
                 <h1 className="text-2xl font-bold">{t.search.title}</h1>
                 <p className="text-muted-foreground text-sm">{t.search.subtitle}</p>
 
-                {/* design.md §6: 検索欄に可視ラベルと「検索」ボタン */}
+                {/* SPEC.md §8: 検索欄に可視ラベルと検索ボタン */}
                 <form onSubmit={handleSubmit} className="space-y-2" role="search">
                     <Label htmlFor="vn-search" className="text-sm font-medium">
                         {t.search.searchLabel}
@@ -359,18 +350,23 @@ function SearchPageInner() {
             )}
 
             {searchState === "error" && (
-                <div className="rounded-xl border border-border bg-card p-6 text-center space-y-3">
+                <div role="alert" className="space-y-3 rounded-xl border border-border bg-card p-6 text-center">
                     <p className="font-medium">{t.search.errorTitle}</p>
                     <p className="text-muted-foreground text-sm">{t.search.errorDesc}</p>
+                    {resultsQuery && results.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            {t.search.previousResults.replace("{query}", resultsQuery)}
+                        </p>
+                    )}
                     <Button variant="outline" className="min-h-11" onClick={() => void runSearch(activeQuery)}>
                         {t.search.retry}
                     </Button>
                 </div>
             )}
 
-            {searchState === "success" && results.length > 0 && (
+            {(searchState === "success" || searchState === "error") && resultsQuery && results.length > 0 && (
                 <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
                         {results.map((vn) => {
                             const libraryItem = getItem(vn.id);
                             return (
@@ -384,7 +380,7 @@ function SearchPageInner() {
                                         onAdd={() => void handleAdd(vn)}
                                         isAdding={addingIds.includes(vn.id)}
                                     />
-                                    {/* design.md §6: 保存失敗は同じ操作の近くにも表示する */}
+                                    {/* 追加失敗は同じ操作の近くにも表示する */}
                                     {addErrors[vn.id] && (
                                         <p role="alert" className="text-xs text-destructive">
                                             {addErrors[vn.id]}
