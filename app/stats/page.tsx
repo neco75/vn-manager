@@ -125,7 +125,7 @@ export default function StatsPage() {
                 <div className="space-y-4 rounded-2xl border border-destructive/40 bg-card p-8 text-center" role="alert">
                     <h2 className="text-xl font-semibold">{t.home.loadErrorTitle}</h2>
                     <p className="text-sm text-muted-foreground">{t.home.loadErrorDesc}</p>
-                    <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+                    <Button onClick={() => void reloadLibrary().catch(() => undefined)}>{t.home.retryLoad}</Button>
                 </div>
             ) : items.length === 0 ? (
                 <div data-testid="stats-empty-state" className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">

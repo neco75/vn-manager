@@ -210,7 +210,7 @@ export default function VNPage() {
     }, [routeId]);
 
     useEffect(() => {
-        if (!routeId || isLibraryLoading || initializedRouteRef.current === routeId) return;
+        if (!routeId || isLibraryLoading || loadError || initializedRouteRef.current === routeId) return;
 
         initializedRouteRef.current = routeId;
         if (libraryItem) {
@@ -255,7 +255,7 @@ export default function VNPage() {
         }
         draftReadyRef.current = true;
         setIsDraftReady(true);
-    }, [routeId, isLibraryLoading, libraryItem]);
+    }, [routeId, isLibraryLoading, loadError, libraryItem]);
 
     useEffect(() => {
         if (!routeId || isDirty || pendingDraft) return;
@@ -551,15 +551,15 @@ export default function VNPage() {
     };
 
     if (isLibraryLoading) {
-        return <div className="flex justify-center py-20">{t.common.loading}</div>;
+        return <div className="flex justify-center py-20" role="status">{t.common.loading}</div>;
     }
 
     if (loadError) {
         return (
-            <div className="mx-auto max-w-xl space-y-4 py-20 text-center">
+            <div className="mx-auto max-w-xl space-y-4 py-20 text-center" role="alert">
                 <h1 className="text-xl font-semibold">{t.home.loadErrorTitle}</h1>
                 <p className="text-sm text-muted-foreground">{t.home.loadErrorDesc}</p>
-                <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+                <Button onClick={() => void reloadLibrary().catch(() => undefined)}>{t.home.retryLoad}</Button>
             </div>
         );
     }

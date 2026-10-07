@@ -367,10 +367,10 @@ function HomeContent() {
 
     if (loadError) {
         return (
-            <div className="flex min-h-64 flex-col items-center justify-center space-y-4 text-center">
+            <div className="flex min-h-64 flex-col items-center justify-center space-y-4 text-center" role="alert">
                 <h1 className="text-2xl font-bold">{t.home.loadErrorTitle}</h1>
                 <p className="max-w-md text-muted-foreground">{t.home.loadErrorDesc}</p>
-                <Button className="min-h-11" onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
+                <Button className="min-h-11" onClick={() => void reloadLibrary().catch(() => undefined)}>{t.home.retryLoad}</Button>
             </div>
         );
     }
