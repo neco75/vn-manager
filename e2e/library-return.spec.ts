@@ -179,7 +179,7 @@ test.describe("library detail return", () => {
         await expect(page).toHaveURL(/\/vn\/v1\?from=/);
         await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
         await page.getByRole("textbox", { name: "感想・レビュー" }).fill("saved while session storage is unavailable");
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
         await expect.poll(async () => (await readLibraryItem(page, "v1"))?.review)
             .toBe("saved while session storage is unavailable");

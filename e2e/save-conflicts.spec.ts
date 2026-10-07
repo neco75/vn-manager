@@ -43,7 +43,7 @@ test.describe("concurrent library saves", () => {
         await playTime.fill("3.5");
         await purchaseLocation.click();
         await editorPage.getByRole("option", { name: "DMM", exact: true }).click();
-        await editorPage.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await editorPage.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(editorPage.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
         heldRequest.releaseRequest();
@@ -90,7 +90,7 @@ test.describe("concurrent library saves", () => {
         await page.goto("/vn/v1");
         await page.getByTestId("detail-notes-section").locator("summary").click();
         await page.getByRole("textbox", { name: "メモ（自分用）" }).fill("after rename");
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
         await expect.poll(async () => readLibraryItem(page, "v1")).toMatchObject({
             notes: "after rename",
@@ -141,11 +141,12 @@ test.describe("concurrent library saves", () => {
         await staleNotes.fill("stale tab input");
         await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
         await newerNotes.fill("newer tab record");
-        await editorPage.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await editorPage.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(editorPage.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText(saveConflictMessage, { exact: true }).last()).toBeVisible();
+        await expect(page.getByTestId("detail-save-bar").getByRole("alert")).toContainText(saveConflictMessage);
         const notesSection = page.getByTestId("detail-notes-section");
         if (!(await notesSection.evaluate((element) => (element as HTMLDetailsElement).open))) {
             await notesSection.locator("summary").click();

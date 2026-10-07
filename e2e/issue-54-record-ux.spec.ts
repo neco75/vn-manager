@@ -12,7 +12,7 @@ import {
 import type { VN } from "@/types/vndb";
 
 const workTitle = "Fixture VN One";
-const saveBarSelector = ".sticky";
+const saveBarSelector = '[data-testid="detail-save-bar"]';
 
 async function captureViewport(page: Page, name: string) {
     const path = join(process.cwd(), "e2e", "screenshots", name);
@@ -29,7 +29,7 @@ async function domOrder(page: Page, selectors: string[]) {
 }
 
 function saveBar(page: Page): Locator {
-    return page.locator(saveBarSelector).filter({ has: page.getByRole("button", { name: "変更を保存", exact: true }) });
+    return page.locator(saveBarSelector).filter({ has: page.getByRole("button", { name: "記録を保存", exact: true }) });
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -78,10 +78,46 @@ test.describe("Issue #54 record order and removal path", () => {
 
         await resumeNote.fill("3日目・地下通路から再開");
         await expect(page.getByText("未保存の変更", { exact: true })).toBeVisible();
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
         await expect.poll(async () => (await readLibraryItem(page, "v1"))?.resumeNote)
             .toBe("3日目・地下通路から再開");
+    });
+
+    test("keeps the delete confirmation and record after failure so deletion can be retried", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { notes: "saved memo" });
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        await page.evaluate(() => {
+            const testWindow = window as Window & { __failNextLibraryDelete?: boolean };
+            testWindow.__failNextLibraryDelete = false;
+            const originalDelete = IDBObjectStore.prototype.delete;
+            IDBObjectStore.prototype.delete = function (...args: unknown[]) {
+                if (this.name === "library" && testWindow.__failNextLibraryDelete) {
+                    testWindow.__failNextLibraryDelete = false;
+                    throw new DOMException("fixture delete failed", "QuotaExceededError");
+                }
+                return Reflect.apply(originalDelete, this, args);
+            };
+        });
+
+        await page.getByRole("button", { name: "ライブラリから削除", exact: true }).click();
+        const dialog = page.getByRole("dialog");
+        await page.evaluate(() => {
+            (window as Window & { __failNextLibraryDelete?: boolean }).__failNextLibraryDelete = true;
+        });
+        await dialog.getByRole("button", { name: "この記録を削除", exact: true }).click();
+
+        await expect(dialog.getByTestId("detail-delete-feedback")).toHaveText("削除に失敗しました。もう一度お試しください。");
+        await expect(dialog).toBeVisible();
+        await expect.poll(async () => (await readLibraryItem(page, "v1"))?.notes).toBe("saved memo");
+
+        await dialog.getByRole("button", { name: "この記録を削除", exact: true }).click();
+        await expect(dialog).not.toBeVisible();
+        await expect.poll(async () => readLibraryItem(page, "v1")).toBeUndefined();
     });
 
     test("keeps the external information folded so it does not push the record down", async ({ page }) => {
@@ -134,6 +170,10 @@ test.describe("Issue #54 record order and removal path", () => {
         const removeButton = page.getByTestId("detail-delete-zone").getByRole("button", { name: "ライブラリから削除" });
         await expect(removeButton).toBeVisible();
 
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        const notes = page.getByRole("textbox", { name: "メモ（自分用）", exact: true });
+        await notes.fill("未保存値は削除確認のキャンセル後も残る");
+
         await removeButton.click();
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();
@@ -146,6 +186,8 @@ test.describe("Issue #54 record order and removal path", () => {
 
         await dialog.getByRole("button", { name: "キャンセル", exact: true }).click();
         await expect(dialog).not.toBeVisible();
+        await expect(notes).toHaveValue("未保存値は削除確認のキャンセル後も残る");
+        await expect(page.getByText("未保存の変更", { exact: true })).toBeVisible();
         expect((await readLibraryItem(page, "v1"))?.notes).toBe("saved memo");
 
         await removeButton.click();
@@ -220,7 +262,7 @@ test.describe("Issue #54 record order and removal path", () => {
         await expect(page.locator("#detail-last-played-on")).toHaveValue("2026-03-07");
         await expect(page.getByRole("combobox", { name: "購入先を選択" })).toContainText("Steam");
 
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
         await expect.poll(async () => await readLibraryItem(page, "v1")).toMatchObject({
             status: "completed",
@@ -252,12 +294,12 @@ test.describe("Issue #54 record order and removal path", () => {
         await expect(notes).toHaveValue("自分用のメモ。感想や再開位置とは別に保存。");
 
         await page.locator("#detail-score").fill("0");
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect.poll(async () => (await readLibraryItem(page, "v1"))?.score).toBe(0);
         await page.reload();
         await expect(score).toHaveValue("0");
         await page.getByRole("button", { name: "未評価に戻す", exact: true }).click();
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect.poll(async () => (await readLibraryItem(page, "v1"))?.score).toBeNull();
         await page.reload();
         await expect(score).toHaveValue("");
@@ -271,7 +313,7 @@ test.describe("Issue #54 record order and removal path", () => {
         await page.goto("/vn/v1");
 
         await page.locator("#detail-play-time").fill("-1");
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("プレイ時間は0以上の有限な値で入力してください。", { exact: true })).toBeVisible();
         await expect(page.locator("#detail-play-time")).toBeVisible();
         await expect(page.locator("#detail-play-time")).toHaveValue("-1");
@@ -282,7 +324,7 @@ test.describe("Issue #54 record order and removal path", () => {
         await page.locator("#detail-started-on").fill("2026-03-07");
         await page.locator("#detail-completed-on").fill("2026-02-06");
         await page.getByTestId("detail-record-details").locator("summary").click();
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("クリア日は開始日より前にできません。", { exact: true })).toBeVisible();
         await expect(page.locator("#detail-started-on")).toBeVisible();
         await expect(page.locator("#detail-started-on")).toHaveValue("2026-03-07");
@@ -326,7 +368,7 @@ test.describe("Issue #54 record order and removal path", () => {
         await expect(resumeNote).toHaveAttribute("maxLength", "200");
         await expect(resumeNote).toHaveValue(invalidResumeNote);
 
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("再開メモは200文字以内で入力してください。", { exact: true })).toBeVisible();
         await expect.poll(async () => (await readLibraryItem(page, "v1"))?.resumeNote).toBe("saved resume note");
     });
@@ -361,6 +403,7 @@ test.describe("Issue #54 record order and removal path", () => {
                 await page.goto("/vn/v1");
                 await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
                 await expect(page.locator("#detail-resume-note")).toBeVisible();
+                await expect(page.locator("#detail-review")).toBeVisible();
                 await expect(page.getByTestId("detail-notes-section").locator("summary")).toBeVisible();
                 await expect(page.locator("#detail-notes")).toBeHidden();
                 await expect(page.getByTestId("detail-title-information").getByRole("button"))
