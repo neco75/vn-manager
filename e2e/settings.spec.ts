@@ -172,8 +172,11 @@ test.describe("settings", () => {
 
         await dialog.getByRole("button", { name: "編集: Renamed Steam", exact: true }).click();
         await dialog.getByRole("textbox", { name: "編集: Renamed Steam", exact: true }).fill("DMM");
+        const duplicateMessage = page.getByText("この購入先はすでに登録されています。", { exact: true });
+        const duplicateCountBeforeRename = await duplicateMessage.count();
         await dialog.getByRole("button", { name: "確定", exact: true }).click();
-        await expect(page.getByText("この購入先はすでに登録されています。", { exact: true })).toBeVisible();
+        await expect(duplicateMessage).toHaveCount(duplicateCountBeforeRename + 1);
+        await expect(duplicateMessage.last()).toBeVisible();
         await expect(dialog.getByRole("textbox", { name: "編集: Renamed Steam", exact: true })).toHaveValue("DMM");
         await dialog.getByRole("button", { name: "キャンセル", exact: true }).click();
 

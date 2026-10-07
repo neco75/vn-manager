@@ -5,6 +5,7 @@ import {
     armBackupRestoreFailure,
     failBackupRestoreWrites,
     mockVNDB,
+    openAdditionalRecordFields,
     readLibraryIds,
     readLibraryItem,
     readPurchaseSourceNames,
@@ -88,6 +89,17 @@ test.describe("V2-13 backup restore safety", () => {
         });
         await seedPurchaseSources(page, ["GOG", "Steam"]);
         await page.reload();
+        await page.goto("/vn/v1");
+        await openAdditionalRecordFields(page);
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        const notes = page.getByRole("textbox", { name: "メモ（自分用）", exact: true });
+        await notes.fill("private notes zero saved through the form");
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+        await page.reload();
+        await openAdditionalRecordFields(page);
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await expect(notes).toHaveValue("private notes zero saved through the form");
         await page.goto("/settings");
         const sourceRecords = {
             v1: await readLibraryItem(page, "v1"),
@@ -133,7 +145,7 @@ test.describe("V2-13 backup restore safety", () => {
             status: "completed",
             ownership: "owned",
             score: 0,
-            notes: "private notes zero",
+            notes: "private notes zero saved through the form",
             review: "review zero",
             playTime: 750,
             purchaseLocation: "Steam",
@@ -142,7 +154,7 @@ test.describe("V2-13 backup restore safety", () => {
             lastPlayedOn: "2024-03-05",
             resumeNote: "resume after the final route",
             addedAt: 100,
-            updatedAt: 200,
+            updatedAt: expect.any(Number),
         });
         expect(exported.library.find((item) => (item.vn as { id: string }).id === "v2")).toMatchObject({
             ownership: "wishlist",
@@ -174,7 +186,7 @@ test.describe("V2-13 backup restore safety", () => {
             expect(await readLibraryItem(emptyPage, "v1")).toMatchObject({
                 ownership: "owned",
                 score: 0,
-                notes: "private notes zero",
+                notes: "private notes zero saved through the form",
                 review: "review zero",
                 playTime: 750,
                 purchaseLocation: "Steam",
@@ -183,7 +195,7 @@ test.describe("V2-13 backup restore safety", () => {
                 lastPlayedOn: "2024-03-05",
                 resumeNote: "resume after the final route",
                 addedAt: 100,
-                updatedAt: 200,
+                updatedAt: expect.any(Number),
             });
             expect(await readLibraryItem(emptyPage, "v2")).toMatchObject({
                 ownership: "wishlist",
