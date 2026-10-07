@@ -5,7 +5,7 @@ import { Download, Loader2, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLibrary } from "@/context/LibraryContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -174,7 +174,6 @@ export function BackupManager({ id }: { id?: string }) {
         } catch (error) {
             console.error("Backup restore failed:", error);
             setMessage({ kind: "error", text: t.stats.toasts.importError });
-            toast.error(t.stats.toasts.importError);
         } finally {
             setIsRestoring(false);
         }
@@ -188,7 +187,6 @@ export function BackupManager({ id }: { id?: string }) {
                         <Save className="w-5 h-5 text-primary" />
                         {t.settings.dataAndBackup}
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">{t.settings.localStorageDescription}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
@@ -211,7 +209,7 @@ export function BackupManager({ id }: { id?: string }) {
                             />
                             <Button
                                 onClick={chooseImportFile}
-                                className="w-full gap-2 h-12 shadow-lg shadow-primary/25"
+                                className="w-full gap-2 h-12"
                             >
                                 <Upload className="w-4 h-4" />
                                 {t.stats.import}
@@ -224,7 +222,6 @@ export function BackupManager({ id }: { id?: string }) {
                     </p>
 
                     <div className="space-y-1 text-center text-xs text-muted-foreground">
-                        <p>{t.settings.dataAndBackupDescription}</p>
                         <p role="status">
                             {lastExportAt
                                 ? t.settings.lastExportAt.replace("{date}", formatExportDate(lastExportAt))
@@ -232,7 +229,7 @@ export function BackupManager({ id }: { id?: string }) {
                         </p>
                     </div>
 
-                    {message && (
+                    {message && !importState && (
                         <p
                             role={message.kind === "error" ? "alert" : "status"}
                             className={message.kind === "error" ? "text-sm text-destructive" : "text-sm text-success"}
@@ -256,7 +253,9 @@ export function BackupManager({ id }: { id?: string }) {
 
                     {importState && (
                         <div className="space-y-5">
-                            <p className="text-sm text-muted-foreground">{t.stats.restorePreviewDesc}</p>
+                            <DialogDescription className="text-sm text-muted-foreground">
+                                {t.stats.restorePreviewDesc}
+                            </DialogDescription>
 
                             <dl className="grid grid-cols-2 gap-3 text-sm">
                                 <div className="rounded-lg bg-secondary p-3">
@@ -303,6 +302,12 @@ export function BackupManager({ id }: { id?: string }) {
 
                             {importState.backup.legacy && (
                                 <p className="text-sm text-pending">{t.stats.legacyPreservesSettings}</p>
+                            )}
+
+                            {message?.kind === "error" && (
+                                <p role="alert" className="text-sm text-destructive">
+                                    {message.text}
+                                </p>
                             )}
 
                             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
