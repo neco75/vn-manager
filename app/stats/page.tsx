@@ -2,7 +2,7 @@
 
 import { useLibrary } from "@/context/LibraryContext";
 import { motion, useReducedMotion } from "framer-motion";
-import { CalendarDays, Clock, Gamepad2, Hash, Loader2, PieChart, RefreshCw, Share2, Star, Trophy } from "lucide-react";
+import { CalendarDays, Hash, Loader2, PieChart, RefreshCw, Share2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
@@ -19,17 +19,19 @@ export default function StatsPage() {
     const shareRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
     const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
     const stats = useMemo(() => calculateLibraryStatistics(items), [items]);
 
     const handleShare = async () => {
-        if (!shareRef.current || items.length === 0) return;
+        if (!shareRef.current || items.length === 0 || isSharing) return;
+        setIsSharing(true);
         try {
             await new Promise((resolve) => setTimeout(resolve, 500));
 
             const dataUrl = await toPng(shareRef.current, {
-                backgroundColor: getComputedStyle(shareRef.current).backgroundColor,
+                backgroundColor: "#FFFFFF",
                 pixelRatio: 2,
                 cacheBust: true,
             });
@@ -42,6 +44,8 @@ export default function StatsPage() {
         } catch (error) {
             console.error("Share Error:", error);
             toast.error(t.stats.toasts.shareError);
+        } finally {
+            setIsSharing(false);
         }
     };
 
@@ -62,7 +66,7 @@ export default function StatsPage() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-12 pb-20">
+        <div className="mx-auto max-w-6xl space-y-8 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold">{t.stats.title}</h1>
@@ -80,11 +84,11 @@ export default function StatsPage() {
                     </Button>
                     <Button
                         onClick={handleShare}
-                        disabled={isLoading || loadError || items.length === 0}
+                        disabled={isLoading || loadError || items.length === 0 || isSharing}
                         className="gap-2 rounded-full font-bold shadow-lg shadow-primary/25"
                     >
-                        <Share2 className="w-4 h-4" />
-                        {t.stats.share}
+                        {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                        {isSharing ? t.stats.sharing : t.stats.share}
                     </Button>
                 </div>
             </div>
@@ -118,13 +122,20 @@ export default function StatsPage() {
                     {t.common.loading}
                 </div>
             ) : loadError ? (
-                <div className="rounded-2xl border border-destructive/40 bg-card p-8 text-center space-y-4" role="alert">
+                <div className="space-y-4 rounded-2xl border border-destructive/40 bg-card p-8 text-center" role="alert">
                     <h2 className="text-xl font-semibold">{t.home.loadErrorTitle}</h2>
                     <p className="text-sm text-muted-foreground">{t.home.loadErrorDesc}</p>
                     <Button onClick={() => void reloadLibrary()}>{t.home.retryLoad}</Button>
                 </div>
+            ) : items.length === 0 ? (
+                <div data-testid="stats-empty-state" className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
+                    <p>{t.stats.noRecords}</p>
+                    <Button asChild className="mt-4">
+                        <Link href="/search">{t.home.addButton}</Link>
+                    </Button>
+                </div>
             ) : (
-                <div ref={shareRef} data-testid="stats-share-root" className="space-y-8 rounded-3xl border border-border bg-background p-8 text-foreground">
+                <div ref={shareRef} data-testid="stats-share-root" aria-busy={isSharing} className="space-y-8 rounded-2xl border border-border bg-white p-5 text-foreground sm:p-8">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h2 data-testid="stats-share-heading" className="text-2xl font-bold text-foreground">
@@ -137,136 +148,112 @@ export default function StatsPage() {
                         <div className="text-sm text-muted-foreground">VN Manager</div>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div data-testid="stats-summary-grid" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        <StatCard label={t.stats.totalGames} value={stats.total} />
+                        <StatCard label={t.stats.completed} value={stats.completed} />
                         <StatCard
-                            icon={<Gamepad2 className="w-6 h-6 text-primary" />}
-                            label={t.stats.totalGames}
-                            value={stats.total}
-                        />
-                        <StatCard
-                            icon={<Trophy className="w-6 h-6 text-primary" />}
-                            label={t.stats.completed}
-                            value={stats.completed}
-                        />
-                        <StatCard
-                            icon={<Star className="w-6 h-6 text-primary" />}
                             label={t.stats.avgScore}
                             value={stats.averageScore === null ? "—" : stats.averageScore.toFixed(1)}
                             detail={t.stats.ratedCount.replace("{count}", String(stats.ratedCount))}
                         />
-                        <StatCard
-                            icon={<Clock className="w-6 h-6 text-success" />}
-                            label={t.stats.totalPlaytime}
-                            value={formatHours(stats.actualPlaytimeMinutes, t.common.hours)}
-                        />
+                        <StatCard label={t.stats.totalPlaytime} value={formatHours(stats.actualPlaytimeMinutes, t.common.hours)} />
                     </div>
 
                     <p className="-mt-4 text-sm text-muted-foreground">{t.stats.recordedPlaytimeNote}</p>
 
-                    {items.length === 0 ? (
-                        <div className="space-y-4 rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
-                            <p>{t.stats.noRecords}</p>
-                            <Button asChild>
-                                <Link href="/search">{t.home.addButton}</Link>
-                            </Button>
-                        </div>
-                    ) : (
-                        <>
-                            <Card className="border-border">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">{t.stats.estimatedPlaytime}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {stats.estimatedUnstartedCount === 0 ? (
-                                        <p className="text-sm text-muted-foreground">{t.stats.noEstimatedPlaytimeTarget}</p>
-                                    ) : (
-                                        <>
-                                            <div className="text-3xl font-bold">
-                                                {formatHours(stats.estimatedUnstartedMinutes, t.common.hours)}
-                                            </div>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {t.stats.estimatedTargetCount.replace("{count}", String(stats.estimatedUnstartedCount))}
-                                            </p>
-                                        </>
-                                    )}
-                                    <p className="mt-2 text-sm text-muted-foreground">{t.stats.estimatedPlaytimeNote}</p>
-                                </CardContent>
-                            </Card>
+                    <Card className="gap-4 border-border bg-card py-5 text-card-foreground shadow-none">
+                        <CardHeader>
+                            <CardTitle>{t.stats.estimatedPlaytime}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {stats.estimatedUnstartedCount === 0 ? (
+                                <p className="text-sm text-muted-foreground">{t.stats.noEstimatedPlaytimeTarget}</p>
+                            ) : (
+                                <>
+                                    <div className="text-2xl font-semibold">
+                                        {formatHours(stats.estimatedUnstartedMinutes, t.common.hours)}
+                                    </div>
+                                    <p className="mt-1 text-[13px] text-muted-foreground">
+                                        {t.stats.estimatedTargetCount.replace("{count}", String(stats.estimatedUnstartedCount))}
+                                    </p>
+                                </>
+                            )}
+                            <p className="mt-2 text-sm text-muted-foreground">{t.stats.estimatedPlaytimeNote}</p>
+                        </CardContent>
+                    </Card>
 
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <Card className="border-border">
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <CalendarDays className="w-5 h-5 text-primary" />
-                                            {t.stats.completedByMonth}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        {stats.monthlyCompleted.length === 0 ? (
-                                            <p className="text-sm text-muted-foreground">{t.stats.noCompletionHistory}</p>
-                                        ) : (
-                                            stats.monthlyCompleted.map((entry) => (
-                                                <ProgressBar
-                                                    key={entry.month}
-                                                    label={entry.month}
-                                                    value={entry.count}
-                                                    total={Math.max(...stats.monthlyCompleted.map((month) => month.count))}
-                                                    color="bg-primary"
-                                                />
-                                            ))
-                                        )}
-                                        {stats.completedWithoutDate > 0 && (
-                                            <p className="text-sm text-muted-foreground">
-                                                {t.stats.completedWithoutDate.replace("{count}", String(stats.completedWithoutDate))}
-                                            </p>
-                                        )}
-                                    </CardContent>
-                                </Card>
+                    <div data-testid="stats-chart-grid" className="grid gap-6 lg:grid-cols-2">
+                        <Card className="gap-4 border-border bg-card py-5 text-card-foreground shadow-none">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <CalendarDays className="h-5 w-5 text-primary" />
+                                    {t.stats.completedByMonth}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {stats.monthlyCompleted.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">{t.stats.noCompletionHistory}</p>
+                                ) : (
+                                    stats.monthlyCompleted.map((entry) => (
+                                        <ProgressBar
+                                            key={entry.month}
+                                            label={entry.month}
+                                            value={entry.count}
+                                            total={Math.max(...stats.monthlyCompleted.map((month) => month.count))}
+                                            color="bg-primary"
+                                        />
+                                    ))
+                                )}
+                                {stats.completedWithoutDate > 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t.stats.completedWithoutDate.replace("{count}", String(stats.completedWithoutDate))}
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                                <Card className="border-border">
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <PieChart className="w-5 h-5 text-primary" />
-                                            {t.stats.statusDist}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-5">
-                                        <ProgressBar label={t.status.playing} value={stats.statusCounts.playing} total={stats.total} color="bg-primary" />
-                                        <ProgressBar label={t.status.completed} value={stats.statusCounts.completed} total={stats.total} color="bg-primary" />
-                                        <ProgressBar label={t.status.watched} value={stats.statusCounts.watched} total={stats.total} color="bg-primary" />
-                                        <ProgressBar label={t.status.on_hold} value={stats.statusCounts.on_hold} total={stats.total} color="bg-pending" />
-                                        <ProgressBar label={t.status.dropped} value={stats.statusCounts.dropped} total={stats.total} color="bg-destructive" />
-                                        <ProgressBar label={t.status.plan_to_play} value={stats.statusCounts.plan_to_play} total={stats.total} color="bg-primary" />
-                                    </CardContent>
-                                </Card>
-                            </div>
+                        <Card className="gap-4 border-border bg-card py-5 text-card-foreground shadow-none">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <PieChart className="h-5 w-5 text-primary" />
+                                    {t.stats.statusDist}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <ProgressBar label={t.status.playing} value={stats.statusCounts.playing} total={stats.total} color="bg-primary" />
+                                <ProgressBar label={t.status.completed} value={stats.statusCounts.completed} total={stats.total} color="bg-primary" />
+                                <ProgressBar label={t.status.watched} value={stats.statusCounts.watched} total={stats.total} color="bg-primary" />
+                                <ProgressBar label={t.status.on_hold} value={stats.statusCounts.on_hold} total={stats.total} color="bg-pending" />
+                                <ProgressBar label={t.status.dropped} value={stats.statusCounts.dropped} total={stats.total} color="bg-destructive" />
+                                <ProgressBar label={t.status.plan_to_play} value={stats.statusCounts.plan_to_play} total={stats.total} color="bg-primary" />
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                            <Card className="border-border">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Hash className="w-5 h-5 text-primary" />
-                                        {t.stats.tagFrequency}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <p className="text-sm text-muted-foreground">{t.stats.tagFrequencyNote}</p>
-                                    {stats.tagFrequencies.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">{t.stats.noAggregationTarget}</p>
-                                    ) : (
-                                        stats.tagFrequencies.map((tag) => (
-                                            <ProgressBar
-                                                key={tag.name}
-                                                label={tag.name}
-                                                value={tag.count}
-                                                total={stats.tagFrequencies[0].count}
-                                                color="bg-primary"
-                                            />
-                                        ))
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </>
-                    )}
+                    <Card className="gap-4 border-border bg-card py-5 text-card-foreground shadow-none">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Hash className="h-5 w-5 text-primary" />
+                                {t.stats.tagFrequency}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">{t.stats.tagFrequencyNote}</p>
+                            {stats.tagFrequencies.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">{t.stats.noAggregationTarget}</p>
+                            ) : (
+                                stats.tagFrequencies.map((tag) => (
+                                    <ProgressBar
+                                        key={tag.name}
+                                        label={tag.name}
+                                        value={tag.count}
+                                        total={stats.tagFrequencies[0].count}
+                                        color="bg-primary"
+                                    />
+                                ))
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 
@@ -281,22 +268,19 @@ function formatHours(minutes: number, unit: string): string {
 }
 
 function StatCard({
-    icon,
     label,
     value,
     detail,
 }: {
-    icon: React.ReactNode;
     label: string;
     value: string | number;
     detail?: string;
 }) {
     return (
-        <Card className="flex flex-col items-center justify-center border-border p-6 text-center">
-            <div className="mb-2 rounded-full bg-secondary p-3">{icon}</div>
-            <div className="text-3xl font-bold">{value}</div>
+        <Card data-testid="stats-summary-card" className="min-w-0 gap-1 rounded-xl border-border bg-card p-4 text-card-foreground shadow-none">
             <div className="text-sm text-muted-foreground">{label}</div>
-            {detail && <div className="mt-1 text-xs text-muted-foreground">{detail}</div>}
+            <div className="text-2xl leading-tight font-semibold">{value}</div>
+            {detail && <div className="text-[13px] text-muted-foreground">{detail}</div>}
         </Card>
     );
 }
@@ -310,7 +294,15 @@ function ProgressBar({ label, value, total, color }: { label: string; value: num
                 <span className="truncate">{label}</span>
                 <span className="shrink-0 text-muted-foreground">{value}</span>
             </div>
-            <div data-testid="stats-progress-track" className="h-3 bg-secondary rounded-full overflow-hidden">
+            <div
+                data-testid="stats-progress-track"
+                role="progressbar"
+                aria-label={label}
+                aria-valuemin={0}
+                aria-valuemax={total}
+                aria-valuenow={value}
+                className="h-3 overflow-hidden rounded-full bg-secondary"
+            >
                 <motion.div
                     data-testid="stats-progress-fill"
                     initial={reduceMotion ? false : { width: 0 }}
