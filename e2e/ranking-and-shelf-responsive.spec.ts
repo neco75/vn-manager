@@ -118,6 +118,28 @@ async function expectRenderedTitle(title: Locator, expectedText: string, minWidt
     expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight + 1);
 }
 
+async function expectClampedRankingTitle(row: Locator, expectedText: string, minWidth: number) {
+    const title = row.getByTestId("ranking-title");
+    await expect(title).toHaveText(expectedText);
+    await expect(row).toHaveAttribute("aria-label", expectedText);
+    const metrics = await title.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return {
+            width: rect.width,
+            height: rect.height,
+            lineHeight: Number.parseFloat(style.lineHeight),
+            clientWidth: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+        };
+    });
+
+    expect(metrics.width).toBeGreaterThanOrEqual(minWidth);
+    expect(metrics.height).toBeGreaterThan(0);
+    expect(metrics.height).toBeLessThanOrEqual(metrics.lineHeight * 2 + 1);
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+}
+
 async function captureViewport(page: Page, name: string) {
     const path = join(process.cwd(), "e2e", "screenshots", name);
     await mkdir(dirname(path), { recursive: true });
@@ -164,7 +186,7 @@ test.describe("ranking and shelf responsive titles", () => {
                 const targetRow = page.locator('a[href="/vn/v4"]');
                 await expect(topRow).toContainText("#1");
                 await expect(topRow.getByTestId("ranking-score")).toHaveText("100");
-                await expectRenderedTitle(topRow.getByTestId("ranking-title"), japaneseTitle, titleMinimumWidths[width]);
+                await expectClampedRankingTitle(topRow, japaneseTitle, titleMinimumWidths[width]);
 
                 await expect(targetRow).toContainText("#100");
                 await expect(targetRow.getByTestId("ranking-score")).toHaveText("0");
@@ -172,8 +194,7 @@ test.describe("ranking and shelf responsive titles", () => {
                 await expect(targetRow.getByText(longEnglishTag, { exact: true })).toBeAttached();
                 await expect(targetRow.getByText(longJapaneseTag, { exact: true })).toBeAttached();
                 await expect(targetRow.getByText(hiddenSpoilerTag, { exact: true })).not.toBeAttached();
-                const targetTitle = targetRow.getByTestId("ranking-title");
-                await expectRenderedTitle(targetTitle, japaneseTitle, titleMinimumWidths[width]);
+                await expectClampedRankingTitle(targetRow, japaneseTitle, titleMinimumWidths[width]);
 
                 const [tagBox, scoreBox] = await Promise.all([
                     targetRow.getByText(longEnglishTag, { exact: true }).boundingBox(),
@@ -191,8 +212,8 @@ test.describe("ranking and shelf responsive titles", () => {
                     await page.evaluate(() => localStorage.setItem("vn-manager-lang", "en"));
                     await page.reload();
                     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-                    await expectRenderedTitle(
-                        page.locator('a[href="/vn/v4"]').getByTestId("ranking-title"),
+                    await expectClampedRankingTitle(
+                        page.locator('a[href="/vn/v4"]'),
                         englishTitle,
                         titleMinimumWidths[width],
                     );
@@ -247,7 +268,7 @@ test.describe("ranking and shelf responsive titles", () => {
 
                 const row = page.locator('a[href="/vn/v4"]');
                 await expect(row).toContainText("#1");
-                await expectRenderedTitle(row.getByTestId("ranking-title"), japaneseTitle, mode.width === 320 ? 120 : 150);
+                await expectClampedRankingTitle(row, japaneseTitle, mode.width === 320 ? 120 : 150);
 
                 if (mode.name === "mouse") {
                     await row.getByTestId("ranking-title").click();

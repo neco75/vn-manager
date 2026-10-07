@@ -172,7 +172,7 @@ export const translations = {
         ranking: {
             title: "自分のランキング",
             subtitle: "自分の評価順",
-            emptyTitle: "ランキングデータがありません",
+            emptyTitle: "評価済みの作品がありません",
             emptyDesc: "ゲームにスコアをつけると、ここにランキングが表示されます。",
         },
         stats: {
@@ -544,7 +544,7 @@ export const translations = {
         ranking: {
             title: "My ranking",
             subtitle: "Sorted by your scores",
-            emptyTitle: "No Ranking Data",
+            emptyTitle: "No rated titles yet",
             emptyDesc: "Rate your games to see them ranked here.",
         },
         stats: {
