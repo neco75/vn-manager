@@ -47,11 +47,16 @@ export function PurchaseLocationSelector({
     const [editValue, setEditValue] = useState("");
 
     const handleAddSource = async () => {
-        if (!newSource.trim()) return;
+        const name = newSource.trim();
+        if (!name) return;
+        if (purchaseSources.includes(name)) {
+            toast.error(t.common.purchaseLocationDuplicate);
+            return;
+        }
 
         try {
-            await addPurchaseSource(newSource.trim());
-            onChange(newSource.trim());
+            await addPurchaseSource(name);
+            onChange(name);
             setNewSource("");
             setIsAdding(false);
             toast.success(t.modal.saveSuccess);
@@ -62,15 +67,20 @@ export function PurchaseLocationSelector({
     };
 
     const handleUpdateSource = async (oldName: string) => {
-        if (!editValue.trim() || editValue.trim() === oldName) {
+        const name = editValue.trim();
+        if (!name || name === oldName) {
             setEditingSource(null);
+            return;
+        }
+        if (purchaseSources.includes(name)) {
+            toast.error(t.common.purchaseLocationDuplicate);
             return;
         }
 
         try {
-            await updatePurchaseSource(oldName, editValue.trim());
+            await updatePurchaseSource(oldName, name);
             if (value === oldName) {
-                onChange(editValue.trim());
+                onChange(name);
             }
             setEditingSource(null);
             toast.success(t.modal.saveSuccess);
@@ -212,14 +222,14 @@ export function PurchaseLocationSelector({
                     <DialogHeader>
                         <DialogTitle>{t.common.managePurchaseLocations}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-2">
+                    <div className="divide-y divide-border border-y border-border">
                         {purchaseSources.length === 0 && (
                             <div className="text-center text-muted-foreground py-4">
                                 {t.common.noPurchaseLocations}
                             </div>
                         )}
                         {purchaseSources.map((source) => (
-                            <div key={source} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border bg-secondary p-2">
+                            <div key={source} className="flex min-w-0 items-center justify-between gap-2 py-2">
                                 {editingSource === source ? (
                                     <div className="flex min-w-0 flex-1 items-center gap-2">
                                         <Input
