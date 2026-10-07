@@ -491,7 +491,7 @@ test.describe("library flows", () => {
         await page.goto("/vn/v1");
         await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
         await expect(review).toBeDisabled();
-        await expect(page.getByRole("button", { name: "変更を保存", exact: true })).toBeDisabled();
+        await expect(page.getByRole("button", { name: "記録を保存", exact: true })).toBeDisabled();
         await expect(page.getByRole("combobox", { name: "ステータス", exact: true })).toBeDisabled();
         await expect(page.locator("#detail-score")).toBeDisabled();
         await expect(page.locator("#detail-play-time")).toBeDisabled();
@@ -522,7 +522,7 @@ test.describe("library flows", () => {
         await expect(page.getByText("未保存の変更", { exact: true })).toBeVisible();
         await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).not.toBeVisible();
         await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
         await page.reload();
@@ -576,12 +576,12 @@ test.describe("library flows", () => {
             await expect(playTime).toHaveValue("-1");
         }
 
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("スコアは未評価、または0〜100の有限な整数で入力してください。", { exact: true })).toBeVisible();
 
         await score.fill("80");
         await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("プレイ時間は0以上の有限な値で入力してください。", { exact: true })).toBeVisible();
         await expect(notes).toHaveValue("draft memo survives invalid values");
         await expect(review).toHaveValue("draft review survives invalid values");
@@ -613,7 +613,7 @@ test.describe("library flows", () => {
         await page.goto("/vn/v1");
 
         await expect(page.getByRole("heading", { name: "Fixture VN One" })).toBeVisible();
-        const saveButton = page.getByRole("button", { name: "変更を保存", exact: true });
+        const saveButton = page.getByRole("button", { name: "記録を保存", exact: true });
         await expect(saveButton).toBeVisible();
         await page.getByRole("textbox", { name: "感想・レビュー" }).fill("keyboard save");
         await saveButton.focus();
@@ -661,7 +661,8 @@ test.describe("library flows", () => {
         await review.fill("record save failure keeps this");
         await page.getByRole("button", { name: "ライブラリに追加", exact: true }).click();
 
-        await expect(page.getByText("保存に失敗しました。入力内容を残したまま再試行できます。", { exact: true })).toBeVisible();
+        await expect(page.getByTestId("detail-save-bar").getByTestId("detail-save-feedback"))
+            .toHaveText("保存に失敗しました。入力内容を残したまま再試行できます。");
         await expect(review).toHaveValue("record save failure keeps this");
         await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
     });

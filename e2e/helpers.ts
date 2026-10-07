@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import fixture from "./fixtures/vndb.json";
 import type { LibraryItem } from "@/types/library";
 import type { VN } from "@/types/vndb";
@@ -274,6 +274,7 @@ export async function readLibraryItem(page: Page, id: string) {
 
 // Ownership, dates, and purchase location live in collapsed record details.
 export async function openAdditionalRecordFields(page: Page) {
+    await expect(page.locator("#detail-resume-note")).toBeEnabled();
     const details = page.getByTestId("detail-record-details");
     const isOpen = await details.evaluate((element) => (element as HTMLDetailsElement).open);
     if (!isOpen) await details.locator("summary").click();

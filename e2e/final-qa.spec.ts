@@ -279,7 +279,7 @@ test.describe("final roadmap acceptance", () => {
         await expect(page.getByText("保存済みの作品情報と個人記録は引き続き閲覧・編集・保存できます。", { exact: true })).toBeVisible();
         await page.getByTestId("detail-notes-section").locator("summary").click();
         await page.getByRole("textbox", { name: "メモ（自分用）" }).fill("saved while VNDB is down");
-        await page.getByRole("button", { name: "変更を保存", exact: true }).click();
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
         await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
 
         await page.reload();

@@ -140,9 +140,13 @@ export default function VNPage() {
     const [pendingDraft, setPendingDraft] = useState<DetailDraft | null>(null);
     const [draftStorageError, setDraftStorageError] = useState(false);
     const [saveConflict, setSaveConflict] = useState(false);
+    const [saveError, setSaveError] = useState(false);
     const [isDraftReady, setIsDraftReady] = useState(false);
+    const [isRecordFocused, setIsRecordFocused] = useState(false);
+    const [isSaveBarPointerActive, setIsSaveBarPointerActive] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const screenshotButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -153,6 +157,7 @@ export default function VNPage() {
     const draftReadyRef = useRef(false);
     const draftBaseUpdatedAtRef = useRef<number | null>(null);
     const latestDraftRef = useRef<DraftSnapshot | null>(null);
+    const saveBarStickyBeforePointerRef = useRef(false);
 
     const STATUSES: { value: GameStatus; label: string }[] = [
         { value: "playing", label: t.status.playing },
@@ -171,6 +176,7 @@ export default function VNPage() {
         if (formLocked) return;
         setIsDirty(true);
         setDraftStatus("unsaved");
+        setSaveError(false);
     };
 
     useEffect(() => {
@@ -195,6 +201,10 @@ export default function VNPage() {
         setPendingDraft(null);
         setDraftStorageError(false);
         setSaveConflict(false);
+        setSaveError(false);
+        setDeleteError(false);
+        setIsRecordFocused(false);
+        setIsSaveBarPointerActive(false);
         setDraftStatus("unsaved");
         setIsDraftReady(false);
     }, [routeId]);
@@ -426,6 +436,7 @@ export default function VNPage() {
 
     const handleSave = async () => {
         if (!vn || isSaving || formLocked) return;
+        setSaveError(false);
 
         const edits: LibraryItemEdits = {
             status,
@@ -472,6 +483,7 @@ export default function VNPage() {
                 setPendingDraft(null);
                 setDraftStorageError(false);
                 setSaveConflict(false);
+                setSaveError(false);
                 setDraftStatus("saved");
             } catch (error) {
                 console.error("Failed to clear VN draft:", error);
@@ -491,6 +503,7 @@ export default function VNPage() {
                 }
                 toast.error(t.modal.saveConflict);
             } else {
+                setSaveError(true);
                 toast.error(t.modal.saveError);
             }
         } finally {
@@ -500,6 +513,7 @@ export default function VNPage() {
 
     const handleDelete = async () => {
         if (!vn || !libraryItem || isDeleting || formLocked) return;
+        setDeleteError(false);
         setIsDeleting(true);
         try {
             await removeItem(vn.id);
@@ -523,11 +537,13 @@ export default function VNPage() {
             setResumeNote("");
             setIsDirty(false);
             setPendingDraft(null);
+            setSaveError(false);
             setDraftStatus("unsaved");
             latestDraftRef.current = null;
             setIsDeleteDialogOpen(false);
         } catch (error) {
             console.error(error);
+            setDeleteError(true);
             toast.error(t.modal.deleteError);
         } finally {
             setIsDeleting(false);
@@ -624,9 +640,16 @@ export default function VNPage() {
                 : libraryItem
                     ? "text-success"
                     : "text-muted-foreground";
+    const isSaveBarSticky = (isSaveBarPointerActive ? saveBarStickyBeforePointerRef.current : !isRecordFocused)
+        && (isDirty || isSaving || draftStatus === "saving" || draftStatus === "draft-saved"
+            || draftStatus === "error" || draftStorageError || saveError || saveConflict);
 
     return (
-        <div className="relative mx-auto max-w-[1280px] pb-20">
+        <div className={cn(
+            "relative mx-auto max-w-[1280px] pb-20",
+            isSaveBarSticky && "pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-20",
+        )}
+        >
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -731,7 +754,22 @@ export default function VNPage() {
                     )}
 
                     {/* Personal record */}
-                    <div data-testid="detail-record" className="order-4 col-span-2 space-y-6 lg:order-none">
+                    <div
+                        data-testid="detail-record"
+                        onFocusCapture={(event) => {
+                            if (!(event.target instanceof HTMLElement) || !event.target.closest("summary")) {
+                                setIsRecordFocused(true);
+                            }
+                        }}
+                        onBlurCapture={(event) => {
+                            if (!event.relatedTarget
+                                || !event.currentTarget.contains(event.relatedTarget as Node)
+                                || (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("summary"))) {
+                                setIsRecordFocused(false);
+                            }
+                        }}
+                        className="order-4 col-span-2 space-y-6 lg:order-none"
+                    >
                         <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-6">
                             <h2 className="text-xl font-bold">{t.vn.selfRecord}</h2>
 
@@ -739,7 +777,7 @@ export default function VNPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="detail-status">{t.common.status}</Label>
                                     <Select value={status} onValueChange={(v) => { setStatus(v as GameStatus); markDirty(); }}>
-                                        <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full border-input bg-card">
+                                        <SelectTrigger disabled={formLocked} id="detail-status" className="min-h-11 w-full scroll-mb-28 border-input bg-card">
                                             <SelectValue placeholder={t.common.selectStatus} />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -767,7 +805,7 @@ export default function VNPage() {
                                                     setScore(raw === "" ? null : Number(raw));
                                                     markDirty();
                                                 }}
-                                                className="min-h-11 w-20 border-input bg-card text-right font-bold text-foreground"
+                                                className="min-h-11 w-20 scroll-mb-28 border-input bg-card text-right font-bold text-foreground"
                                             />
                                             <span data-testid="detail-score-suffix" className="text-sm text-muted-foreground">/ 100</span>
                                         </div>
@@ -802,7 +840,7 @@ export default function VNPage() {
                                                 setPlayTime(rawValue === "" ? 0 : Number(rawValue) * 60);
                                                 markDirty();
                                             }}
-                                            className="min-h-11 min-w-0 flex-1 border-input bg-card"
+                                            className="min-h-11 min-w-0 flex-1 scroll-mb-28 border-input bg-card"
                                             placeholder="0.0"
                                         />
                                         <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">{t.common.hours}</span>
@@ -819,7 +857,7 @@ export default function VNPage() {
                                     maxLength={200}
                                     onChange={(e) => { setResumeNote(e.target.value); markDirty(); }}
                                     placeholder={t.common.resumeNotePlaceholder}
-                                    className="min-h-11 border-input bg-card"
+                                    className="min-h-11 scroll-mb-28 border-input bg-card"
                                 />
                             </div>
 
@@ -832,6 +870,7 @@ export default function VNPage() {
                                         disabled={formLocked}
                                         value={review}
                                         onChange={(val) => { setReview(val); markDirty(); }}
+                                        className="[&_textarea]:scroll-mb-28"
                                         height="h-36 sm:h-40"
                                         placeholder={t.vn.reviewPlaceholder}
                                     />
@@ -851,6 +890,7 @@ export default function VNPage() {
                                             disabled={formLocked}
                                             value={notes}
                                             onChange={(val) => { setNotes(val); markDirty(); }}
+                                            className="[&_textarea]:scroll-mb-28"
                                             height="h-64"
                                             placeholder={t.vn.memoPlaceholder}
                                         />
@@ -901,7 +941,13 @@ export default function VNPage() {
                         </div>
                     </div>
 
-                    <div className="order-5 col-span-2 sticky top-16 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:order-none lg:top-[4.5rem] sm:flex-row sm:items-center sm:justify-between">
+                    <div
+                        data-testid="detail-save-bar"
+                        className={cn(
+                            "order-5 col-span-2 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-xl lg:order-none lg:static sm:flex-row sm:items-center sm:justify-between",
+                            isSaveBarSticky && "fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:inset-x-6",
+                        )}
+                    >
                         <div className="min-w-0">
                             <div
                                 role="status"
@@ -920,16 +966,27 @@ export default function VNPage() {
                                     {t.modal.saveConflict}
                                 </p>
                             )}
+                            {saveError && (
+                                <p role="alert" data-testid="detail-save-feedback" className="mt-1 text-sm text-destructive">
+                                    {t.modal.saveError}
+                                </p>
+                            )}
                         </div>
                         <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
                             <Button
                                 type="button"
                                 className="min-h-11 gap-2 font-bold shadow-lg shadow-primary/25"
                                 onClick={handleSave}
+                                onPointerDownCapture={() => {
+                                    saveBarStickyBeforePointerRef.current = isSaveBarSticky;
+                                    setIsSaveBarPointerActive(true);
+                                }}
+                                onPointerUpCapture={() => window.setTimeout(() => setIsSaveBarPointerActive(false), 0)}
+                                onPointerCancelCapture={() => setIsSaveBarPointerActive(false)}
                                 disabled={formLocked || isSaving || isDeleting || (!!libraryItem && !isDirty)}
                             >
                                 <Save className="h-5 w-5" />
-                                {isSaving ? t.modal.saving : (libraryItem ? t.common.saveChanges : t.common.addToLibrary)}
+                                {isSaving ? t.modal.saving : (libraryItem ? t.vn.saveRecord : t.common.addToLibrary)}
                             </Button>
                         </div>
                     </div>
@@ -1096,8 +1153,14 @@ export default function VNPage() {
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="min-h-11 w-full gap-2 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => setIsDeleteDialogOpen(true)}
+                                className="min-h-11 w-full scroll-mb-28 gap-2 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => { setDeleteError(false); setIsDeleteDialogOpen(true); }}
+                                onPointerDownCapture={() => {
+                                    saveBarStickyBeforePointerRef.current = isSaveBarSticky;
+                                    setIsSaveBarPointerActive(true);
+                                }}
+                                onPointerUpCapture={() => window.setTimeout(() => setIsSaveBarPointerActive(false), 0)}
+                                onPointerCancelCapture={() => setIsSaveBarPointerActive(false)}
                                 disabled={formLocked || isDeleting || isSaving}
                             >
                                 <Trash2 className="h-4 w-4" />
@@ -1111,7 +1174,10 @@ export default function VNPage() {
             <Dialog
                 open={isDeleteDialogOpen}
                 onOpenChange={(open) => {
-                    if (!isDeleting) setIsDeleteDialogOpen(open);
+                    if (!isDeleting) {
+                        setIsDeleteDialogOpen(open);
+                        if (open) setDeleteError(false);
+                    }
                 }}
             >
                 <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-border">
@@ -1126,6 +1192,11 @@ export default function VNPage() {
                         <p className="text-muted-foreground">{t.vn.deleteDialogLoses}</p>
                         <p className="text-muted-foreground">{t.vn.deleteDialogKeepsGame}</p>
                     </div>
+                    {deleteError && (
+                        <p role="alert" data-testid="detail-delete-feedback" className="text-sm text-destructive">
+                            {t.modal.deleteError}
+                        </p>
+                    )}
                     <DialogFooter>
                         <Button
                             type="button"
