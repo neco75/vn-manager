@@ -19,7 +19,7 @@ interface VNDBManagerDB extends DBSchema {
 const DB_NAME = "vn-manager-db";
 const DB_VERSION = 3;
 
-let dbPromise: Promise<IDBPDatabase<VNDBManagerDB>>;
+let dbPromise: Promise<IDBPDatabase<VNDBManagerDB>> | undefined;
 
 export class LibraryConflictError extends Error {
     constructor(public readonly vnId: string) {
@@ -40,7 +40,7 @@ function nextUpdatedAt(previousUpdatedAt: number): number {
 
 export function getDB() {
     if (!dbPromise) {
-        dbPromise = openDB<VNDBManagerDB>(DB_NAME, DB_VERSION, {
+        const opening = openDB<VNDBManagerDB>(DB_NAME, DB_VERSION, {
             upgrade(db, oldVersion, _newVersion, transaction) {
                 if (oldVersion < 1) {
                     const store = db.createObjectStore("library", { keyPath: "vn.id" });
@@ -63,7 +63,20 @@ export function getDB() {
                     })();
                 }
             },
+            blocking() {
+                if (dbPromise === opening) {
+                    dbPromise = undefined;
+                    void opening.then((db) => db.close(), () => undefined);
+                }
+            },
+            terminated() {
+                if (dbPromise === opening) dbPromise = undefined;
+            },
+        }).catch((error: unknown) => {
+            if (dbPromise === opening) dbPromise = undefined;
+            throw error;
         });
+        dbPromise = opening;
     }
     return dbPromise;
 }
