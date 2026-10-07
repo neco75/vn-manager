@@ -403,6 +403,7 @@ test.describe("Issue #54 record order and removal path", () => {
                 await page.goto("/vn/v1");
                 await expect(page.getByRole("heading", { name: "Fixture VN One", exact: true })).toBeVisible();
                 await expect(page.locator("#detail-resume-note")).toBeVisible();
+                await expect(page.locator("#detail-review")).toBeVisible();
                 await expect(page.getByTestId("detail-notes-section").locator("summary")).toBeVisible();
                 await expect(page.locator("#detail-notes")).toBeHidden();
                 await expect(page.getByTestId("detail-title-information").getByRole("button"))
