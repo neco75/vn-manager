@@ -97,8 +97,8 @@ async function expectSettingsContrast(
         const pageHeading = main?.querySelector(":scope > header > h1");
         const pageDescription = main?.querySelector(":scope > header > p");
         const displaySection = main?.querySelector('section[aria-labelledby="settings-display-title"]');
-        const card = displaySection?.querySelector<HTMLElement>('[data-slot="card"]');
-        const cardDescription = card?.querySelector<HTMLElement>('[data-slot="card-header"] > p');
+        const displayOptions = displaySection?.querySelector<HTMLElement>('[data-testid="settings-display-options"]');
+        const displayDescription = displayOptions?.querySelector<HTMLElement>(":scope > p");
         const selectedButton = displaySection?.querySelector<HTMLElement>('button[aria-pressed="true"]');
         const backgroundLayer = Array.from(document.querySelectorAll<HTMLElement>("div")).find((element) => {
             const style = getComputedStyle(element);
@@ -111,8 +111,8 @@ async function expectSettingsContrast(
             heading: color(pageHeading),
             pageDescription: color(pageDescription),
             pageDescriptionBackground: pageDescription ? getComputedStyle(pageDescription).backgroundColor : "",
-            cardDescription: color(cardDescription),
-            cardBackground: card ? getComputedStyle(card).backgroundColor : "",
+            displayDescription: color(displayDescription),
+            displaySurface: displayOptions ? getComputedStyle(displayOptions).backgroundColor : "",
             buttonForeground: color(selectedButton),
             buttonBackground: selectedButton ? getComputedStyle(selectedButton).backgroundColor : "",
         };
@@ -134,9 +134,9 @@ async function expectSettingsContrast(
 
     expect(contrastRatio(colors.heading, pageSurface), `${language} settings heading on page background`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.pageDescription, descriptionSurface), `${language} settings description with background ${colors.backgroundOpacity}`).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(colors.cardDescription, colors.cardBackground), `${language} settings card description`).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.displayDescription, colors.displaySurface), `${language} settings display description`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(colors.buttonForeground, colors.buttonBackground), `${language} selected language button text`).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(colors.buttonBackground, colors.cardBackground), `${language} selected language button UI`).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(colors.buttonBackground, colors.displaySurface), `${language} selected language button UI`).toBeGreaterThanOrEqual(3);
 }
 
 async function expectSearchInputContrast(page: import("@playwright/test").Page, language: "ja" | "en") {
@@ -246,13 +246,13 @@ test.describe("Issue #53 accessibility regressions", () => {
         const blurSwitch = page.locator("#settings-nsfw-blur");
         const blurSwitchColors = await blurSwitch.evaluate((element) => {
             const rect = element.getBoundingClientRect();
-            const card = element.closest<HTMLElement>('[data-slot="card"]');
+            const surface = element.closest<HTMLElement>('[data-testid="settings-display-options"]');
             return {
                 width: rect.width,
                 height: rect.height,
                 rootBackground: getComputedStyle(element).backgroundColor,
                 track: getComputedStyle(element, "::before").backgroundColor,
-                surface: card ? getComputedStyle(card).backgroundColor : "",
+                surface: surface ? getComputedStyle(surface).backgroundColor : "",
             };
         });
         expect(blurSwitchColors.width).toBeGreaterThanOrEqual(44);

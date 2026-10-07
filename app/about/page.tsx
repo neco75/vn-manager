@@ -10,16 +10,16 @@ export default function AboutPage() {
     const { t } = useLanguage();
 
     return (
-        <div className="max-w-4xl mx-auto pb-20 space-y-12">
+        <div className="mx-auto max-w-[760px] space-y-8 pb-20">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center space-y-4"
+                className="space-y-2 text-left"
             >
-                <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+                <h1 className="text-3xl font-bold text-foreground">
                     {t.about.title}
                 </h1>
-                <p className="text-xl text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                     {t.about.subtitle}
                 </p>
             </motion.div>
@@ -28,7 +28,7 @@ export default function AboutPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="grid md:grid-cols-2 gap-6"
+                className="grid gap-6"
             >
                 <div className="space-y-4 rounded-xl border border-border bg-card p-6">
                     <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
