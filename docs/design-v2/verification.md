@@ -49,7 +49,7 @@ PC 1440×1000の一覧画像はPR #126統合後の画面を既存Playwright fixt
 
 ### PR #126修正後の限定Axe確認
 
-PR #126 Preview head `1677fffef91e31c5e973324b6474c417b55a1e5a`のdeployment [6935698201](https://github.com/neco75/vn-manager/deployments/6935698201)（environment `Preview` / status `success`）に対し、統合担当がAxe 4.11を独立に実行した。対象は`/` desktop JA、`/` desktop EN、`/ranking` desktop ENの3条件。`aria-valid-attr-value`と`heading-order`の違反は、各条件で0件だった。
+統合担当はPR #126 head `1677fffef91e31c5e973324b6474c417b55a1e5a`をローカルにcheckoutして起動したNext.js dev server `http://127.0.0.1:3778`で、Axe 4.11を独立に実行した。対象は`/` desktop JA、`/` desktop EN、`/ranking` desktop ENの3条件。`aria-valid-attr-value`と`heading-order`の違反は、各条件で0件だった。PR #126のPreview deployment [6935698201](https://github.com/neco75/vn-manager/deployments/6935698201)はenvironment `Preview` / status `success`だが、これはデプロイ状態の確認のみであり、AxeはPreview URLでは走査していない。
 
 これは限定した3条件の走査結果であり、全72条件を修正後に再走査した結果ではない。PR #126本文にある72条件の手動Axe確認は修正前の結果である。
 
