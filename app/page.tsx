@@ -27,7 +27,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -484,24 +483,36 @@ function HomeContent() {
                 </div>
 
                 <div className="hidden min-w-0 flex-wrap items-center gap-2 md:flex">
-                    <Tabs
-                        value={filter}
-                        onValueChange={(value) => replaceLibraryUrl({ filter: value as LibraryFilter })}
-                        className="min-w-0 flex-1"
+                    <div
+                        role="group"
+                        aria-label={t.common.status}
+                        onKeyDown={(event) => {
+                            if ((event.key !== "ArrowLeft" && event.key !== "ArrowRight") || !(event.target instanceof HTMLButtonElement)) return;
+                            const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+                            const index = buttons.indexOf(event.target);
+                            if (index < 0) return;
+                            const offset = event.key === "ArrowRight" ? 1 : -1;
+                            const next = buttons[(index + offset + buttons.length) % buttons.length];
+                            next.focus();
+                            next.click();
+                            event.preventDefault();
+                        }}
+                        className="flex min-w-0 flex-1 items-center justify-start gap-2 overflow-x-auto"
                     >
-                        <TabsList aria-label={t.common.status} className="w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
-                            {desktopStatusFilters.map((status) => (
-                                <TabsTrigger
-                                    key={status.value}
-                                    value={status.value}
-                                    className="min-h-11 shrink-0 rounded-lg px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-secondary data-[state=inactive]:text-foreground transition-colors duration-150"
-                                >
-                                    {status.label}
-                                    <span className="ml-2 text-[13px] tabular-nums">({statusCounts[status.value]})</span>
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
+                        {desktopStatusFilters.map((status) => (
+                            <Button
+                                key={status.value}
+                                type="button"
+                                variant={filter === status.value ? "default" : "secondary"}
+                                onClick={() => replaceLibraryUrl({ filter: status.value as LibraryFilter })}
+                                aria-pressed={filter === status.value}
+                                className="min-h-11 shrink-0 gap-1.5 rounded-lg px-3"
+                            >
+                                {status.label}
+                                <span className="ml-2 text-[13px] tabular-nums">({statusCounts[status.value]})</span>
+                            </Button>
+                        ))}
+                    </div>
 
                     <Select
                         value={OTHER_STATUSES.has(filter as GameStatus) ? filter : ""}

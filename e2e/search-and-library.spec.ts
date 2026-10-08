@@ -209,7 +209,7 @@ test.describe("library flows", () => {
         await expect(page.getByText("Fixture VN One", { exact: true })).not.toBeVisible();
         await expect(page).toHaveURL(/q=Title\+Works/);
 
-        await page.getByRole("tab", { name: /プレイ中/ }).click();
+        await page.getByRole("group", { name: "ステータス" }).getByRole("button", { name: /プレイ中/ }).click();
         await expect(page).toHaveURL(/q=Title\+Works&status=playing$/);
         const ownership = page.getByRole("combobox", { name: "所有状況" });
         await ownership.click();
@@ -268,10 +268,10 @@ test.describe("library flows", () => {
         await expect(page).toHaveURL(/\?status=on_hold$/);
         await expect(otherStatuses).toHaveText("一時中断 (1)");
 
-        await page.getByRole("tab", { name: /プレイ中/ }).click();
+        await page.getByRole("group", { name: "ステータス" }).getByRole("button", { name: /プレイ中/ }).click();
         await expect(page).toHaveURL(/\?status=playing$/);
         await expect(otherStatuses).toHaveText("その他 (2)");
-        await page.getByRole("tab", { name: /すべて/ }).click();
+        await page.getByRole("group", { name: "ステータス" }).getByRole("button", { name: /すべて/ }).click();
         await expect(page).toHaveURL(/\/$/);
         await expect(otherStatuses).toHaveText("その他 (2)");
     });

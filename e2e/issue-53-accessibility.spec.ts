@@ -360,33 +360,59 @@ test.describe("Issue #53 accessibility regressions", () => {
         await expect(score).toHaveValue("");
     });
 
-    test("keeps desktop status tabs and mobile status select operable", async ({ page }) => {
+    test("keeps desktop status filters and mobile status select operable", async ({ page }) => {
         await mockVNDB(page);
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto("/");
         await seedLibraryItem(page, "v1");
         await page.reload();
 
-        const tabs = page.locator('[data-slot="tabs-trigger"]');
-        await expect(tabs).toHaveCount(4);
-        for (const tab of await tabs.all()) {
-            const box = await tab.boundingBox();
+        const statusGroup = page.getByRole("group", { name: "ステータス", exact: true });
+        await expect(statusGroup).toBeVisible();
+        const filters = statusGroup.getByRole("button");
+        await expect(filters).toHaveCount(4);
+        for (const filter of await filters.all()) {
+            const box = await filter.boundingBox();
             expect(box).not.toBeNull();
             expect(box!.height).toBeGreaterThanOrEqual(44);
         }
 
-        const inactiveTab = page.locator('[data-slot="tabs-trigger"][data-state="inactive"]').first();
-        const tabCount = inactiveTab.locator("span");
+        const selectedFilter = statusGroup.getByRole("button", { name: /すべて/ });
+        const playingFilter = statusGroup.getByRole("button", { name: /プレイ中/ });
+        const plannedFilter = statusGroup.getByRole("button", { name: /プレイ予定/ });
+        await expect(selectedFilter).toHaveAttribute("aria-pressed", "true");
+        await expect(playingFilter).toHaveAttribute("aria-pressed", "false");
+
+        const inactiveFilter = statusGroup.locator('button[aria-pressed="false"]').first();
+        const tabCount = inactiveFilter.locator("span");
         const countColors = await tabCount.evaluate((element) => ({
             foreground: getComputedStyle(element).color,
             background: getComputedStyle(element.parentElement!).backgroundColor,
             opacity: getComputedStyle(element).opacity,
         }));
         expect(countColors.opacity).toBe("1");
-        expect(contrastRatio(countColors.foreground, countColors.background), "inactive status tab count").toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(countColors.foreground, countColors.background), "inactive status filter count").toBeGreaterThanOrEqual(4.5);
+
+        await selectedFilter.focus();
+        await page.keyboard.press("ArrowRight");
+        await expect(playingFilter).toBeFocused();
+        await expect(playingFilter).toHaveAttribute("aria-pressed", "true");
+        await expect(page).toHaveURL(/status=playing$/);
+        await page.keyboard.press("Tab");
+        await expect(plannedFilter).toBeFocused();
+        await page.keyboard.press("ArrowLeft");
+        await expect(playingFilter).toBeFocused();
+        await expect(playingFilter).toHaveAttribute("aria-pressed", "true");
+
+        await page.getByRole("button", { name: "EN", exact: true }).click();
+        const englishStatusGroup = page.getByRole("group", { name: "Status", exact: true });
+        const englishPlayingFilter = englishStatusGroup.getByRole("button", { name: /Playing/ });
+        await expect(englishPlayingFilter).toHaveAttribute("aria-pressed", "true");
+        await expect(englishStatusGroup.getByRole("button", { name: /All/ })).toHaveAttribute("aria-pressed", "false");
+        await page.getByRole("button", { name: "JA", exact: true }).click();
 
         await page.setViewportSize({ width: 390, height: 844 });
-        await expect(page.locator('[data-slot="tabs-list"]')).toBeHidden();
+        await expect(statusGroup).toBeHidden();
         const statusSelect = page.getByRole("combobox", { name: "ステータス", exact: true });
         await expect(statusSelect).toBeVisible();
         const statusSelectBox = await statusSelect.boundingBox();
@@ -405,6 +431,17 @@ test.describe("Issue #53 accessibility regressions", () => {
         }
         await page.getByRole("option", { name: "プレイ中", exact: true }).click();
         await expect(page).toHaveURL(/status=playing/);
+    });
+
+    test("uses a level-two heading for ranked titles", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/ranking");
+        await seedLibraryItem(page, "v1", { score: 80 });
+        await page.reload();
+
+        await expect(page.getByRole("heading", { level: 1, name: "自分のランキング", exact: true })).toBeVisible();
+        await expect(page.locator('h2[data-testid="ranking-title"]')).toHaveCount(1);
+        await expect(page.locator('h3[data-testid="ranking-title"]')).toHaveCount(0);
     });
 
     test("shows keyboard focus on the Markdown textarea without removing its scroll margin", async ({ page }) => {
