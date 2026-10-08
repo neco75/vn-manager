@@ -2,11 +2,10 @@
 
 ## 判定
 
-- 検証対象base: `origin/develop-v2` / `408fd3f7161be94bbed0a8e7b140bcb67a3705bb`（PR #117 merge、#55修正を含む）。
-- このPRのhead: PRの最新head SHAを参照。アプリ本体、DB、依存パッケージ、保存形式の変更はない。
-- PR #89 / #113 は `b14ee708f49751698eeab5bb4c53a4816abc9f1f` に統合済み。親Issue #76で確認。
-- PR #117 の統合後Quality checks run [37647946353](https://github.com/neco75/vn-manager/actions/runs/37647946353) は `408fd3f` で成功。PR #117 のPreviewも成功。
-- ローカル `npm run check:review`: 下記の結果を参照。PlaywrightはVNDB fixtureと隔離BrowserContextを使い、実データ・実VNDBへ接続しない。
+- 検証対象base: `origin/develop-v2` / `7f0e5a4c31d39a90a53f21aabc05c358e3dd45b7`（PR #121 merge後。PR #117の#55修正、PR #123のNext.js監査修正、V2-13を含む）。
+- このPRはQA資料と画面証跡のみを更新する。アプリ本体、DB、依存パッケージ、保存形式の変更はない。
+- base `7f0e5a4` のGitHub Quality checks run [37763749288](https://github.com/neco75/vn-manager/actions/runs/37763749288) はsuccess。baseのPreview deployment [6933141656](https://github.com/neco75/vn-manager/deployments/6933141656) はenvironment `Preview` / status `success`。
+- ローカル検証は `CI=true npm run check:review`。PlaywrightはVNDB fixtureと隔離BrowserContextを使い、実データ・実VNDBへ接続しない。
 
 ## 採用画面と実画面
 
@@ -21,13 +20,13 @@
 
 ### 実画面
 
-PC 1440×1000の一覧と記録フォーム、詳細390×667、スマホ390×844で下部を編集した状態の実画像。390×844ではページ下部へ移動しても保存バーが画面下に残り、保存操作へ届く。
+このbase上でPlaywrightが取得したPC 1440×1000の一覧と記録フォーム、詳細390×667、スマホ390×844で下部を編集した状態の実画像。390×844ではページ下部へ移動しても保存バーが画面下に残り、保存操作へ届く。
 
 ![PC 1440×1000 一覧](../../e2e/screenshots/v2-04-library-1440x1000.png)
 
-![PC 1440×1000 記録](../../e2e/screenshots/v2-05-detail-1440x1000.png)
+![PC 1440×1000 記録](../../e2e/screenshots/v2-07-record-1440x1000.png)
 
-![詳細 390×667 記録フォーム](../../e2e/screenshots/v2-05-detail-390x667.png)
+![詳細 390×667 記録フォーム](../../e2e/screenshots/v2-07-record-390x667.png)
 
 ![スマホ 390×844 保存バー](../../e2e/screenshots/v2-08-save-bar-390x844.png)
 
@@ -51,28 +50,28 @@ PC 1440×1000の一覧と記録フォーム、詳細390×667、スマホ390×844
 - 保存形式は現行のまま: IndexedDB `vn-manager-db` / DB version `3`、LibraryItem `recordVersion: 2`、backup schema `2`、draft localStorage key `vn-manager-detail-draft-v1:<vnId>` / draft version `1`。下書きの復元/破棄・別作品分離・別tab競合は `e2e/search-and-library.spec.ts`、`e2e/save-conflicts.spec.ts`、`test/unit/detail-draft.test.ts` が確認。
 - `e2e/issue-55-idb-retry.spec.ts` はopen初回失敗、再試行の連続失敗、次の再試行で復旧し、保存fieldsと750分を含む詳細値が戻ることを確認。未処理Promise rejectionが0であることも確認。修正はPR #117でbaseへ統合済み。
 
-### 基準branch比較
+### 実行結果
 
-- 変更branchの通常6-worker `npm run check:review` は108/109 E2Eで、未変更の `e2e/final-qa.spec.ts` 初回導線がメモ入力の30秒timeoutで1回失敗した。同test単体は1/1 pass、CI設定の1-worker全109件もpassした。
-- 比較のため `origin/develop-v2` / `408fd3f` のclean worktreeで `npm run test:e2e` を6-worker実行。107/109 passで、変更前からある `e2e/issue-54-record-ux.spec.ts` のキャンセル後文言assertionと `e2e/settings.spec.ts` の重複toast locator strict violationが同じく失敗。`final-qa` 初回導線は4.1秒でpassした。
-- したがって通常実行の単発timeoutはbaseで再現せず、serial CIと単体でも再現していない。対象spec自体もbaseとの差分なし。6-worker負荷下の断続的timeoutと判断し、最小修正を加えず記録した。baseとの差が出た2件のみそれぞれ正しい現行文言と新しいtoast発生を判定するようE2E assertionを直した。
+- 最新base上で `CI=true npm run check:review` がexit 0。regression checks、unit 98/98、lint（error 0。既存の`<img>`警告3件）、typecheck、build、E2E 112/112、`npm audit --audit-level=high` を完走した。auditはModerate 2件のみでHighは0件。
+- PlaywrightはCI設定の1 workerで112件を実行。Issue #55の3ケース、backupの別BrowserContext往復、下書き/別tab競合、Settingsのbackup fingerprint成功・失敗・変更検知、responsive/JA/EN/a11yケースを含む。
+- GitHub上のbase Quality checksもsuccess（run [37763749288](https://github.com/neco75/vn-manager/actions/runs/37763749288)）。今回のPRでアプリ実装やテスト期待値は変更しない。
 
 ## Preview、本番境界、rollback
 
-- GitHub DeploymentsのVercel記録で `408fd3f` のdeployment [6914497828](https://github.com/neco75/vn-manager/deployments/6914497828) は環境 `Preview`、status `success`。Preview URLは[こちら](https://vn-manager-c163zgefu-neco75s-projects.vercel.app)。
-- 最新Production deployment [6913928333](https://github.com/neco75/vn-manager/deployments/6913928333) は `5ae97970b2386b740a168b7e137df246f1fc542f`（main）。`develop-v2`の新UIはProductionに出ていない。Vercel dashboardのProduction Branch設定画面は直接確認できていないため、設定自体は未確認。
-- 公開前のコードrollback元はProduction SHA `5ae97970b2386b740a168b7e137df246f1fc542f`。このPRはE2E/verification資料/検証画像のみで、保存形式への影響なし。Production deploy/promote/mainへのUI公開は実施していない。
+- base SHA `7f0e5a4` のVercel deployment [6933141656](https://github.com/neco75/vn-manager/deployments/6933141656) はenvironment `Preview` / status `success`。Preview URLは[こちら](https://vn-manager-q0op4k0je-neco75s-projects.vercel.app)。
+- 最新の成功したVercel Production deployment [6913928333](https://github.com/neco75/vn-manager/deployments/6913928333) はSHA `5ae97970b2386b740a168b7e137df246f1fc542f`、URLは[こちら](https://vn-manager-2dd18v0wd-neco75s-projects.vercel.app)。GitHub `main`の先端も同SHA。今回のPRからProduction deployment/promote/mainへのUI公開は行わない。
+- Vercel dashboardのProduction Branch設定画面は直接確認できていないため、その設定自体は未確認。
 
 ## ローカル検証結果
 
 | Check | 結果 |
 | --- | --- |
-| `npm ci` | 成功。既存Moderate audit 2件。 |
-| `CI=true npm run check:review` | exit 0。Regression / unit 93/93 / lint / typecheck / E2E 109/109 pass。`npm audit --audit-level=high` はModerate 2件のみで閾値未満。 |
-| 通常6-worker `npm run check:review` | exit 1、E2E 108/109。baseで再現しない `final-qa` 初回導線が30秒timeout。同test単体とCI設定全件ではpass。上の基準branch比較を参照。 |
-| 基準 `origin/develop-v2` 6-worker `npm run test:e2e` | exit 1、107/109。変更前からあるIssue #54文言assertionとsettings duplicate-toast locatorの2件。`final-qa` 初回導線はpass。 |
-| post-merge Quality checks | success、run `37647946353`、head `408fd3f7161be94bbed0a8e7b140bcb67a3705bb`。 |
-| PR Quality checks / Preview | [Quality checks run `37650852700`](https://github.com/neco75/vn-manager/actions/runs/37650852700) はsuccess（head `8de005b977992cf9734274b8593b523207fc9842`）。Vercel deployment [6914978744](https://github.com/neco75/vn-manager/deployments/6914978744) はenvironment `Preview` / status `success`。Preview URL: https://vn-manager-bchn17rwj-neco75s-projects.vercel.app |
+| `npm ci` | exit 0。依存lockfileの変更なし。Moderate 2件あり。 |
+| `npm ci` | exit 0。依存lockfileの変更なし。 |
+| `CI=true npm run check:review` | exit 0。Regression / unit 98/98 / lint / typecheck / build / E2E 112/112 pass。`npm audit --audit-level=high` はHigh 0、Moderate 2。 |
+| Base Quality checks | success、run `37763749288`、head `7f0e5a4c31d39a90a53f21aabc05c358e3dd45b7`。 |
+| Base Preview deployment | success、deployment `6933141656`、environment `Preview`、head `7f0e5a4c31d39a90a53f21aabc05c358e3dd45b7`。 |
+| PR Quality checks / Preview | PR作成後にrun URL、結果、Preview status/URL、head SHAを追記する。 |
 
 ## 未確認
 
