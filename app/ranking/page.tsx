@@ -100,9 +100,9 @@ export default function RankingPage() {
                                 </div>
 
                                 <div className="min-w-0 lg:flex-1">
-                                    <h3 data-testid="ranking-title" className="line-clamp-2 break-words text-base font-bold [overflow-wrap:anywhere] transition-colors group-hover:text-primary sm:text-lg">
+                                    <h2 data-testid="ranking-title" className="line-clamp-2 break-words text-base font-bold [overflow-wrap:anywhere] transition-colors group-hover:text-primary sm:text-lg">
                                         {title}
-                                    </h3>
+                                    </h2>
                                     {item.vn.developers?.[0]?.name && (
                                         <p className="truncate text-xs text-muted-foreground">{item.vn.developers[0].name}</p>
                                     )}
