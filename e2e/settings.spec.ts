@@ -1,5 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { expect, test, type Page } from "@playwright/test";
+import { fingerprintBackupDocument, type BackupDocument } from "@/lib/backup";
 import { readLibraryItem, readPurchaseSourceNames, seedLibraryItem, seedPurchaseSources } from "./helpers";
+
+async function downloadBackup(page: Page, language: "ja" | "en" = "ja") {
+    const buttonName = language === "ja"
+        ? "バックアップをダウンロード (JSON)"
+        : "Download Backup (JSON)";
+    const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", { name: buttonName, exact: true }).click(),
+    ]);
+    const path = await download.path();
+    if (!path) throw new Error("Expected the backup download to have a file path");
+    const data = JSON.parse(await readFile(path, "utf8")) as BackupDocument;
+    return { download, data };
+}
 
 test.describe("settings", () => {
     test("offers add and restore paths from an empty library", async ({ page }) => {
@@ -14,6 +30,103 @@ test.describe("settings", () => {
         await page.getByRole("link", { name: "バックアップから復元", exact: true }).click();
         await expect(page).toHaveURL(/\/settings#backup$/);
         await expect(page.getByRole("heading", { name: "設定", exact: true })).toBeVisible();
+    });
+
+    test("preserves the first-export message and labels a legacy export as untracked in Japanese and English", async ({ page }) => {
+        const region = page.getByRole("region", { name: "データとバックアップ" });
+        await page.goto("/settings");
+        await expect(region.getByText("まだバックアップをエクスポートしていません。", { exact: true })).toBeVisible();
+        await expect(region.getByText("以前のバックアップ内容は確認できません。エクスポートすると、以後の変更を確認できます。", { exact: true })).toHaveCount(0);
+
+        const previousExportAt = "2025-01-02T03:04:05.000Z";
+        await page.evaluate((exportAt) => {
+            localStorage.setItem("vn-manager-last-export-at", exportAt);
+        }, previousExportAt);
+        await page.reload();
+
+        await expect(region.getByText("以前のバックアップ内容は確認できません。エクスポートすると、以後の変更を確認できます。", { exact: true })).toBeVisible();
+        await expect(region.getByText("前回のバックアップ以降にデータが変更されています。最新状態を保存するには、もう一度エクスポートしてください。", { exact: true })).toHaveCount(0);
+        await page.getByRole("button", { name: "英語", exact: true }).click();
+        await expect(page.getByText("The previous backup contents can't be verified. Export a backup to track changes from now on.", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "Japanese", exact: true }).click();
+        await expect(page.getByText("以前のバックアップ内容は確認できません。エクスポートすると、以後の変更を確認できます。", { exact: true })).toBeVisible();
+
+        const { data } = await downloadBackup(page, "ja");
+        const savedFingerprint = await fingerprintBackupDocument(data);
+        await expect(page.evaluate(() => localStorage.getItem("vn-manager-last-export-fingerprint"))).resolves.toBe(savedFingerprint);
+        await expect(page.getByText("以前のバックアップ内容は確認できません。エクスポートすると、以後の変更を確認できます。", { exact: true })).toHaveCount(0);
+
+        await page.getByRole("button", { name: "英語", exact: true }).click();
+        await expect(page.getByText("Your data has changed since the last backup. Export again to save the latest version.", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "Japanese", exact: true }).click();
+        await expect(page.getByText("前回のバックアップ以降にデータが変更されています。最新状態を保存するには、もう一度エクスポートしてください。", { exact: true })).toHaveCount(0);
+    });
+
+    test("detects saved library, purchase-source, and setting changes but ignores detail drafts", async ({ page }) => {
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", { score: 80, notes: "saved memo" });
+        await seedPurchaseSources(page, ["Steam"]);
+        await page.reload();
+        await page.goto("/settings");
+
+        const changedMessage = "前回のバックアップ以降にデータが変更されています。最新状態を保存するには、もう一度エクスポートしてください。";
+        await downloadBackup(page);
+        const savedFingerprint = await page.evaluate(() => localStorage.getItem("vn-manager-last-export-fingerprint"));
+        expect(savedFingerprint).toMatch(/^[a-f0-9]{64}$/);
+        await expect(page.getByText(changedMessage, { exact: true })).toHaveCount(0);
+
+        await page.goto("/vn/v1");
+        await expect(page.locator("#detail-score")).toHaveValue("80");
+        await page.locator("#detail-score").fill("81");
+        await page.getByRole("button", { name: "記録を保存", exact: true }).click();
+        await expect(page.getByText("本記録は保存済み", { exact: true })).toBeVisible();
+        await page.goto("/settings");
+        await expect(page.getByText(changedMessage, { exact: true })).toBeVisible();
+
+        await downloadBackup(page);
+        await expect(page.getByText(changedMessage, { exact: true })).toHaveCount(0);
+        await page.getByRole("button", { name: "購入先を追加", exact: true }).click();
+        await page.getByRole("textbox", { name: "購入先の名前", exact: true }).fill("Local shop");
+        await page.getByRole("button", { name: "確定", exact: true }).click();
+        await expect(page.getByText(changedMessage, { exact: true })).toBeVisible();
+
+        await downloadBackup(page);
+        await expect(page.getByText(changedMessage, { exact: true })).toHaveCount(0);
+        await page.locator("#settings-nsfw-blur").click();
+        await expect(page.locator("#settings-nsfw-blur")).toHaveAttribute("aria-checked", "false");
+        await expect(page.getByText(changedMessage, { exact: true })).toBeVisible();
+
+        await downloadBackup(page);
+        await expect(page.getByText(changedMessage, { exact: true })).toHaveCount(0);
+        await page.goto("/vn/v1");
+        await page.getByRole("textbox", { name: "感想・レビュー", exact: true }).fill("draft only");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await page.goto("/settings");
+        await expect(page.getByText(changedMessage, { exact: true })).toHaveCount(0);
+    });
+
+    test("keeps the fingerprint for the exported snapshot when settings change during export", async ({ page }) => {
+        await page.addInitScript(() => {
+            const createObjectURL = URL.createObjectURL.bind(URL);
+            Object.defineProperty(URL, "createObjectURL", {
+                configurable: true,
+                value: (blob: Blob) => {
+                    const url = createObjectURL(blob);
+                    if (blob.type === "application/json") {
+                        localStorage.setItem("vn-manager-nsfw-blur", "false");
+                    }
+                    return url;
+                },
+            });
+        });
+        await page.goto("/settings");
+
+        const { data } = await downloadBackup(page);
+        expect(data.settings.nsfwBlur).toBe(true);
+        await expect(page.evaluate(() => localStorage.getItem("vn-manager-nsfw-blur"))).resolves.toBe("false");
+        await expect(page.evaluate(() => localStorage.getItem("vn-manager-last-export-fingerprint")))
+            .resolves.toBe(await fingerprintBackupDocument(data));
+        await expect(page.getByText("前回のバックアップ以降にデータが変更されています。最新状態を保存するには、もう一度エクスポートしてください。", { exact: true })).toBeVisible();
     });
 
     test("persists language and records the final export time", async ({ page }) => {
@@ -72,8 +185,10 @@ test.describe("settings", () => {
 
     test("keeps the previous export time when export fails", async ({ page }) => {
         const previousExportAt = "2025-01-02T03:04:05.000Z";
+        const previousFingerprint = "0".repeat(64);
         await page.addInitScript((exportAt) => {
             localStorage.setItem("vn-manager-last-export-at", exportAt);
+            localStorage.setItem("vn-manager-last-export-fingerprint", "0".repeat(64));
             Object.defineProperty(URL, "createObjectURL", {
                 configurable: true,
                 value: () => {
@@ -83,11 +198,15 @@ test.describe("settings", () => {
         }, previousExportAt);
         await page.goto("/settings");
 
+        const changedMessage = "前回のバックアップ以降にデータが変更されています。最新状態を保存するには、もう一度エクスポートしてください。";
+        await expect(page.getByText(changedMessage, { exact: true })).toBeVisible();
         await page.getByRole("button", { name: "バックアップをダウンロード (JSON)", exact: true }).click();
         await expect(page.getByRole("region", { name: "データとバックアップ" }).getByRole("alert")).toContainText(
             "データのエクスポートに失敗しました",
         );
         await expect(page.evaluate(() => localStorage.getItem("vn-manager-last-export-at"))).resolves.toBe(previousExportAt);
+        await expect(page.evaluate(() => localStorage.getItem("vn-manager-last-export-fingerprint"))).resolves.toBe(previousFingerprint);
+        await expect(page.getByText(changedMessage, { exact: true })).toBeVisible();
     });
 
     test("reaches settings from the mobile menu", async ({ page }) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { Download, Loader2, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,12 @@ import { useSettings } from "@/context/SettingsContext";
 import {
     createBackupDocument,
     createRestorePreview,
+    fingerprintBackupDocument,
+    getBackupFreshness,
     parseBackup,
+    type BackupDocument,
+    type BackupFreshness,
+    type BackupSettings,
     type ParsedBackup,
     type RestorePreview,
 } from "@/lib/backup";
@@ -24,11 +29,63 @@ interface ImportState {
 }
 
 const LAST_EXPORT_AT_KEY = "vn-manager-last-export-at";
+const LAST_EXPORT_FINGERPRINT_KEY = "vn-manager-last-export-fingerprint";
+
+function getBackupSettingsFromStorage(): BackupSettings {
+    const language = localStorage.getItem("vn-manager-lang");
+    const storedBlur = localStorage.getItem("vn-manager-nsfw-blur");
+    return {
+        language: language === "en" ? "en" : "ja",
+        backgroundImage: localStorage.getItem("vn-manager-bg"),
+        nsfwBlur: storedBlur === null ? true : storedBlur === "true",
+    };
+}
+
+async function readCurrentBackupDocument(exportedAt = new Date()): Promise<BackupDocument> {
+    const [library, sourceRows] = await Promise.all([
+        db.getAllLibraryItems(),
+        db.getAllPurchaseSources(),
+    ]);
+    return createBackupDocument(
+        library,
+        sourceRows.map((source) => source.name),
+        getBackupSettingsFromStorage(),
+        exportedAt,
+    );
+}
+
+function restoreStorageValue(key: string, value: string | null) {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+}
+
+function saveExportTracking(exportedAt: string, fingerprint: string) {
+    const previousExportAt = localStorage.getItem(LAST_EXPORT_AT_KEY);
+    const previousFingerprint = localStorage.getItem(LAST_EXPORT_FINGERPRINT_KEY);
+
+    try {
+        localStorage.setItem(LAST_EXPORT_FINGERPRINT_KEY, fingerprint);
+        localStorage.setItem(LAST_EXPORT_AT_KEY, exportedAt);
+    } catch (error) {
+        try {
+            restoreStorageValue(LAST_EXPORT_FINGERPRINT_KEY, previousFingerprint);
+            restoreStorageValue(LAST_EXPORT_AT_KEY, previousExportAt);
+        } catch (restoreError) {
+            console.error("Backup export tracking rollback failed:", restoreError);
+        }
+        throw error;
+    }
+}
 
 export function BackupManager({ id }: { id?: string }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const overwriteId = useId();
-    const { reloadLibrary } = useLibrary();
+    const {
+        items,
+        purchaseSources,
+        isLoading: isLibraryLoading,
+        reloadLibrary,
+    } = useLibrary();
     const { language, setLanguage, t } = useLanguage();
     const { backgroundImage, nsfwBlur, setBackgroundImage, setNsfwBlur } = useSettings();
     const [importState, setImportState] = useState<ImportState | null>(null);
@@ -36,10 +93,53 @@ export function BackupManager({ id }: { id?: string }) {
     const [isRestoring, setIsRestoring] = useState(false);
     const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
     const [lastExportAt, setLastExportAt] = useState<string | null>(null);
+    const [backupFreshness, setBackupFreshness] = useState<BackupFreshness>(null);
+    const statusRefreshId = useRef(0);
+
+    const refreshBackupStatus = useCallback(async () => {
+        const refreshId = ++statusRefreshId.current;
+        try {
+            const storedExportAt = localStorage.getItem(LAST_EXPORT_AT_KEY);
+            const storedFingerprint = localStorage.getItem(LAST_EXPORT_FINGERPRINT_KEY);
+            setLastExportAt(storedExportAt);
+
+            if (!storedExportAt) {
+                setBackupFreshness(null);
+                return;
+            }
+            if (!storedFingerprint) {
+                setBackupFreshness("untracked");
+                return;
+            }
+
+            const currentDocument = await readCurrentBackupDocument();
+            const currentFingerprint = await fingerprintBackupDocument(currentDocument);
+            if (refreshId !== statusRefreshId.current) return;
+            setBackupFreshness(getBackupFreshness(storedExportAt, storedFingerprint, currentFingerprint));
+        } catch (error) {
+            console.error("Backup freshness check failed:", error);
+        }
+    }, []);
 
     useEffect(() => {
-        setLastExportAt(localStorage.getItem(LAST_EXPORT_AT_KEY));
-    }, []);
+        if (isLibraryLoading) return;
+        void refreshBackupStatus();
+    }, [backgroundImage, isLibraryLoading, items, language, nsfwBlur, purchaseSources, refreshBackupStatus]);
+
+    useEffect(() => {
+        const refreshWhenVisible = () => {
+            if (document.visibilityState !== "hidden") void refreshBackupStatus();
+        };
+
+        window.addEventListener("focus", refreshWhenVisible);
+        window.addEventListener("storage", refreshWhenVisible);
+        document.addEventListener("visibilitychange", refreshWhenVisible);
+        return () => {
+            window.removeEventListener("focus", refreshWhenVisible);
+            window.removeEventListener("storage", refreshWhenVisible);
+            document.removeEventListener("visibilitychange", refreshWhenVisible);
+        };
+    }, [refreshBackupStatus]);
 
     const formatExportDate = (value: string) => {
         const date = new Date(value);
@@ -54,20 +154,8 @@ export function BackupManager({ id }: { id?: string }) {
     const exportData = async () => {
         try {
             const exportedAt = new Date();
-            const [library, sourceRows] = await Promise.all([
-                db.getAllLibraryItems(),
-                db.getAllPurchaseSources(),
-            ]);
-            const data = createBackupDocument(
-                library,
-                sourceRows.map((source) => source.name),
-                {
-                    language,
-                    backgroundImage,
-                    nsfwBlur,
-                },
-                exportedAt,
-            );
+            const data = await readCurrentBackupDocument(exportedAt);
+            const fingerprint = await fingerprintBackupDocument(data);
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const anchor = document.createElement("a");
@@ -78,8 +166,10 @@ export function BackupManager({ id }: { id?: string }) {
             anchor.remove();
             URL.revokeObjectURL(url);
             const exportedAtValue = exportedAt.toISOString();
-            localStorage.setItem(LAST_EXPORT_AT_KEY, exportedAtValue);
+            saveExportTracking(exportedAtValue, fingerprint);
             setLastExportAt(exportedAtValue);
+            setBackupFreshness(null);
+            await refreshBackupStatus();
             setMessage({ kind: "success", text: t.stats.toasts.exportSuccess });
             toast.success(t.stats.toasts.exportSuccess);
         } catch (error) {
@@ -227,6 +317,13 @@ export function BackupManager({ id }: { id?: string }) {
                                 ? t.settings.lastExportAt.replace("{date}", formatExportDate(lastExportAt))
                                 : t.settings.noExportYet}
                         </p>
+                        {backupFreshness && (
+                            <p role="status">
+                                {backupFreshness === "untracked"
+                                    ? t.settings.backupTrackingUnknown
+                                    : t.settings.backupChangedSinceExport}
+                            </p>
+                        )}
                     </div>
 
                     {message && !importState && (
