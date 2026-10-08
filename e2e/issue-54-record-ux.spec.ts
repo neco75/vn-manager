@@ -40,6 +40,84 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 test.describe("Issue #54 record order and removal path", () => {
+    test("restores all eleven edited record fields after leaving and revisiting without saving them", async ({ page }) => {
+        await mockVNDB(page);
+        await page.goto("/");
+        await seedLibraryItem(page, "v1", {
+            status: "plan_to_play",
+            ownership: "unknown",
+            score: null,
+            notes: "Saved memo",
+            review: "Saved review",
+            playTime: 60,
+            purchaseLocation: "DLsite",
+            startedOn: "2025-01-02",
+            completedOn: "2025-01-03",
+            lastPlayedOn: "2025-01-02",
+            resumeNote: "Saved resume note",
+        });
+        await seedPurchaseSources(page, ["DLsite", "Steam"]);
+        await page.reload();
+        await page.goto("/vn/v1");
+
+        const originalRecord = {
+            status: "plan_to_play",
+            ownership: "unknown",
+            score: null,
+            notes: "Saved memo",
+            review: "Saved review",
+            playTime: 60,
+            purchaseLocation: "DLsite",
+            startedOn: "2025-01-02",
+            completedOn: "2025-01-03",
+            lastPlayedOn: "2025-01-02",
+            resumeNote: "Saved resume note",
+        };
+        await expect.poll(() => readLibraryItem(page, "v1")).toMatchObject(originalRecord);
+
+        await page.getByRole("combobox", { name: "ステータス", exact: true }).click();
+        await page.getByRole("option", { name: "クリア済み", exact: true }).click();
+        await page.getByRole("spinbutton", { name: "スコア", exact: true }).fill("94");
+        await page.getByRole("spinbutton", { name: "プレイ時間", exact: true }).fill("12.5");
+        await page.locator("#detail-resume-note").fill("Continue after the gallery scene.");
+        await page.getByRole("textbox", { name: "感想・レビュー", exact: true }).fill("Draft review after leaving.");
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await page.getByRole("textbox", { name: "メモ（自分用）", exact: true }).fill("Draft memo after leaving.");
+        await openAdditionalRecordFields(page);
+        await page.getByRole("combobox", { name: "所有状況", exact: true }).click();
+        await page.getByRole("option", { name: "所有済み", exact: true }).click();
+        await page.locator("#detail-started-on").fill("2024-02-03");
+        await page.locator("#detail-completed-on").fill("2024-02-20");
+        await page.locator("#detail-last-played-on").fill("2024-02-19");
+        await page.getByRole("combobox", { name: "購入先を選択", exact: true }).click();
+        await page.getByRole("option", { name: "Steam", exact: true }).click();
+
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await expect.poll(() => readLibraryItem(page, "v1")).toMatchObject(originalRecord);
+        await page.getByRole("link", { name: "ライブラリ", exact: true }).click();
+        await expect(page).toHaveURL(/\/$/);
+        await page.goto("/vn/v1");
+
+        await expect(page.getByText("この作品に未反映の下書きがあります。復元しますか？", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "下書きを復元", exact: true }).click();
+        await expect(page.getByRole("combobox", { name: "ステータス", exact: true })).toContainText("クリア済み");
+        await expect(page.getByRole("spinbutton", { name: "スコア", exact: true })).toHaveValue("94");
+        await expect(page.getByRole("spinbutton", { name: "プレイ時間", exact: true })).toHaveValue("12.5");
+        await expect(page.locator("#detail-resume-note")).toHaveValue("Continue after the gallery scene.");
+        await expect(page.getByRole("textbox", { name: "感想・レビュー", exact: true })).toHaveValue("Draft review after leaving.");
+        await expect(page.getByTestId("detail-notes-section").locator("summary")).toBeVisible();
+        await page.getByTestId("detail-notes-section").locator("summary").click();
+        await expect(page.getByRole("textbox", { name: "メモ（自分用）", exact: true })).toHaveValue("Draft memo after leaving.");
+        await openAdditionalRecordFields(page);
+        await expect(page.getByRole("combobox", { name: "所有状況", exact: true })).toContainText("所有済み");
+        await expect(page.locator("#detail-started-on")).toHaveValue("2024-02-03");
+        await expect(page.locator("#detail-completed-on")).toHaveValue("2024-02-20");
+        await expect(page.locator("#detail-last-played-on")).toHaveValue("2024-02-19");
+        await expect(page.getByRole("combobox", { name: "購入先を選択", exact: true })).toContainText("Steam");
+        await expect(page.getByText("下書き保存済み・記録には未反映", { exact: true })).toBeVisible();
+        await expect.poll(() => readLibraryItem(page, "v1")).toMatchObject(originalRecord);
+    });
+
     test("reaches the resume note from the top of a 390x667 screen before the long editors", async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 667 });
         await mockVNDB(page);
