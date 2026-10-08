@@ -3,7 +3,7 @@
 ## 判定
 
 - 検証対象base: `origin/develop-v2` / `e5f0407b954279de04d88c6ee47e6657cb656752`。PR #125（#54の下書き復元E2E、merge `8140fcaa93f20839688169180b3bd6cfa6c72cd0`）とPR #126（#53のアクセシビリティ修正、merge `e5f0407b954279de04d88c6ee47e6657cb656752`）を含む。
-- 最新の統合後Quality checks run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863) は、2026-10-08 12:44:27 UTC時点で `in_progress`。`Install Playwright Chromium` が実行中、`Review checks` はpendingで、成功とは判定しない。
+- 最新の統合後Quality checks run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863) は2026-10-08 12:57:54 UTCにsuccess。headはbase SHAと同じ`e5f0407b954279de04d88c6ee47e6657cb656752`、unit 98件 / E2E 114件、audit high以上0件（moderate 2件）。
 - base SHA `e5f0407` のPreview deployment [6935858523](https://github.com/neco75/vn-manager/deployments/6935858523) はenvironment `Preview` / head `e5f0407b954279de04d88c6ee47e6657cb656752` / status `success`。URLは[こちら](https://vn-manager-jotpftwe0-neco75s-projects.vercel.app)。
 - 最新に完了した `CI=1 npm run check:review` はPR #126 head `1677fffef91e31c5e973324b6474c417b55a1e5a`で成功。GitHub run [37778238399](https://github.com/neco75/vn-manager/actions/runs/37778238399)はsuccess、unit 98件、E2E 114件、audit high以上0件（moderate 2件）。
 - このPRはQA資料と画面証跡のみを更新する。アプリ本体、DB、依存パッケージ、保存形式の変更はない。Playwrightは既存VNDB fixtureと隔離BrowserContextを使い、実データ・実VNDBへ接続しない。
@@ -65,7 +65,7 @@ PR #126 Preview head `1677fffef91e31c5e973324b6474c417b55a1e5a`のdeployment [69
 
 - PR #126 head上で `CI=1 npm run check:review` がexit 0。regression checks、unit 98/98、lint、typecheck、build、E2E 114/114、`npm audit --audit-level=high`を完走した。auditはmoderate 2件、high以上0件。
 - PlaywrightはCI設定の1 workerで114件を実行。Issue #55の3ケース、Issue #54の下書き11項目、backupの別BrowserContext往復、下書き/別tab競合、Settingsのbackup fingerprint成功・失敗・変更検知、responsive/JA/EN/a11yケースを含む。
-- 統合後のdevelop-v2 Quality checks run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863) は確認時点でin progress（上記）。PR headの成功結果を統合後Quality checksの完了結果として扱わない。
+- 統合後のdevelop-v2 Quality checks run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863) はsuccess。unit 98/98、E2E 114/114、audit high以上0件（moderate 2件）。
 
 ## Preview、本番境界、rollback
 
@@ -81,11 +81,10 @@ PR #126 Preview head `1677fffef91e31c5e973324b6474c417b55a1e5a`のdeployment [69
 | `npm run build` | exit 0。 |
 | `npx playwright test e2e/search-and-library.spec.ts --grep "keeps long library cards readable and makes the whole card a detail link at 320px" --workers=1` | 1件成功。PC1440×1000、390×844、390×667の一覧画像を既存fixtureで生成。コミット差分はPC一覧画像のみ。 |
 | 最新成功 `check:review` | PR #126 head `1677fffef91e31c5e973324b6474c417b55a1e5a`、run [37778238399](https://github.com/neco75/vn-manager/actions/runs/37778238399) success。unit 98 / E2E 114。 |
-| develop-v2 post-merge Quality checks | run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863)、head `e5f0407b954279de04d88c6ee47e6657cb656752`、2026-10-08 12:44:27 UTCの観測で`in_progress`。成功未確認。 |
+| develop-v2 post-merge Quality checks | run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863)、head `e5f0407b954279de04d88c6ee47e6657cb656752`、success。unit 98 / E2E 114 / audit high以上0（moderate 2）。 |
 | develop-v2 Preview | deployment [6935858523](https://github.com/neco75/vn-manager/deployments/6935858523)、environment `Preview`、head `e5f0407b954279de04d88c6ee47e6657cb656752`、status `success`。 |
 
 ## 未確認
 
 - 認証されたVercel Previewでのライブ手動操作とVercel dashboardのProduction Branch設定。認証が`account_not_found`。GitHub deployment statusは確認済みだが、live手動操作やProduction Branch画面確認の代替とは扱わない。
-- develop-v2統合後Quality checks run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863)の完了結果。確認時点では`in_progress`であり、成功は未確認。
 - VNDB実データ/実表紙の描画。すべてのE2Eはfixtureとネットワーク遮断を使った。
