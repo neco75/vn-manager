@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
     BACKUP_SCHEMA_VERSION,
     BackupValidationError,
+    fingerprintBackupDocument,
+    getBackupFreshness,
     parseBackup,
+    type BackupDocument,
 } from "@/lib/backup";
 
 function makeBackup(vnOverrides: Record<string, unknown> = {}) {
@@ -49,6 +52,48 @@ function expectPath(overrides: Record<string, unknown>, path: RegExp) {
     }
     throw new Error("Expected backup validation to fail");
 }
+
+describe("backup freshness", () => {
+    it("fingerprints the exported content but ignores the export timestamp", async () => {
+        const document = makeBackup() as unknown as BackupDocument;
+        const fingerprint = await fingerprintBackupDocument(document);
+
+        expect(fingerprint).toMatch(/^[a-f0-9]{64}$/);
+        await expect(fingerprintBackupDocument({
+            ...document,
+            exportedAt: "2026-10-08T12:34:56.000Z",
+        })).resolves.toBe(fingerprint);
+        await expect(fingerprintBackupDocument({
+            ...document,
+            library: [{ ...document.library[0], score: 81 }],
+        })).resolves.not.toBe(fingerprint);
+        await expect(fingerprintBackupDocument({
+            ...document,
+            purchaseSources: ["Steam"],
+        })).resolves.not.toBe(fingerprint);
+        await expect(fingerprintBackupDocument({
+            ...document,
+            settings: { ...document.settings, nsfwBlur: false },
+        })).resolves.not.toBe(fingerprint);
+        await expect(fingerprintBackupDocument({
+            ...document,
+            settings: { ...document.settings, language: "en" },
+        })).resolves.not.toBe(fingerprint);
+        await expect(fingerprintBackupDocument({
+            ...document,
+            settings: { ...document.settings, backgroundImage: "data:image/png;base64,fixture" },
+        })).resolves.not.toBe(fingerprint);
+    });
+
+    it.each([
+        ["no prior export", null, null, "current", null],
+        ["legacy export without a fingerprint", "2026-01-01T00:00:00.000Z", null, "current", "untracked"],
+        ["matching contents", "2026-01-01T00:00:00.000Z", "saved", "saved", null],
+        ["changed contents", "2026-01-01T00:00:00.000Z", "saved", "different", "changed"],
+    ] as const)("reports %s without comparing dates", (_label, lastExportAt, saved, current, expected) => {
+        expect(getBackupFreshness(lastExportAt, saved, current)).toBe(expected);
+    });
+});
 
 describe("backup VN title metadata validation", () => {
     it("accepts valid title metadata and optional omissions", () => {

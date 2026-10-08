@@ -23,6 +23,18 @@ export interface BackupDocument {
     settings: BackupSettings;
 }
 
+export type BackupFreshness = "untracked" | "changed" | null;
+
+export function getBackupFreshness(
+    lastExportAt: string | null,
+    savedFingerprint: string | null,
+    currentFingerprint: string,
+): BackupFreshness {
+    if (!lastExportAt) return null;
+    if (!savedFingerprint) return "untracked";
+    return savedFingerprint === currentFingerprint ? null : "changed";
+}
+
 export interface ParsedBackup {
     schemaVersion: 0 | typeof PREVIOUS_BACKUP_SCHEMA_VERSION | typeof BACKUP_SCHEMA_VERSION;
     exportedAt: string | null;
@@ -417,6 +429,13 @@ export function createBackupDocument(
         purchaseSources,
         settings,
     };
+}
+
+export async function fingerprintBackupDocument(document: BackupDocument): Promise<string> {
+    const content = Object.fromEntries(Object.entries(document).filter(([key]) => key !== "exportedAt"));
+    const bytes = new TextEncoder().encode(JSON.stringify(content));
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 export function createRestorePreview(backup: ParsedBackup, existingItems: LibraryItem[]): RestorePreview {
