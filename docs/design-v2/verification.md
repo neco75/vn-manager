@@ -67,11 +67,9 @@
 | Check | 結果 |
 | --- | --- |
 | `npm ci` | exit 0。依存lockfileの変更なし。Moderate 2件あり。 |
-| `npm ci` | exit 0。依存lockfileの変更なし。 |
 | `CI=true npm run check:review` | exit 0。Regression / unit 98/98 / lint / typecheck / build / E2E 112/112 pass。`npm audit --audit-level=high` はHigh 0、Moderate 2。 |
 | Base Quality checks | success、run `37763749288`、head `7f0e5a4c31d39a90a53f21aabc05c358e3dd45b7`。 |
 | Base Preview deployment | success、deployment `6933141656`、environment `Preview`、head `7f0e5a4c31d39a90a53f21aabc05c358e3dd45b7`。 |
-| PR Quality checks / Preview | PR作成後にrun URL、結果、Preview status/URL、head SHAを追記する。 |
 
 ## 未確認
 
