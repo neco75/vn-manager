@@ -47,11 +47,21 @@ PC 1440×1000の一覧画像はPR #126統合後の画面を既存Playwright fixt
 | 文字・境界・focusのcontrast | `e2e/issue-53-accessibility.spec.ts` が実computed colorで通常文字/placeholder 4.5:1以上、入力境界と操作表面3:1以上を確認。disabled操作は対象外。 |
 | 横overflow・保存バー | `e2e/final-qa.spec.ts` と `e2e/detail-save-bar.spec.ts`。編集長文、画面端/固定位置、入力とheader/保存バーの重なり、ポインターとキーボード保存を確認。390×667/844の画像も収録。 |
 
-### PR #126修正後の限定Axe確認
+### PR #126修正後の72条件Axe再確認
 
-統合担当はPR #126 head `1677fffef91e31c5e973324b6474c417b55a1e5a`をローカルにcheckoutして起動したNext.js dev server `http://127.0.0.1:3778`で、Axe 4.11を独立に実行した。対象は`/` desktop JA、`/` desktop EN、`/ranking` desktop ENの3条件。`aria-valid-attr-value`と`heading-order`の違反は、各条件で0件だった。PR #126のPreview deployment [6935698201](https://github.com/neco75/vn-manager/deployments/6935698201)はenvironment `Preview` / status `success`だが、これはデプロイ状態の確認のみであり、AxeはPreview URLでは走査していない。
+走査対象は`origin/develop-v2`のhead `7653877e860f9175ce9000836ad0d9c29257deb6`で、このドキュメント専用PRのbase SHAでもある。Axe Core 4.11.0の既定設定を使い、`axe.run(document)`をルール指定や除外なしで実行した。6ルート（`/`、`/search`、`/ranking`、`/stats`、`/settings`、`/vn/v1`）× 1440×1000 / 390×844 × JA / EN × 背景なし / 白 / 黒の72条件を走査し、72条件すべてで`violations`は0件、ブラウザーの`pageerror`も0件だった。違反ルール・要素はなかった。これはAxeの自動違反結果であり、`incomplete`項目や手動スクリーンリーダー確認を合格と扱うものではない。
 
-これは限定した3条件の走査結果であり、全72条件を修正後に再走査した結果ではない。PR #126本文にある72条件の手動Axe確認は修正前の結果である。
+実行は指定SHAの一時detached worktreeと隔離BrowserContextを使った。既存`node_modules`を参照し、依存の追加・更新はしていない。Next dev serverは`http://127.0.0.1:3778`、fixture serverは`http://127.0.0.1:3779`で起動し、`VNDB_API_URL`を`http://127.0.0.1:3779/kana/vn`へ向けた。各BrowserContextに既存`e2e/fixtures/vndb.json`の`v1` / `v4`をIndexedDB fixtureとしてseedし、`vn-manager-lang`と`vn-manager-bg`を組合せごとに設定した。背景の白/黒にはSVG data URIを使用した。Axeを注入する前にH1の表示、`html.lang`の一致、350msの待機を確認した。ブラウザーからのVNDB APIと表紙画像はfixture応答に置き換え、他の外部originはabortした。`va.vercel-scripts.com`への要求も遮断され、実VNDB APIへのアクセスはなかった。Next serverには既存`e2e/guard-network.cjs`を適用した。
+
+確認できた機械集計は次のとおり。個々の条件のJSON出力やスクリーンショットは保存しておらず、runnerも一時実行のみでリポジトリには追加していない。
+
+```json
+{"target":"7653877e860f9175ce9000836ad0d9c29257deb6","axeVersion":"4.11.0","scanned":72,"expected":72,"zeroViolationScenarios":72,"nonzeroScenarios":[],"violations":[],"blockedExternalOrigins":["https://va.vercel-scripts.com"],"pageErrors":[]}
+```
+
+再現の構成は、`FIXTURE_PORT=3779 node e2e/fixture-server.mjs`を起動し、`VNDB_API_URL=http://127.0.0.1:3779/kana/vn`と`NODE_OPTIONS=--require=./e2e/guard-network.cjs`を設定して`node node_modules/next/dist/bin/next dev --webpack --hostname 127.0.0.1 --port 3778`を起動する。その上で一時Playwright runnerから上記72組合せごとに隔離BrowserContextを作り、fixtureをseedし、`axe-core/axe.min.js`を注入して`window.axe.run(document)`の`violations`を集計する。一時checkoutの`node_modules` junctionをTurbopackがfilesystem root外として拒否したため`--webpack`を使用した。runnerの正確なソースと起動コマンドは保存していないため、この記述は保存済みのrunner出力と実行構成の記録であり、単独で同一runnerを再実行する手順ではない。
+
+PR #126本文にある72条件の手動Axe確認は修正前の結果であり、ここに記録した72条件は修正後に行った別の自動走査である。
 
 ## 保存互換性と障害復旧
 
@@ -79,6 +89,8 @@ PC 1440×1000の一覧画像はPR #126統合後の画面を既存Playwright fixt
 | --- | --- |
 | `npm ci` | exit 0。package/lockfileの差分なし。moderate 2件を報告。 |
 | `npm run build` | exit 0。 |
+| Axe 4.11.0 | 指定SHA `7653877e860f9175ce9000836ad0d9c29257deb6`で72/72条件を走査。全条件violations 0、pageerror 0。 |
+| `git diff --check` | exit 0。 |
 | `npx playwright test e2e/search-and-library.spec.ts --grep "keeps long library cards readable and makes the whole card a detail link at 320px" --workers=1` | 1件成功。PC1440×1000、390×844、390×667の一覧画像を既存fixtureで生成。コミット差分はPC一覧画像のみ。 |
 | 最新成功 `check:review` | PR #126 head `1677fffef91e31c5e973324b6474c417b55a1e5a`、run [37778238399](https://github.com/neco75/vn-manager/actions/runs/37778238399) success。unit 98 / E2E 114。 |
 | develop-v2 post-merge Quality checks | run [37779030863](https://github.com/neco75/vn-manager/actions/runs/37779030863)、head `e5f0407b954279de04d88c6ee47e6657cb656752`、success。unit 98 / E2E 114 / audit high以上0（moderate 2）。 |
